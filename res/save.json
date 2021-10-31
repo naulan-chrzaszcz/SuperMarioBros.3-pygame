@@ -1,0 +1,21 @@
+{
+
+  "PowerUpInventory": {
+    "1": null,
+    "2": null,
+    "3": null
+  },
+
+  "Position": [
+    16,
+    128
+  ],
+
+  "Score": 0,
+  "State": "little",
+  "Coins": 0,
+  "Life": 4,
+  "Who": "MARIO",
+  "ControllerCalibrate": false
+
+}

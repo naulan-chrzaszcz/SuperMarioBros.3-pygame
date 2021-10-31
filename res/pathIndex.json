@@ -1,0 +1,61 @@
+{
+  "annexe": {
+    ":type": "image",
+    "titleCHRZSheet": ["res/sheets/", "chrz_title_sheet.png"],
+    "introBG": ["res/sheets/", "intro_bg.png"],
+    "beetle": ["res/sheets/", "beetle.png"],
+    "buttonSheet": ["res/sheets/", "buttons_sheet.png"],
+    "controller": ["res/sheets/", "controller.png"]
+  },
+
+  "entities": {
+    ":type": "image",
+    "player": ["res/sheets/", "player.png"],
+    "goomba": ["res/sheets/", "goomba.png"],
+    "koopa": ["res/sheets/", "koopa.png"],
+    "MushroomSheet": ["res/sheets/", "mushroomRed.png"]
+  },
+
+  "tiles": {
+    ":type": "image",
+    "floorsPlatformSheet": ["res/sheets/", "floors_and_platforms.png"],
+    "selectMenuStageSheet": ["res/sheets/", "choice_menu_stage.png"],
+    "breakableBlockSheet": ["res/sheets/", "breakable_block.png"],
+    "titleScreenSheet": ["res/sheets/", "title_screen.png"],
+    "vegetationSheet": ["res/sheets/", "vegetation.png"],
+    "lootBlockSheet": ["res/sheets/", "lootblock.png"],
+    "pointsSheet": ["res/sheets/", "points.png"],
+    "shadowSheet": ["res/sheets/", "shadow.png"],
+    "tubesSheet": ["res/sheets/", "tubes.png"],
+    "cloudSheet": ["res/sheets/", "cloud.png"],
+    "starsSheet": ["res/sheets/", "stars.png"],
+    "coinSheet": ["res/sheets/", "coin.png"],
+    "HUDSheet": ["res/sheets/", "hud.png"]
+  },
+
+  "musics": {
+    ":type": "music",
+    "StageMenuMsc": ["res/sounds/", "Stage_Menu_msc.ogg"],
+    "Stage1Msc": ["res/sounds/", "Stage_1_msc.ogg"]
+  },
+
+  "sfx": {
+    ":type": "music",
+    "enterWorld": ["res/sounds/", "enter_world.ogg"],
+    "mapTravel": ["res/sounds/", "map_travel.ogg"],
+    "newWorld": ["res/sounds/", "new_world.ogg"],
+    "bass": ["res/sounds/", "bass.ogg"]
+  },
+
+  "fonts": {
+    ":type": "font",
+    "default": ["res/", "font.tff"]
+  },
+
+  "levels": {
+    ":type": "map",
+    "selectMenuStage": ["res/matrices/", "select_stage_menu.json"],
+    "stage_1": ["res/matrices/", "stage_1.json"],
+    "stage_2": ["res/matrices/", "stage_2.json"]
+  }
+}
