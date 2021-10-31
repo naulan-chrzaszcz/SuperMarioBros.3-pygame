@@ -115,7 +115,7 @@ class Main(object):
         output = str(subprocess.Popen("xrandr | grep \"\*\" | cut -d\" \" -f4", shell=True, stdout=subprocess.PIPE).communicate()[0])
         w, h = output.split('x')
         # Remove useless element for correctly int conversion.
-        self.window_size = [int(f"{w}".replace("b'", "")), int(f"{h}".replace("\\n'", ""))]
+        self.window_size = (int(f"{w}".replace("b'", "")), int(f"{h}".replace("\\n'", "")))
 
     @staticmethod
     def load_img(directory, color_key=(255, 174, 201)):
