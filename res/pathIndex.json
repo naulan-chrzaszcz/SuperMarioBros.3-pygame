@@ -2,7 +2,7 @@
   "annexe": {
     ":type": "image",
     "titleCHRZSheet": ["res/sheets/", "chrz_title_sheet.png"],
-    "introBG": ["res/sheets/", "intro_bg.png"],
+    "introBG": ["res/sheets/", "intro-bg.png"],
     "beetle": ["res/sheets/", "beetle.png"],
     "buttonSheet": ["res/sheets/", "buttons_sheet.png"],
     "controller": ["res/sheets/", "controller.png"]
