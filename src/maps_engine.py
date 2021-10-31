@@ -43,6 +43,7 @@ class Camera(object):
 
 class Maps(object):
     player: Player
+    camera: Camera
 
     def __init__(self):
         self.all_sprites = sprite.LayeredUpdates()
@@ -50,7 +51,6 @@ class Maps(object):
         self.is_menu_stage = False
         self.t = 0
 
-        # ### LIST VARIABLES ###
         self.platforms = []
         self.lootBlocks = []
         self.floors = []
@@ -130,7 +130,8 @@ class Maps(object):
 
     def updates(self,dt,keys_pressed):
         self.player.keys = keys_pressed
-        hit_list = sprite.spritecollide(self.player,self.all_sprites,0)
-        for target in hit_list: self.player.collide_test(target)
+        hit_list = sprite.spritecollide(self.player,self.all_sprites,False)
+        for target in hit_list:
+            self.player.collide_test(target)
         self.all_sprites.update(dt)
         self.camera.update(self.player)
