@@ -5,11 +5,15 @@
 import subprocess
 import pygame as pg
 import ctypes
+import GPUtil
 import json
 import sys
 import os
 
 from typing import Tuple
+
+import pygame.display
+
 from src.fps import Fps
 from pygame.locals import *
 from os import getpid
@@ -32,6 +36,11 @@ class Main(object):
     window_size: Tuple[int, int]
 
     def __init__(self):
+        # load save
+        print("-"*3 + "= loading save file =" + "-"*11)
+        with open(os.path.join("res", "save.json")) as f:
+            self.save = json.load(f)
+
         # OS Check
         operating_system = sys.platform
         print(f"(!) Info: Le jeux est lancée sur \"{operating_system}\".")
@@ -43,8 +52,12 @@ class Main(object):
         else:
             print("(!) Warning: La resolution native n'a pas étais trouvé !")
             self.window_size = (1280, 720)
+        # if resolution as been edited by user
+        if self.save["ResolutionEdited"]:
+            self.window_size = (self.save["Resolution"][0], self.save["Resolution"][1])
         w, h = self.window_size
         print(f"(!) Info: Resolution native -> {w}x{h}")
+
         # Create Window and Display Surface
         self.screen = pg.display.set_mode(self.window_size, 0, 32)
         self.display = pg.Surface((464, 240))
@@ -53,11 +66,10 @@ class Main(object):
 
         # Stock all Maps (Stages) in memory
         self.stage_list = {}
-
         self.t = 0
 
         # load all resources.
-        print("---= Loading resources =-----------")
+        print("-"*3 + "= Loading resources =" + "-"*11)
         with open(os.path.join("res", "pathIndex.json")) as f:
             pathIndex = json.load(f)
         self.res = {}
@@ -74,7 +86,7 @@ class Main(object):
                         with open(os.path.join(directory, file)) as f:
                             self.res[i][index] = json.load(f)
                     print(f"{pathIndex[i][index][1]} loaded !")
-        print("---= all resources loaded =--------")
+        print("-"*3 + "= all resources loaded =" + "-"*11 + "\n")
 
         self.stage_menu = StageMenu()
         # Keyboard event and/or remote control
@@ -88,6 +100,11 @@ class Main(object):
         self.maps = Maps()
         self.fps = Fps()
 
+        gpuName = GPUtil.getGPUs()[0].name
+        if gpuName != self.save["GraphicsDriver"]:
+            for resolution in pygame.display.list_modes():
+                self.save["ResolutionsAvailable"].append(resolution)
+
     def windows_startup_settings(self):
         """ Apply and get some settings for Windows.
                 Priority set to High
@@ -98,9 +115,10 @@ class Main(object):
         self.set_priority_class = ctypes.windll.kernel32.SetPriorityClass
         self.open_process = ctypes.windll.kernel32.OpenProcess
         self.close_handle = ctypes.windll.kernel32.CloseHandle
-        # Get native resolution.
-        user32 = ctypes.windll.user32
-        self.window_size = (user32.GetSystemMetrics(0), user32.GetSystemMetrics(1))
+        if not self.save["ResolutionEdited"]:
+            # Get native resolution.
+            user32 = ctypes.windll.user32
+            self.window_size = (user32.GetSystemMetrics(0), user32.GetSystemMetrics(1))
         # Set the game in priority "high" in Windows (for performance in game).
         self.set_priority(0x0080)
 
@@ -109,13 +127,14 @@ class Main(object):
                 Priority set to High
                 Get native resolution.
             (Use shell with subprocess libraries) """
+        if not self.save["ResolutionEdited"]:
+            # Get native resolution.
+            output = str(subprocess.Popen("xrandr | grep \"\*\" | cut -d\" \" -f4", shell=True, stdout=subprocess.PIPE).communicate()[0])
+            w, h = output.split('x')
+            # Remove useless element for correctly int conversion.
+            self.window_size = (int(f"{w}".replace("b'", "")), int(f"{h}".replace("\\n'", "")))
         # Process priority.
         os.nice(1)
-        # Get native resolution.
-        output = str(subprocess.Popen("xrandr | grep \"\*\" | cut -d\" \" -f4", shell=True, stdout=subprocess.PIPE).communicate()[0])
-        w, h = output.split('x')
-        # Remove useless element for correctly int conversion.
-        self.window_size = (int(f"{w}".replace("b'", "")), int(f"{h}".replace("\\n'", "")))
 
     @staticmethod
     def load_img(directory, color_key=(255, 174, 201)):
