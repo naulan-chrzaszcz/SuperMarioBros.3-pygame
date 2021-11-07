@@ -67,17 +67,13 @@ class Scene1(object):
                 surface.blit(self.sheet.subsurface((180,226),(42,41)),((self.titleX + w) + 72,h / 4 + 62))  # Blit "3" number
                 if self.step[3]:
                     hPressAToStart = h/4 + 105; wPressAToStart = w/2.6
-                    pressAtoStart = {'P': [wPressAToStart + sin(self.t), hPressAToStart], 'R': [wPressAToStart + sin(self.t-1)*2 + 7, hPressAToStart],
-                                     'E': [wPressAToStart + sin(self.t-2)*2 + 7*2, hPressAToStart], 'S': [wPressAToStart + sin(self.t-3)*2 + 7*3, hPressAToStart],
-                                     "S_":[wPressAToStart + sin(self.t-4)*2 + 7*4, hPressAToStart], 'A': [wPressAToStart + sin(self.t-5)*2 + 7*5+5, hPressAToStart],
-                                     'T': [wPressAToStart + sin(self.t-6)*2 + 7*6+10, hPressAToStart], 'O': [wPressAToStart + sin(self.t-7)*2 + 7*7+10, hPressAToStart],
-                                     'S__': [wPressAToStart + sin(self.t-8)*2 + 7*8+15, hPressAToStart]}
+                    pressAtoStart = {'P': [wPressAToStart+sin(self.t), hPressAToStart], 'R': [wPressAToStart+sin(self.t-1)*2 + 7, hPressAToStart],
+                                     'E': [wPressAToStart+sin(self.t-2)*2 + 7*2, hPressAToStart], 'S': [wPressAToStart+sin(self.t-3)*2 + 7*3, hPressAToStart],
+                                     "S_":[wPressAToStart+sin(self.t-4)*2 + 7*4, hPressAToStart], 'A': [wPressAToStart+sin(self.t-5)*2 + 7*5+5, hPressAToStart],
+                                     'T': [wPressAToStart+sin(self.t-6)*2 + 7*6+10, hPressAToStart], 'O': [wPressAToStart+sin(self.t-7)*2 + 7*7+10, hPressAToStart],
+                                     "S__": [wPressAToStart+sin(self.t-8)*2 + 7*8+15, hPressAToStart],"T_": [wPressAToStart+sin(self.t - 9)*2 + 7*9+15, hPressAToStart],
+                                     "A_":[wPressAToStart+sin(self.t-10)*2 + 7*10+15, hPressAToStart], "R_": [wPressAToStart+sin(self.t - 11)*2 + 7*11+15, hPressAToStart],
+                                     "T__": [wPressAToStart+sin(self.t-12)*2 + 7*12+15, hPressAToStart]}
                     for letter in pressAtoStart.keys():
                         loc = pressAtoStart[letter]
                         self.font.draw_msg(surface, loc, letter.replace(f'{"_"*letter.count("_")}', "") if letter.count('_') > 0 else letter)
-
-                    self.font.draw_msg(surface,[((surface.get_width() / 2.6) + sin(self.t - 9) * 2) + (7 * 9) + 15,surface.get_height() / 4 + 105],'T')
-                    self.font.draw_msg(surface,[((surface.get_width() / 2.6) + sin(self.t - 10) * 2) + (7 * 10) + 15,surface.get_height() / 4 + 105],'A')
-                    self.font.draw_msg(surface,[((surface.get_width() / 2.6) + sin(self.t - 11) * 2) + (7 * 11) + 15,surface.get_height() / 4 + 105],'R')
-                    self.font.draw_msg(surface,[((surface.get_width() / 2.6) + sin(self.t - 12) * 2) + (7 * 12) + 15,surface.get_height() / 4 + 105],'T')
-
