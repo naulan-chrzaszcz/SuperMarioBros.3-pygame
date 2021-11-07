@@ -8,7 +8,7 @@
         16,
         128
     ],
-    "GraphicsDriver": "Intel Corporation GeminiLake [UHD Graphics 600] (rev 03)",
+    "GraphicsDriver": "AMD Radeon(TM) Vega 8 Graphics",
     "ResolutionsAvailable": [
         [
             1920,
@@ -353,6 +353,62 @@
         [
             320,
             180
+        ],
+        [
+            1920,
+            1080
+        ],
+        [
+            1680,
+            1050
+        ],
+        [
+            1600,
+            900
+        ],
+        [
+            1440,
+            1080
+        ],
+        [
+            1366,
+            768
+        ],
+        [
+            1280,
+            1024
+        ],
+        [
+            1280,
+            720
+        ],
+        [
+            1024,
+            768
+        ],
+        [
+            832,
+            624
+        ],
+        [
+            800,
+            600
+        ],
+        [
+            720,
+            576
+        ],
+        [
+            720,
+            480
+        ],
+        [
+            720,
+            400
+        ],
+        [
+            640,
+            480
         ]
     ],
     "ResolutionEdited": false,

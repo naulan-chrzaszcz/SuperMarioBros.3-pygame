@@ -9,9 +9,9 @@ import json
 import sys
 import os
 
+from os import getpid
 from typing import Tuple
 from pygame.locals import *
-from os import getpid
 
 from src.fps import Fps
 from src.select_menu_stage import StageMenu
@@ -91,7 +91,7 @@ class Main(object):
         # Keyboard event and/or remote control
         self.event = Events(self.res["annexe"])
         # Intro CHRZASZCZ Development.
-        self.scene_0 = Scene0(self.res, self.event.keys_pressed)
+        self.scene_0 = Scene0(self.res)
         # Title screen of Super Mario Bros3.
         self.title_screen = TitleScreen(self.res["tiles"]["titleScreenSheet"])
 
@@ -162,6 +162,7 @@ class Main(object):
             w, h = output.split('x')
             # Remove useless element for correctly int conversion.
             self.window_size = (int(f"{w}".replace("b'", "")), int(f"{h}".replace("\\n'", "")))
+            self.save["Resolution"] = self.window_size
         # Process priority.
         os.nice(1)
 
@@ -173,17 +174,16 @@ class Main(object):
 
     def run(self):
         while True:
-            # ### --= FPS MANAGEMENT =-- ###
+            # FPS MANAGEMENT
             self.dt = self.fps.manage(fps=0)
-            if all([self.fps.benchmark, int(self.t) % 15 == 0]):
+            if self.fps.benchmark and int(self.t)%15 == 0:
                 self.fps.get()
                 self.fps.average()
             self.t += (1 * self.dt)
-            # ### ---------------------- ###
 
-            if not self.scene_0.finish:
+            # Scene n°0
+            if not self.scene_0.getFinish():
                 self.scene_0.start(self.display, self.dt)
-                self.screen.blit(pg.transform.scale(self.display, (self.window_size[0], self.window_size[1])), (0, 0))
             else:
                 if len(self.event.joysticks) != 0 and not self.event.is_calibrate:
                     self.event.calibrate(self.display)
@@ -191,33 +191,31 @@ class Main(object):
                 else:
                     self.event.get()
 
-                    # ### -------=LOAD=------- ###
-                    # Load select stage maps
-                    if all([self.title_screen.is_title == 0, self.stage_menu.load_stage_menu == 0]):
+                    # LOAD
+                    # select stage maps
+                    if not self.title_screen.getIsTitle() and not self.stage_menu.load_stage_menu:
                         self.display.fill((0, 0, 0))
                         print("Game: Load stage menu...")
                         self.stage_menu.new(self.res)
                         print("Game: Stage menu is loaded !")
                         self.stage_menu.load_stage_menu = True
-
-                    # Load maps
-                    elif all([self.stage_menu.load_maps == 0, self.stage_menu.pass_maps]):
+                    # maps
+                    elif not self.stage_menu.load_maps and self.stage_menu.pass_maps:
                         self.display.fill((0, 0, 0))
                         print("Game: Load maps...")
                         self.maps.new(self.res, self.stage_menu.stage)
                         print("Game: Maps is loaded !")
                         self.stage_menu.load_maps = True
-                    # ### -------------------- ###
 
-                    # ### -------=DRAW=------- ###
-                    if self.title_screen.is_title:
+                    # DRAWs
+                    if self.title_screen.getIsTitle():
                         self.title_screen.draw(self.display)
-                    if self.title_screen.pass_stage_menu:
+                    if self.title_screen.getPassStageMenu():
                         self.stage_menu.draw(self.display)
                     if self.stage_menu.pass_maps:
                         self.maps.draw(self.display)
                     # HUD
-                    if self.title_screen.is_title is not True:
+                    if not self.title_screen.getIsTitle():
                         hud_sheet = self.res["tiles"]["HUDSheet"]
                         pg.draw.rect(self.display, (0, 0, 0), Rect(0, self.display.get_height() - 45, self.display.get_width(), 45))
                         self.display.blit(hud_sheet.subsurface(0, 0, 154, 30), (self.display.get_width() / 6, self.display.get_height() - 40))
@@ -226,17 +224,17 @@ class Main(object):
                         self.font_custom.draw_msg(self.display, [self.display.get_width() / 6 + 105, self.display.get_height() - 25], f'{self.stage_menu.player.score}', True) if self.stage_menu.is_menu_stage else self.font_custom.draw_msg(self.display, [98, 192], f'{self.maps.player.score}', True)
                         self.font_custom.draw_msg(self.display, [self.display.get_width() / 6 + 28, self.display.get_height() - 25], f'{self.stage_menu.player.life}') if self.stage_menu.is_menu_stage else self.font_custom.draw_msg(self.display, [98, 192], f'{self.maps.player.life}')
                         self.font_custom.draw_msg(self.display, [self.display.get_width() / 6 + 35, self.display.get_height() - 33], self.stage_menu.stage)
-                    # Scale surface to native screen size
-                    self.screen.blit(pg.transform.scale(self.display, self.window_size), (0, 0))
-                    self.fps.draw(self.screen)  # Monitoring
 
-                    # ------=UPDATES=-------------
-                    if self.title_screen.is_title:
+                    # UPDATES
+                    if self.title_screen.getIsTitle():
                         self.title_screen.updates(self.dt, self.event.keys_pressed)
-                    if all([self.title_screen.pass_stage_menu, self.stage_menu.load_stage_menu, self.stage_menu.pass_maps == 0]):
+                    if all([self.title_screen.getPassStageMenu(), self.stage_menu.load_stage_menu, not self.stage_menu.pass_maps]):
                         self.stage_menu.updates(self.dt, self.event.keys_pressed)
                     if self.stage_menu.pass_maps and self.stage_menu.load_maps:
                         self.maps.updates(self.dt, self.event.keys_pressed)
+
+            self.screen.blit(pg.transform.scale(self.display, self.window_size), (0, 0))
+            self.fps.draw(self.screen)  # Monitoring
             pg.display.update()
 
 
