@@ -91,7 +91,7 @@ class StageMenu(object):
             surface.blit(img, self.camera.apply_rect(self.all_tiles_rect[target][0]))
 
         # Play first animation if it not finish ("welcome" animation)
-        if self.scene_2.finish != 1:
+        if not self.scene_2.finish:
             self.scene_2.start(surface, self.dt, [self.player.life, self.stage, self.player.who], self.sfx)
         # Draw the player after "welcome" animation
         elif self.scene_2.finish:

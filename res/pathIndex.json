@@ -36,7 +36,8 @@
   "musics": {
     ":type": "music",
     "StageMenuMsc": ["res/sounds/", "Stage_Menu_msc.ogg"],
-    "Stage1Msc": ["res/sounds/", "Stage_1_msc.ogg"]
+    "Stage1Msc": ["res/sounds/", "Stage_1_msc.ogg"],
+    "TitleScreenMsc": ["res/sounds/", "titleScreen.ogg"]
   },
 
   "sfx": {
@@ -44,7 +45,8 @@
     "enterWorld": ["res/sounds/", "enter_world.ogg"],
     "mapTravel": ["res/sounds/", "map_travel.ogg"],
     "newWorld": ["res/sounds/", "new_world.ogg"],
-    "bass": ["res/sounds/", "bass.ogg"]
+    "bass": ["res/sounds/", "bass.ogg"],
+    "voice_superMarioBros3" : ["res/sounds/", "voice_superMarioBros3.ogg"]
   },
 
   "fonts": {

@@ -29,10 +29,11 @@ pg.font.init()
 
 class Main(object):
     window_size: Tuple[int, int]
+    dt: float   # Time between two frame
 
     def __init__(self):
         # load save
-        print("-" * 3 + "= loading save file =" + "-" * 11)
+        print("-"*3 + "= loading save file =" + "-"*11)
         with open(os.path.join("res", "save.json")) as f:
             self.save = json.load(f)
 
@@ -66,6 +67,8 @@ class Main(object):
         self.stage_list = {}
         self.t = 0
 
+        self.channel = pg.mixer.Channel(0)
+
         # load all resources.
         print("-" * 3 + "= Loading resources =" + "-" * 11)
         with open(os.path.join("res", "pathIndex.json")) as f:
@@ -93,7 +96,7 @@ class Main(object):
         # Intro CHRZASZCZ Development.
         self.scene_0 = Scene0(self.res)
         # Title screen of Super Mario Bros3.
-        self.title_screen = TitleScreen(self.res["tiles"]["titleScreenSheet"])
+        self.title_screen = TitleScreen(self.res)
 
         self.font_custom = Font()
         self.maps = Maps()
@@ -177,8 +180,7 @@ class Main(object):
             # FPS MANAGEMENT
             self.dt = self.fps.manage(fps=0)
             if self.fps.benchmark and int(self.t)%15 == 0:
-                self.fps.get()
-                self.fps.average()
+                self.fps.get(); self.fps.average()
             self.t += (1 * self.dt)
 
             # Scene n°0
@@ -190,7 +192,6 @@ class Main(object):
                     self.screen.blit(pg.transform.scale(self.display, (self.window_size[0], self.window_size[1])), (0, 0))
                 else:
                     self.event.get()
-
                     # LOAD
                     # select stage maps
                     if not self.title_screen.getIsTitle() and not self.stage_menu.load_stage_menu:

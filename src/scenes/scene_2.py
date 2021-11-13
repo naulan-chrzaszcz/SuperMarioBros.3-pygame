@@ -1,12 +1,7 @@
-"""
-    Scene n°2:
-        - Manage the window with info concerning the player
-        - Animation delete window
-        - Animation stars
-"""
-from src.font import (Font)
-from pygame import (draw,Rect)
-from math import (cos,sin)
+from pygame import draw, Rect
+from math import cos, sin
+
+from src.font import Font
 
 
 class Scene2(object):
@@ -71,13 +66,13 @@ class Scene2(object):
 
         if self.finish != 1:
             # ### RECT VARIABLES ###
-            item_frame = Rect((surface.get_width() / 3,surface.get_height() / 4),(self.item_frame_w,80))
+            # item_frame = Rect((surface.get_width() / 3,surface.get_height() / 4),(self.item_frame_w,80))
             msg_frame = Rect((surface.get_width() / 2.86,surface.get_height() / 3.52),(self.msg_frame_w,item_frame.height / 1.25))
 
             # ### -----------== Step one with step two of the animation ==----------- ###
             if self.step[0]:
                 # window
-                draw.rect(surface,(0,0,0),item_frame)
+                # draw.rect(surface,(0,0,0),item_frame)
                 draw.rect(surface,(175,232,226),msg_frame)
 
                 if self.step[1] == 0:
