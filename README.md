@@ -3,9 +3,9 @@
 Ce code source contien toute les ressources nécessaire pour lancé ce jeux.
 ## **🗂 Sommaires:**
 - 💻 [Developpeurs](#developpeurs)
-- 👷‍ [Bêta-testeurs](#bta-testeurs)
-- 🗣 [Langage de programmation utilisée](#langage-de-programmation-utilise)
-- ❔ [Comment le lancée ?](#comment-le-lance-)
+- 👷‍ [Bêta-testeurs](#bêta-testeurs)
+- 🗣 [Langage de programmation utilisée](#langage-de-programmation-utilisée)
+- ❔ [Comment le lancée ?](#comment-le-lancée-)
 - 📑 [Les choses requises:](#les-choses-requises)
 
 ### Developpeurs:
