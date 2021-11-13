@@ -1,11 +1,12 @@
-# SuperMarioBros3 like.
+# **SuperMarioBros3 like.**
+![illustration-TitleScreen](https://eapi.pcloud.com/getpubthumb?code=XZzBbJZwEoDuWD0fJJRWCIYAEUjpBhiDCek&linkpassword=undefined&size=1280x345&crop=0&type=auto)
 Ce code source contien toute les ressources nécessaire pour lancé ce jeux.
-## Sommaires:
-- [Developpeurs](#developpeurs)
-- [Bêta-testeurs](#bta-testeurs)
-- [Langage de programmation utilisée](#langage-de-programmation-utilise)
-- [Comment le lancée ?](#comment-le-lance-)
-- [Les choses requises:](#les-choses-requises)
+## **🗂 Sommaires:**
+- 💻 [Developpeurs](#developpeurs)
+- 👷‍ [Bêta-testeurs](#bta-testeurs)
+- 🗣 [Langage de programmation utilisée](#langage-de-programmation-utilise)
+- ❔ [Comment le lancée ?](#comment-le-lance-)
+- 📑 [Les choses requises:](#les-choses-requises)
 
 ### Developpeurs:
 - Ce jeux est entierement codé par CHRZASZCZ Naulan.
@@ -18,7 +19,7 @@ Ce code source contien toute les ressources nécessaire pour lancé ce jeux.
 ### Langage de programmation utilisée:
 - Ce jeux est entierement codé en langage Python.
 
-## Comment le lancée ?
+## **Comment le lancée ?**
 ➡ Dans le fichier racine du code source (./), vous avez à votre disposition deux scripts, l'un pour un système d'exploitation 
 Linux et l'autre pour un système d'exploitation Windows.
 On peut les reconnaitre en visualisant leurs extensions de fichier. Mais vous n'êtes pas obligez de le lancé par ces 
@@ -36,7 +37,7 @@ Sur Windows:
 ```commandline
 #TODO
 ```
-## Les choses requises:
+## **Les choses requises:**
 Lors du lancement du jeux, si vous avez une erreur similaire comme si dessous:
 ```python
 Traceback (most recent call last):
