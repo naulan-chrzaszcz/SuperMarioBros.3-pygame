@@ -1,16 +1,36 @@
-# **SuperMarioBros3 like.**
+# **SuperMarioBros3 "like".**
 ![illustration-TitleScreen](https://eapi.pcloud.com/getpubthumb?code=XZzBbJZwEoDuWD0fJJRWCIYAEUjpBhiDCek&linkpassword=undefined&size=1280x345&crop=0&type=auto)
-➡ Ce code source contien toute les ressources nécessaire pour lancé ce jeux.
+- ![discordLogo](https://eapi.pcloud.com/getpubthumb?code=XZj2bJZbGTjqDtGjLRdseh7mqUmlHwcHAFV&linkpassword=undefined&size=20x20&crop=0&type=auto) **Discord**: http://discord.chrz-development.fr
+- **WebSite**: https://www.chrz-development.fr
+
+➡ Ce code source **contien toutes les ressources nécessaires pour pouvoir lancé le jeu**.
+Tous les fichiers ressource sont dans le fichier `res` du code source.
+Ce jeux se joue uniquement au clavier ou bien sur une manette !
 
 ## **🗂 Sommaires:**
+- ⌨ [Touches par défaut](#touches-par-défaut)
+- [Compatibilité](#compatibilité)
 - 💻 [Developpeurs](#developpeurs)
 - 👷‍ [Bêta-testeurs](#bêta-testeurs)
 - 🗣 [Langage de programmation utilisée](#langage-de-programmation-utilisée)
 - ❔ [Comment le lancée ?](#comment-le-lancée-)
 - 📑 [Les choses requises:](#les-choses-requises)
 
+### Touches par défaut
+La touche `Q` et `D` permet de dirigé Mario vers la gauche et vers la droite de l'écran.
+
+La touche `Space` permet de faire un saut à Mario.
+
+
+### Compatibilité:
+Le jeu est compatible sur les platformes suivante:
+- Windows.
+- Linux.
+
+Il est compatible manette et clavier.
+
 ### Developpeurs:
-- Ce jeux est entierement codé par CHRZASZCZ Naulan.
+- Ce jeu est entierement codé par [CHRZASZCZ Naulan](https://www.instagram.com/naulan.chrzaszcz/).
 
 ![Escarbot Banner](https://eapi.pcloud.com/getpubthumb?code=XZmubJZO3RLKrQ4bwSiOupYtRg78SzGx3N7&linkpassword=undefined&size=1600x315&crop=0&type=auto)
 
@@ -21,7 +41,7 @@
 - Ce jeux est entierement codé en langage Python.
 
 ## **Comment le lancée ?**
-➡ Dans le fichier racine du code source (./), vous avez à votre disposition deux scripts, l'un pour un système d'exploitation 
+➡ Dans le fichier racine du code source (`./`), vous avez à votre disposition deux scripts, l'un pour un système d'exploitation 
 Linux et l'autre pour un système d'exploitation Windows.
 On peut les reconnaitre en visualisant leurs extensions de fichier. Mais vous n'êtes pas obligez de le lancé par ces 
 scripts, vous pouvez lancer directement le jeux grâce à cette commande que Python possède nativement
