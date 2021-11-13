@@ -12,7 +12,7 @@ Ce code source contien toute les ressources nécessaire pour lancé ce jeux.
 
 ![Escarbot Banner](https://eapi.pcloud.com/getpubthumb?code=XZmubJZO3RLKrQ4bwSiOupYtRg78SzGx3N7&linkpassword=undefined&size=1600x315&crop=0&type=auto)
 
-###Bêta-testeurs:
+### Bêta-testeurs:
 - [GabyUnderscore](https://www.twitch.tv/gabyunderscore)
 
 ### Langage de programmation utilisée:
