@@ -1,6 +1,7 @@
 # **SuperMarioBros3 like.**
 ![illustration-TitleScreen](https://eapi.pcloud.com/getpubthumb?code=XZzBbJZwEoDuWD0fJJRWCIYAEUjpBhiDCek&linkpassword=undefined&size=1280x345&crop=0&type=auto)
-Ce code source contien toute les ressources nécessaire pour lancé ce jeux.
+➡ Ce code source contien toute les ressources nécessaire pour lancé ce jeux.
+
 ## **🗂 Sommaires:**
 - 💻 [Developpeurs](#developpeurs)
 - 👷‍ [Bêta-testeurs](#bêta-testeurs)
@@ -14,7 +15,7 @@ Ce code source contien toute les ressources nécessaire pour lancé ce jeux.
 ![Escarbot Banner](https://eapi.pcloud.com/getpubthumb?code=XZmubJZO3RLKrQ4bwSiOupYtRg78SzGx3N7&linkpassword=undefined&size=1600x315&crop=0&type=auto)
 
 ### Bêta-testeurs:
-- [GabyUnderscore](https://www.twitch.tv/gabyunderscore)
+- ![illustrationGabyUnderscore](https://eapi.pcloud.com/getpubthumb?code=XZwBbJZ34m6NkzajF5WX9eHQUDuyhK8drKy&linkpassword=undefined&size=20x20&crop=0&type=auto) [GabyUnderscore](https://www.twitch.tv/gabyunderscore)
 
 ### Langage de programmation utilisée:
 - Ce jeux est entierement codé en langage Python.
