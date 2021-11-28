@@ -94,7 +94,7 @@ class StageMenu(object):
 
         # Play first animation if it not finish ("welcome" animation)
         if not self.scene_2.finish:
-            self.scene_2.start(surface, self.dt, [self.player.life, self.stage, self.player.who], self.sfx)
+            self.scene_2.start(surface, self.dt, self.sfx["newWorld"])
         # Draw the player after "welcome" animation
         elif self.scene_2.finish:
             surface.blit(self.player.image, self.camera.apply(self.player))

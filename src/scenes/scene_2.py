@@ -9,7 +9,7 @@ class Scene2(object):
         self.window = Window(200, 95, 132, 40,
                              res=res["entities"], who="Mario")
         self.window.title = "WORLD_1"
-        self.window.cases = ["MARIO", "5"]
+        self.window.cases = ["MARIO", "4"]
         self.player_sheet = res["entities"]["player"]
         self.stars_sheet = res["tiles"]["starsSheet"]
 
@@ -20,11 +20,12 @@ class Scene2(object):
         self.t_sin = 0
         self.t = 0
 
-        self.switch_multiplication = [False, False]
+        self.switch_multi = [False, False]
         self.step = [False, False, False, False]
         self.finish = False
+        self.playStarsSfx = False
 
-    def start(self,surface,dt,more_info,sfx):
+    def start(self,surface,dt,sfx):
         match int(self.t):
             case 0: self.step[0] = True
             case 15: self.step[1] = True
@@ -32,12 +33,11 @@ class Scene2(object):
             case 28: self.step = [False, False, False, True]
         self.t += (.05 * dt)
 
-        # TODO Ajuster le timing des etoiles.
         match int(self.t_cos):
-            case 0: self.switch_multiplication = [True, False]
-            case 13: self.switch_multiplication = [False, True]
+            case 0: self.switch_multi = [True, False]
+            case 13: self.switch_multi = [False, True]
 
-        if self.finish != 1:
+        if not self.finish:
             if self.step[0]:
                 self.window.updates(dt)
                 self.window.draw(surface)
@@ -46,16 +46,19 @@ class Scene2(object):
                 if self.window.get_width() <= 0:
                     self.t = 21
             elif self.step[2]:
+                if not self.playStarsSfx:
+                    sfx.play()
+                    self.playStarsSfx = True
                 # TODO Ajuster la vitesse pour qu'il soit plus rapide
-                if self.switch_multiplication[0]:
+                if self.switch_multi[0]:
                     self.multi += (1.5 * dt)
                     self.target += (0.05 * dt)
-                elif self.switch_multiplication[1]:
+                elif self.switch_multi[1]:
                     self.multi -= (1.2 * dt)
                     self.target -= (0.05 * dt)
                     if int(self.target) == -1:
                         self.target = 0
-                        self.switch_multiplication[1] = False
+                        self.switch_multi[1] = False
 
                 # Stars
                 left = self.window.get_BarWindow()[0]; left_ = left / 1.5
