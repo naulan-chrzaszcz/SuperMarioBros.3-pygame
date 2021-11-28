@@ -3,7 +3,7 @@ from pygame import Surface, Rect, draw
 from font import Font
 
 
-def checkGoodChar(text: str) -> bool:
+def check_goodChar(text: str) -> bool:
     """ checkGoodChar() -> bool
             Check if all character insert into text variable is good or not. """
     for char in text.upper():
@@ -152,20 +152,28 @@ class Window(object):
 
     @title.setter
     def title(self, title: str):
-        if not checkGoodChar(title):
+        """
+            title = "My_Title"
+                Attribute a new title in the window.
+            :param title: On upper case, please use normal ASCII characters out special characters
+        """
+        if not check_goodChar(title):
             self._title = "ERROR_BAD_CHARACTERS"
             print(f"\033[93m Warn: The \033[96mtext\033[93m which as put in \33[95mself\033[0m.title\033[93m variable is not good, {title} is not good. \033[0m")
         else: self._title = title.upper()
 
     @cases.setter
     def cases(self, cases: list):
+        """ cases = ["popoekdn", ...]
+                Attribute the new text area to display in window.
+            :param cases: Need 2 elements in the list. """
         if len(cases) < 2:
             self._cases = ["ERROR_BAD_LIST", "ERROR_BAD_LIST"]
             print(f"\033[93m Warn: The \033[96mlist\033[93m which as put in \33[95mself\033[0m.cases\033[93m variable is not good, list size ({len(cases)} element(s)) is not good. \033[0m")
         else:
             areGood = False
             for element in cases:
-                areGood = checkGoodChar(element)
+                areGood = check_goodChar(element)
 
             if not areGood:
                 self._cases = ["ERROR_BAD_CHARACTERS", "ERROR_BAD_CHARACTERS"]
@@ -174,12 +182,14 @@ class Window(object):
 
     def set_width(self, width: int):
         """ set_width()
-                Attribute new width size to the window """
+                Attribute new width size to the window
+            :param width: New width for the window (only int). """
         self.__width = width
 
     def set_height(self, height: int):
         """ set_height()
-                Attribute new height size to the window """
+                Attribute new height size to the window
+            :param height: New height for the window (only int)."""
         self.__height = height
 
     @title.getter
@@ -191,9 +201,13 @@ class Window(object):
         return self._cases
 
     def get_width(self) -> int:
+        """ get_width() -> int
+                        Get the width of the window. """
         return self.__width
 
     def get_height(self) -> int:
+        """ get_height() -> int
+                Get the height of the window. """
         return self.__height
 
     def get_size(self) -> tuple:
