@@ -5,19 +5,21 @@ from src.scenes.scene_1 import Scene1
 
 class TitleScreen(Scene1):
     sheet: Surface
+    keys: dict = {}
+    dt: float = .0
 
     def __init__(self, res):
         super().__init__()
         self.sheet = res["tiles"]["titleScreenSheet"]
         self.voice = res["sfx"]["voice_superMarioBros3"]
         self.titleScreenMusic = res["musics"]["TitleScreenMsc"]
+        self.titleScreenMusic.set_volume(.5); self.voice.set_volume(.35)
         self.color = (0, 0, 0)
-        self.keys = None
+        
         self.pass_stage_menu = False
         self.is_title = True
         self.play_voice = False
         self.play_titleScreen = False
-        self.dt = .0
 
     def getIsTitle(self) -> bool:
         return self.is_title

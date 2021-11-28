@@ -67,8 +67,6 @@ class Main(object):
         self.stage_list = {}
         self.t = 0
 
-        self.channel = pg.mixer.Channel(0)
-
         # load all resources.
         print("-" * 3 + "= Loading resources =" + "-" * 11)
         with open(os.path.join("res", "pathIndex.json")) as f:

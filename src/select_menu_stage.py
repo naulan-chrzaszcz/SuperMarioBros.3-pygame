@@ -59,7 +59,9 @@ class StageMenu(object):
             for target, tile in enumerate(data[str(lgn)]):
                 if tile is not None:
                     x, y = (target*16, lgn*16)
-                    if tile[0] in ["C1","C2","C3","C4","C5","C6","GO","R1","R2","R3","R4","R5","R6","V0","V1","V2","V3","V4","V5","V6","00","PT","AY","CT"]:
+                    tilesIndex = ["C1","C2","C3","C4","C5","C6","GO","R0","R1","R2","R3","R4","R5","R6","V0","V1","V2",
+                                  "V3","V4","V5","V6","00","PT","AY","CT"]
+                    if tile[0] in tilesIndex:
                         if tile[0] != "CT":
                             r,w,h,l = locSheet[tile[0]]
                             if tile[0] == "R4":
@@ -75,7 +77,7 @@ class StageMenu(object):
                         self.player = Player(self,[res["entities"]["player"]],[x,y])
                     n += 1 if tile[0] != "CT" else 0
 
-        self.scene_2 = Scene2([res["entities"]["player"], res["tiles"]["starsSheet"]])
+        self.scene_2 = Scene2(res)
         self.scene_3 = Scene3()
 
     def draw(self, surface):

@@ -10,6 +10,7 @@
 
   "entities": {
     ":type": "image",
+    "mario": ["res/sheets/", "player.png"],
     "player": ["res/sheets/", "player.png"],
     "goomba": ["res/sheets/", "goomba.png"],
     "koopa": ["res/sheets/", "koopa.png"],
