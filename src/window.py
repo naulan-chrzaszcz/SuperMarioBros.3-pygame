@@ -3,19 +3,67 @@ from pygame import Surface, Rect, draw
 from font import Font
 
 
-class Window(object):
-    itemFrame: Rect
-    msgFrame: Rect
+def checkGoodChar(text: str) -> bool:
+    """ checkGoodChar() -> bool
+            Check if all character insert into text variable is good or not. """
+    for char in text.upper():
+        if char not in ['_',' ','.','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z','0','1','2','3','4','5','6','7','8','9']:
+            return False
+    return True
 
+
+class Window(object):
+    """ Window()
+            > It allow to display a window on the screen.
+
+
+            self.cases must do 2 elements.
+            self.cases[0] -> player name.
+            self.cases[1] -> left texts.
+
+            self.cases must not do 2 elements:
+                * Print in the terminal a warning.
+                * Replace everything in the list by "ERROR_BAD_LIST".
+
+            if self.cases is not attribute after initialisation, the self.cases variable is going to set by empty list
+
+
+            self.title must have good char like for self.cases[n]
+
+            self.title must not have good char:
+                * Print in the terminal a warning
+                * Replace the title by "ERROR_BAD_CHARACTERS"
+
+            if self.title is not attribute after initialisation, the self.title variable is going to set by "Unknown"
+
+
+            def __init__(*arg):
+                width or/and height:
+                    if width is not attribute and height is attributed (Is same for height size):
+                        * Print in the terminal a warning
+                        * Width and height gonna be set with height default value is same for width
+                **kwargs:
+                    * "res" key is not optional ! The Window class at need that !
+                    * Is same for "who" key ! The Window class at need that !
+
+
+            The function for display the window is "draw()".
+            You need to put on your code the "updates()" function. """
+    __itemFrame: Rect
+    __msgFrame: Rect
     __dt: float = .0
     __who: str
     __entitiesRes: dict
 
     _cases: list = []
-    _title: str = ""
+    _title: str = "UNKNOWN"
 
-    def __init__(self, width: int, height: int,
-                       x: float, y: float, **kwargs):
+    def __init__(self, width: int=None, height: int=None, x: float=.0, y: float=.0, **kwargs):
+        """ :param width: Width of the Window (only int, default None)
+            :param height: Height of the Window (only int, default None)
+            :param x: Position on the abscissa (only float, default .0)
+            :param y: Positon on the orderly (only float, default .0)
+            :param kwargs: "res" needed, "who" needed """
         self.__font = Font()
 
         self.__entitiesRes = kwargs["res"]
@@ -23,18 +71,22 @@ class Window(object):
         self.__playerImg = self.__entitiesRes[self.__who.lower()]
 
         self.__width = width
+        if self.__width is None:
+            print("\033[93m Warn: 'width' argument is not attribute in Window class !\n",
+                  "\033[93m Please attribute this argument if you want are window have the good size\033[0m")
         self.__height = height
+        if self.__height is None:
+            print("\033[93m Warn: 'height' argument is not attribute in Window class !\n",
+                  "\033[93m Please attribute this argument if you want are window have the good size\033[0m")
         self.__x = x
         self.__y = y
 
-    def checkGoodChar(self, text: str):
-        n = 1
-        for char in text.upper():
-            if char not in ['_',' ','.']:
-                if char not in ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z','0','1','2','3','4','5','6','7','8','9']:
-                    return n
-                n += 1
-        return n
+        if self.__height is not None and self.__width is not None:
+            self.__itemFrame = Rect((self.__x,self.__y),(self.__width + 10,self.__height + 10))
+            self.__msgFrame = Rect((self.__x + 5,self.__y + 5),(self.__width,self.__height))
+        else:
+            self.__itemFrame = Rect((self.__x,self.__y),(0, 0))
+            self.__msgFrame = Rect((self.__x + 5,self.__y + 5),(0, 0))
 
     @property
     def cases(self):
@@ -45,22 +97,90 @@ class Window(object):
     def title(self):
         """ It allow to specific a title for the window which has will display """
         return self._title
-        
+
+    def animation(self):
+        self.__width -= (4*self.__dt) if self.__width >= 0 else 0
+
+    def draw(self, surface: Surface):
+        screen_w = surface.get_width()
+        screen_h = surface.get_height()
+
+        # Size not custom by the user
+        if self.__height is None or self.__width is None:
+            self.__width = screen_w / 3
+            msgFrame_w = self.__width / 1.1
+            self.__itemFrame.width = self.__width
+            self.__itemFrame.height = 80
+            self.__msgFrame.width = msgFrame_w
+            self.__msgFrame.height = self.__itemFrame.height / 1.25
+        else:
+            self.__itemFrame.width = self.__width+10
+            self.__msgFrame.width = self.__width
+
+        draw.rect(surface, (0, 0, 0), self.__itemFrame)
+        draw.rect(surface, (175, 232, 226), self.__msgFrame)
+
+        if self.__height is None or self.__width is None:
+            halfHeight = screen_h / 2
+            surface.blit(self.__playerImg.subsurface(32,16,16,16),(self.__x + (screen_w - 20),self.__y + halfHeight))
+
+            halfWidth = screen_w / 2
+            self.__font.draw_msg(surface,[self.__x + (screen_w - 35),self.__y + halfHeight],self.cases[0])
+            self.__font.draw_msg(surface,[self.__x + (halfWidth + 15),self.__y + 10],self.title)
+            self.__font.draw_msg(surface,[self.__x + (screen_w - 70),self.__y + halfHeight],self.cases[1])
+        else:
+            # TODO Améliorer l'affichage au cas où, si l'utilisateur utilise mal la classe Window
+            halfHeight = self.__height/2
+            surface.blit(self.__playerImg.subsurface(32,16,16,16), (self.__x+(self.__width-20), self.__y+halfHeight))
+
+            halfWidth = self.__width/2
+            self.__font.draw_msg(surface, [self.__x+(self.__width-35), self.__y+halfHeight], self.cases[0])
+            self.__font.draw_msg(surface, [self.__x+(halfWidth+15), self.__y+10], self.title)
+            self.__font.draw_msg(surface, [self.__x+(self.__width-70), self.__y+halfHeight], self.cases[1])
+
+        white = (255, 255, 255)
+        topLeft = self.get_cornerWindow()[0]; topRight = self.get_cornerWindow()[1]
+        bottomLeft = self.get_cornerWindow()[2]; bottomRight = self.get_cornerWindow()[3]
+
+        draw.line(surface, white, (topLeft[0]-2, topLeft[1]-1), (bottomLeft[0]-2, bottomLeft[1]), 2)
+        draw.line(surface,white,(topLeft[0]-1, topLeft[1]-2), (topRight[0], topRight[1]-2), 2)
+        draw.line(surface,white,(bottomLeft[0]-1, bottomLeft[1]), (bottomRight[0], bottomRight[1]), 2)
+        draw.line(surface,white,(topRight[0], topRight[1]-1), (bottomRight[0], bottomRight[1]), 2)
+
+    def updates(self, dt: float):
+        self.__dt = dt
+
     @title.setter
     def title(self, title: str):
-        n = self.checkGoodChar(title)
-        self._title = "ERROR_BAD_CHARACTERS" if n != len(title)-1 else title.upper()
+        if not checkGoodChar(title):
+            self._title = "ERROR_BAD_CHARACTERS"
+            print(f"\033[93m Warn: The \033[96mtext\033[93m which as put in \33[95mself\033[0m.title\033[93m variable is not good, {title} is not good. \033[0m")
+        else: self._title = title.upper()
 
     @cases.setter
-    def cases(self, l: list):
-        s = 1
-        for element in l:
-            n = self.checkGoodChar(element)
-            if n != len(element)-1:
-                break
-            s += 1
+    def cases(self, cases: list):
+        if len(cases) < 2:
+            self._cases = ["ERROR_BAD_LIST", "ERROR_BAD_LIST"]
+            print(f"\033[93m Warn: The \033[96mlist\033[93m which as put in \33[95mself\033[0m.cases\033[93m variable is not good, list size ({len(cases)} element(s)) is not good. \033[0m")
+        else:
+            areGood = False
+            for element in cases:
+                areGood = checkGoodChar(element)
 
-        self._cases = ["ERROR_BAD_CHARACTERS", "ERROR_BAD_CHARACTERS"] if s != len(l)-1 else l
+            if not areGood:
+                self._cases = ["ERROR_BAD_CHARACTERS", "ERROR_BAD_CHARACTERS"]
+                print(f"\033[93m Warn: The \033[96mlist\033[93m which as put in \33[95mself\033[0m.cases\033[93m variable is not good, {element} is not good. \033[0m")
+            else: self._cases = cases
+
+    def set_width(self, width: int):
+        """ set_width()
+                Attribute new width size to the window """
+        self.__width = width
+
+    def set_height(self, height: int):
+        """ set_height()
+                Attribute new height size to the window """
+        self.__height = height
 
     @title.getter
     def title(self) -> str:
@@ -73,18 +193,8 @@ class Window(object):
     def get_width(self) -> int:
         return self.__width
 
-    def set_width(self, width: int):
-        """ set_width()
-                Attribute new width size to the window """
-        self.__width = width
-
     def get_height(self) -> int:
         return self.__height
-
-    def set_height(self, height: int):
-        """ set_height()
-                Attribute new height size to the window """
-        self.__height = height
 
     def get_size(self) -> tuple:
         """ get_size() -> tuple
@@ -96,45 +206,19 @@ class Window(object):
                 Get the position of the windows on the screen."""
         return (self.__x, self.__y)
 
-    def animation(self, surface: Surface, msgFrame: Rect, dt: float):
-        # TODO Réparer les animations de la fenêtre
-        screen_w = surface.get_width()
-        screen_h = surface.get_height()
-        itemFrame_w = screen_w/6
-        msgFrame_w = itemFrame_w/1.1
-        white = (255, 255, 255)
+    def get_cornerWindow(self) -> tuple:
+        """ get_cornerWindow() -> tuple
+                Get all corner of the Window.
+             ↓________↓
+             | Window |
+             ↑‾‾‾‾‾‾‾‾↑ """
+        return (self.__msgFrame.topleft, self.__msgFrame.topright, self.__msgFrame.bottomleft, self.__msgFrame.bottomright)
 
-        if int(itemFrame_w) >= 0:
-            itemFrame_w -= (5*dt)
-            msgFrame_w -= (5*dt)
+    def get_BarWindow(self) -> tuple:
+        """ get_cornerWindow() -> tuple
+                Get all corner of the Window.
+              ____↓____
+            →| Window  |←
+              ‾‾‾‾↑‾‾‾‾ """
+        return (self.__msgFrame.left, self.__msgFrame.top, self.__msgFrame.right, self.__msgFrame.bottom)
 
-        # Outline window
-        if int(itemFrame_w) > 0:
-            draw.line(surface, white, (msgFrame.topleft[0]-2, msgFrame.topleft[1]-1), (msgFrame.bottomleft[0]-2, msgFrame.bottomleft[1]), 2)
-            draw.line(surface, white, (msgFrame.topleft[0] - 1, msgFrame.topleft[1] - 2), (msgFrame.topright[0], msgFrame.topright[1] - 2), 2)
-            draw.line(surface, white, (msgFrame.bottomleft[0] - 1, msgFrame.bottomleft[1]), (msgFrame.bottomright[0], msgFrame.bottomright[1]), 2)
-            draw.line(surface, white, (msgFrame.topright[0], msgFrame.topright[1] - 1), (msgFrame.bottomright[0], msgFrame.bottomright[1]), 2)
-
-    def draw(self, surface: Surface):
-        screen_w = surface.get_width()
-        screen_h = surface.get_height()
-        itemFrame_w = screen_w/3
-        msgFrame_w = itemFrame_w/1.1
-        self.itemFrame = Rect((screen_w/3, screen_h/4), (itemFrame_w, 80))
-        self.msgFrame = Rect((screen_w/2.86, screen_h/3.52), (msgFrame_w, self.itemFrame.height/1.25))
-        draw.rect(surface, (0, 0, 0), self.itemFrame)
-        draw.rect(surface, (175, 232, 226), self.msgFrame)
-
-        halfFrame_w = self.msgFrame.w/2
-        halfFrame_h = self.msgFrame.h/2
-        # TODO Arranger la position de l'image du joueur
-        surface.blit(self.__playerImg.subsurface(32,16,16,16), ((screen_w+halfFrame_w)/2.18, (screen_h+halfFrame_h)/2.8))
-
-        # TODO Arranger les position des textes afficher dans la fenêtre
-        self.__font.draw_msg(surface, [((screen_w+halfFrame_w)/2.01), ((screen_h+halfFrame_h)/2.6)], self.cases[0])
-        self.__font.draw_msg(surface, [((screen_w+halfFrame_w)/2.18), ((screen_h+halfFrame_h)/3.8)], self.title)
-        self.__font.draw_msg(surface, [((screen_w+halfFrame_w)/2.48), ((screen_h+halfFrame_h)/2.6)], self.cases[1])
-        self.animation(surface, self.msgFrame, self.__dt)
-
-    def updates(self, dt: float):
-        self.__dt = dt
