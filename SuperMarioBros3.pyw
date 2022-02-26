@@ -45,33 +45,9 @@ class Main(object):
 
     def __init__(self):
         self.all_sprites = sprite.LayeredUpdates()
-        # load save
-        print("-"*3 + "= loading save file =" + "-"*11)
-        with open(os.path.join("res", "save.json")) as f:
-            self.save = json.load(f)
-
-        # OS Check
-        operating_system = sys.platform
-        print(f"(!) Info: Le jeux est lancée sur \"{operating_system}\".")
-        if operating_system.lower() == "win32":  # for Windows OS
-            self.__shouldClose = [0]
-            self.windowsStartupSettings()
-        elif operating_system.lower() in ["linux", "linux2"]:  # for Linux OS
-            self.linuxStartupSettings()
-        else:
-            print("(!) Warning: La resolution native n'a pas étais trouvé !")
-            self.window_size = (1280, 720)
-        # if resolution as been edited by user
-        if self.save["ResolutionEdited"]:
-            self.window_size = (self.save["Resolution"][0], self.save["Resolution"][1])
-        w, h = self.window_size
-        print(f"(!) Info: Resolution: {w}x{h}")
-        # Updates save file
-        with open(os.path.join("res", "save.json"), "w") as f:
-            json.dump(self.save, f, indent=4)
 
         # Create Window and Display Surface
-        self.screen = pg.display.set_mode(self.window_size, 0, 32)
+        self.screen = pg.display.set_mode((1280,720), 0, 32)
         self.display = pg.Surface((464, 240))
         # Hide mouse
         pg.mouse.set_visible(False)
@@ -80,16 +56,40 @@ class Main(object):
         self.stage_list = {}
         self.t = 0
 
-
+        # Load Threads
         self.res = {}
-        loading_res = Loading(self.res)
-        introduction = Introduction(self.screen, self.display, self.window_size, loading_res)
+        self.save = {}
+        loading_res = Loading(self)
+        introduction = Introduction(self.screen, self.display, (1280,720), loading_res)
 
-        loading_res.start(); introduction.start()
+        loading_res.start()
+        introduction.start()
 
-        # Bloque le programme tant que sa charge
-        while loading_res.is_alive() and introduction.is_alive(): pass
+        # Bloque le Thread principal du programme tant que sa charge les ressources du jeu
+        while loading_res.is_alive() and introduction.is_alive():
+            pass
 
+        # OS Check
+        operating_system = sys.platform
+        print(f"(!) Info: Le jeux est lancée sur \"{operating_system}\".")
+        if operating_system.lower() == "win32":  # for Windows OS
+            self.__shouldClose = [0]
+            self.windowsStartupSettings()
+        elif operating_system.lower() in ["linux","linux2"]:  # for Linux OS
+            self.linuxStartupSettings()
+        else:
+            print("(!) Warning: La resolution native n'a pas étais trouvé !")
+            self.window_size = (1280,720)
+
+        # if resolution as been edited by user
+        if self.save["ResolutionEdited"]:
+            self.window_size = (self.save["Resolution"][0],self.save["Resolution"][1])
+        w,h = self.window_size
+        print(f"(!) Info: Resolution: {w}x{h}")
+        # Updates save file
+        with open(os.path.join("res","save.json"),"w") as f:
+            json.dump(self.save,f,indent=4)
+        self.screen = pg.display.set_mode(self.window_size, 0, 32)
 
         self.stage_menu = StageMenu()
         # Keyboard event and/or remote control

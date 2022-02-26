@@ -10,6 +10,8 @@ class Introduction(Thread):
 
     def __init__(self, screen, surface, window_size, res_thread):
         super().__init__()
+        self.name = "Thread loading progress bar with an introduction scene"
+
         self.scene_0 = Scene0({"annexe": {"introBG": pg.image.load("res/sheets/intro-bg.png")}})
         self.res_thread = res_thread
         self.fps = Fps()
@@ -21,6 +23,9 @@ class Introduction(Thread):
         self.dt = 0
 
     def run(self) -> None:
+        super(Introduction, self).run()
+        
+        print("Starting of " + self.getName() + " ...")
         while self.res_thread.is_alive():
             self.surface.fill((0,0,0))
             self.dt = self.fps.manage(fps=0)
