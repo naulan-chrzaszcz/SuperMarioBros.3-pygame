@@ -1,6 +1,6 @@
 from math import cos, sin
 
-from window import Window
+from src.window import Window
 
 
 class Scene2(object):

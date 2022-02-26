@@ -84,10 +84,10 @@ class Events(object):
         surface.blit(Y_img, (261, (surface.get_height()/4) + 14))
 
         draw.circle(surface, (255, 255, 255), (
-        186 + (self.joys_pressed['AXIS_RIGHT'][1] if self.joys_pressed['AXIS_RIGHT'] is not None else 0) or (
-            self.joys_pressed['AXIS_LEFT'][1] if self.joys_pressed['AXIS_LEFT'] is not None else 0)*5,
-        86 + (self.joys_pressed['AXIS_UP'][1] if self.joys_pressed['AXIS_UP'] is not None else 0) or (
-            self.joys_pressed['AXIS_DOWN'][1] if self.joys_pressed['AXIS_DOWN'] is not None else 0)*5), 8)
+            186 + (self.joys_pressed['AXIS_RIGHT'][1] if self.joys_pressed['AXIS_RIGHT'] is not None else 0) or (
+                self.joys_pressed['AXIS_LEFT'][1] if self.joys_pressed['AXIS_LEFT'] is not None else 0)*5,
+            86 + (self.joys_pressed['AXIS_UP'][1] if self.joys_pressed['AXIS_UP'] is not None else 0) or (
+                self.joys_pressed['AXIS_DOWN'][1] if self.joys_pressed['AXIS_DOWN'] is not None else 0)*5), 8)
         draw.circle(surface, (255, 255, 255), (245, 116), 8)
 
         self.font.draw_msg(surface, [surface.get_width()/1.95, surface.get_height()/1.6], 'PRESS') if any(
@@ -157,13 +157,15 @@ class Events(object):
 
     def get(self):
         for pressed in event.get():
-            if pressed.type == QUIT:    quit(), sys.exit()
+            if pressed.type == QUIT:
+                quit(), sys.exit()
 
             if pressed.type == JOYDEVICEADDED:
                 self.enable_keyboard = False
                 self.enable_joystick = True
                 self.joysticks = [joystick.Joystick(i) for i in range(joystick.get_count())]
-                for joys in self.joysticks: self.controller_name = joys.get_name()
+                for joys in self.joysticks:
+                    self.controller_name = joys.get_name()
 
             if pressed.type == JOYDEVICEREMOVED:
                 self.enable_keyboard = True
@@ -176,15 +178,21 @@ class Events(object):
                         quit(), sys.exit()
                     self.keys_pressed[f'{pressed.key}'] = True
 
-                if pressed.type == KEYUP:   self.keys_pressed[f'{pressed.key}'] = False
+                if pressed.type == KEYUP:
+                    self.keys_pressed[f'{pressed.key}'] = False
 
             if self.enable_joystick and self.is_calibrate:
                 if pressed.type == JOYBUTTONDOWN:
-                    if str(pressed.button) == self.joys_pressed['Y'][0]:  self.joys_pressed['Y'][1] = True
-                if pressed.type == JOYBUTTONUP:     pass
+                    if str(pressed.button) == self.joys_pressed['Y'][0]:
+                        self.joys_pressed['Y'][1] = True
+                if pressed.type == JOYBUTTONUP:
+                    pass
 
                 if pressed.type == JOYAXISMOTION:
-                    if pressed.axis == 0:   self.joys_pressed['AXIS_H'] = pressed.value
-                    if pressed.axis == 1:   self.joys_pressed['AXIS_V'] = pressed.value
+                    if pressed.axis == 0:
+                        self.joys_pressed['AXIS_H'] = pressed.value
+                    if pressed.axis == 1:
+                        self.joys_pressed['AXIS_V'] = pressed.value
 
-                if pressed.type == JOYHATMOTION:        print(event)
+                if pressed.type == JOYHATMOTION:
+                    print(event)

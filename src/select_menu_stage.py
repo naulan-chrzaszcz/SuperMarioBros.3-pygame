@@ -2,8 +2,8 @@ import json
 import os
 
 from pygame.transform import rotate, flip
-from pygame import draw, sprite, mixer
-from pygame.locals import K_a
+from pygame import draw,sprite,mixer
+from pygame.locals import K_a, K_d
 
 from src.scenes.scene_2 import Scene2
 from src.scenes.scene_3 import Scene3
@@ -18,9 +18,10 @@ class StageMenu(object):
     scene3: Scene3
 
     def __init__(self):
-
         self.all_sprites = sprite.LayeredUpdates()
         self.directory = 'res/matrices/'
+
+        self.graph_level = []
 
         # ### BOOLEAN VARIABLES ###
         self.load_stage_menu = False
@@ -65,16 +66,19 @@ class StageMenu(object):
                         if tile[0] != "CT":
                             r,w,h,l = locSheet[tile[0]]
                             if tile[0] == "R4":
-                                self.all_tiles.append(rotate(res["tiles"]["selectMenuStageSheet"].subsurface(r,w,h,l),90))
+                                self.all_tiles.append(rotate(res["tiles"]["selectMenuStageSheet"].subsurface(r, w, h, l), 90))
                             elif tile[0] in ["R5","R6"]:
-                                self.all_tiles.append(flip(res["tiles"]["selectMenuStageSheet"].subsurface(r,w,h,l),False,True))
+                                self.all_tiles.append(flip(res["tiles"]["selectMenuStageSheet"].subsurface(r, w, h, l), False, True))
+                            elif tile[0] in [("C" + str(i)) for i in range(1, 6)]:
+                                self.all_tiles.append(res["tiles"]["selectMenuStageSheet"].subsurface(r,w,h,l))
+                                self.graph_level.append((x, y))
                             else:
                                 self.all_tiles.append(res["tiles"]["selectMenuStageSheet"].subsurface(r, w, h, l))
                             self.all_tiles_rect.append([self.all_tiles[n].get_rect(x=x,y=y),tile[0]])
                         else:
                             self.all_cactus.append(Cactus(self,res["tiles"]["selectMenuStageSheet"],[x,y]))
                     if tile[0] == "GO":
-                        self.player = Player(self,[res["entities"]["player"]],[x,y])
+                        self.player = Player(self.all_sprites, [res["entities"]["player"]], [x,y])
                     n += 1 if tile[0] != "CT" else 0
 
         self.scene_2 = Scene2(res)
@@ -98,20 +102,28 @@ class StageMenu(object):
         # Draw the player after "welcome" animation
         elif self.scene_2.finish:
             surface.blit(self.player.image, self.camera.apply(self.player))
-            if self.on_case and self.select: self.scene_3.start(surface, self.dt, self.sfx)
+            if self.on_case and self.select:
+                self.scene_3.start(surface, self.dt, self.sfx)
 
     def updates(self, dt, keys_pressed):
         self.dt = dt
 
         # Animate all cactus and test collide with a player
         for n in range(len(self.all_cactus)):
-            self.player.collide_test(self.all_cactus[n]) if all([self.scene_2.finish, self.select == 0]) else None
+            if all([self.scene_2.finish,self.select == 0]):
+                self.player.collide_test(self.all_cactus[n])
             self.all_cactus[n].update(dt)
 
         # Updates the player after a scene n°2
-        if all([self.scene_2.finish, self.select == 0]):
+        if self.scene_2.finish and self.select == 0:
             self.player.keys = keys_pressed
             self.player.update(dt)
+
+            for sommet in self.graph_level:
+                pass
+
+            if keys_pressed[f"{K_d}"]:
+                pass
 
             if keys_pressed[f'{K_a}']:
                 self.select = True
@@ -145,11 +157,11 @@ class StageMenu(object):
                         self.all_tiles_rect[target][1] == 'V0', self.all_tiles_rect[target][1] == 'V1',
                         self.all_tiles_rect[target][1] == 'V2', self.all_tiles_rect[target][1] == 'V3',
                         self.all_tiles_rect[target][1] == 'V4', self.all_tiles_rect[target][1] == 'V5']):
-                    if abs(self.player.rect.right - self.all_tiles_rect[target][
-                        0].left) < collision_tolerance:   self.player.rect.right = self.all_tiles_rect[target][0].left
-                    if abs(self.player.rect.left - self.all_tiles_rect[target][
-                        0].right) < collision_tolerance:   self.player.rect.left = self.all_tiles_rect[target][0].right
-                    if abs(self.player.rect.top - self.all_tiles_rect[target][
-                        0].bottom) < collision_tolerance:   self.player.rect.top = self.all_tiles_rect[target][0].bottom
-                    if abs(self.player.rect.bottom - self.all_tiles_rect[target][
-                        0].top) < collision_tolerance:   self.player.rect.bottom = self.all_tiles_rect[target][0].top
+                    if abs(self.player.rect.right - self.all_tiles_rect[target][0].left) < collision_tolerance:
+                        self.player.rect.right = self.all_tiles_rect[target][0].left
+                    if abs(self.player.rect.left - self.all_tiles_rect[target][0].right) < collision_tolerance:
+                        self.player.rect.left = self.all_tiles_rect[target][0].right
+                    if abs(self.player.rect.top - self.all_tiles_rect[target][0].bottom) < collision_tolerance:
+                        self.player.rect.top = self.all_tiles_rect[target][0].bottom
+                    if abs(self.player.rect.bottom - self.all_tiles_rect[target][0].top) < collision_tolerance:
+                        self.player.rect.bottom = self.all_tiles_rect[target][0].top

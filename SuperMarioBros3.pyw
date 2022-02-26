@@ -11,8 +11,18 @@ import os
 
 from os import getpid
 from typing import Tuple
+
+from pygame import sprite
 from pygame.locals import *
 
+from src.blocks.floor import Floor
+from src.blocks.lootBlock import LootBlock
+from src.blocks.platform import Platform
+from src.entitys.cloud import Cloud
+from src.entitys.coin import Coin
+from src.entitys.goomba import Goomba
+from src.entitys.koopa import Koopa
+from src.entitys.vegetable import Vegetable
 from src.fps import Fps
 from src.select_menu_stage import StageMenu
 from src.title_screen import TitleScreen
@@ -20,6 +30,7 @@ from src.scenes.scene_0 import Scene0
 from src.maps_engine import Maps
 from src.events import Events
 from src.font import Font
+from src.constantes import TILE_WIDTH
 
 pg.mixer.init(22050, -16, 2, 512)
 pg.init()
@@ -32,6 +43,7 @@ class Main(object):
     dt: float   # Time between two frame
 
     def __init__(self):
+        self.all_sprites = sprite.LayeredUpdates()
         # load save
         print("-"*3 + "= loading save file =" + "-"*11)
         with open(os.path.join("res", "save.json")) as f:
@@ -202,7 +214,7 @@ class Main(object):
                     elif not self.stage_menu.load_maps and self.stage_menu.pass_maps:
                         self.display.fill((0, 0, 0))
                         print("Game: Load maps...")
-                        self.maps.new(self.res, self.stage_menu.stage)
+                        self.player = self.maps.new(self.all_sprites, self.res, self.stage_menu.stage)
                         print("Game: Maps is loaded !")
                         self.stage_menu.load_maps = True
 
@@ -212,7 +224,38 @@ class Main(object):
                     if self.title_screen.getPassStageMenu():
                         self.stage_menu.draw(self.display)
                     if self.stage_menu.pass_maps:
-                        self.maps.draw(self.display)
+                        self.display.fill((156, 252, 240))
+
+                        for sprite in self.all_sprites:
+                            if isinstance(sprite, Platform):
+                                if all([self.maps.camera.rect.left + 16 >= -sprite.rect.left, (TILE_WIDTH - self.maps.camera.rect.left + 390) >= sprite.rect.left]):
+                                    self.display.blit(sprite.image, self.maps.camera.apply(sprite))
+                                    if any([sprite.offset_img[0] == 5, sprite.offset_img[0] == 2,sprite.offset_img[0] == 3]):
+                                        sprite.apply_shadow(self.display, self.maps.camera)
+
+                            if isinstance(sprite, Floor):
+                                if all([self.maps.camera.rect.left + 16 >= -sprite.rect.left, (TILE_WIDTH - self.maps.camera.rect.left + 390) >= sprite.rect.left]):
+                                    self.display.blit(sprite.image, self.maps.camera.apply(sprite))
+
+                            if isinstance(sprite, LootBlock):
+                                if len(sprite.mushrooms) != 0:
+                                    for mush in sprite.mushrooms:
+                                        if all([self.maps.camera.rect.left + 16 >= -mush.rect.left, (TILE_WIDTH - self.maps.camera.rect.left + 390) >= mush.rect.left]):
+                                            self.display.blit(mush.image, self.maps.camera.apply(mush))
+                                if all([self.maps.camera.rect.left + 16 >= -sprite.rect.left, (TILE_WIDTH - self.maps.camera.rect.left + 390) >= sprite.rect.left]):
+                                    self.display.blit(sprite.image, self.maps.camera.apply(sprite))
+
+                            if isinstance(sprite, Vegetable) or isinstance(sprite, Coin) or isinstance(sprite, Cloud):
+                                if all([self.maps.camera.rect.left + 16 >= -sprite.rect.left, (TILE_WIDTH - self.maps.camera.rect.left + 390) >= sprite.rect.left]):
+                                    self.display.blit(sprite.image, self.maps.camera.apply(sprite))
+
+                            if isinstance(sprite, Goomba) or isinstance(sprite, Koopa) or isinstance(sprite, Coin):
+                                if sprite.step == 1:
+                                    self.all_sprites.remove(sprite)
+                                if all([self.maps.camera.rect.left + 16 >= -sprite.rect.left, (TILE_WIDTH - self.maps.camera.rect.left + 390) >= sprite.rect.left]):
+                                    self.display.blit(sprite.image, self.maps.camera.apply(sprite))
+
+                        self.display.blit(self.player.image, self.maps.camera.apply(self.player))
                     # HUD
                     if not self.title_screen.getIsTitle():
                         hud_sheet = self.res["tiles"]["HUDSheet"]
@@ -230,7 +273,7 @@ class Main(object):
                     if all([self.title_screen.getPassStageMenu(), self.stage_menu.load_stage_menu, not self.stage_menu.pass_maps]):
                         self.stage_menu.updates(self.dt, self.event.keys_pressed)
                     if self.stage_menu.pass_maps and self.stage_menu.load_maps:
-                        self.maps.updates(self.dt, self.event.keys_pressed)
+                        self.maps.updates(self.dt, self.event.keys_pressed, self.all_sprites)
 
             self.screen.blit(pg.transform.scale(self.display, self.window_size), (0, 0))
             self.fps.draw(self.screen)  # Monitoring
