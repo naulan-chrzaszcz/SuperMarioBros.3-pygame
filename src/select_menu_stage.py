@@ -1,10 +1,12 @@
 import json
 import os
+from math import sqrt
 
 from pygame.transform import rotate, flip
 from pygame import draw,sprite,mixer
 from pygame.locals import K_a, K_d
 
+from src.constantes import TILE_WIDTH
 from src.scenes.scene_2 import Scene2
 from src.scenes.scene_3 import Scene3
 from src.entitys.player import Player
@@ -21,7 +23,8 @@ class StageMenu(object):
         self.all_sprites = sprite.LayeredUpdates()
         self.directory = 'res/matrices/'
 
-        self.graph_level = []
+        self.graph = {}
+        self.graph_coord = []
 
         # ### BOOLEAN VARIABLES ###
         self.load_stage_menu = False
@@ -40,6 +43,8 @@ class StageMenu(object):
         self.all_tiles_rect = []
         self.all_cactus = []
 
+        self.all_sommet_visited = []
+
     def new(self, res):
         mixer.stop()
 
@@ -50,7 +55,7 @@ class StageMenu(object):
         data = res["levels"]["selectMenuStage"]
         tile_width = len(data['0'])
         tile_height = len(data)
-        self.camera = Camera([tile_width * 16, tile_height * 16])
+        self.camera = Camera([tile_width * TILE_WIDTH, tile_height * TILE_WIDTH])
 
         # Load stages map
         with open(os.path.join("res/", "indexSheetImages.json")) as f:
@@ -59,19 +64,20 @@ class StageMenu(object):
             n = 0
             for target, tile in enumerate(data[str(lgn)]):
                 if tile is not None:
-                    x, y = (target*16, lgn*16)
+                    x, y = (target * TILE_WIDTH, lgn * TILE_WIDTH)
                     tilesIndex = ["C1","C2","C3","C4","C5","C6","GO","R0","R1","R2","R3","R4","R5","R6","V0","V1","V2",
                                   "V3","V4","V5","V6","00","PT","AY","CT"]
                     if tile[0] in tilesIndex:
                         if tile[0] != "CT":
                             r,w,h,l = locSheet[tile[0]]
+
                             if tile[0] == "R4":
                                 self.all_tiles.append(rotate(res["tiles"]["selectMenuStageSheet"].subsurface(r, w, h, l), 90))
                             elif tile[0] in ["R5","R6"]:
                                 self.all_tiles.append(flip(res["tiles"]["selectMenuStageSheet"].subsurface(r, w, h, l), False, True))
-                            elif tile[0] in [("C" + str(i)) for i in range(1, 6)]:
+                            elif tile[0] in [("C" + str(i)) for i in range(1, 7)] or tile[0] in ["R0", "R1", "R2"]:
                                 self.all_tiles.append(res["tiles"]["selectMenuStageSheet"].subsurface(r,w,h,l))
-                                self.graph_level.append((x, y))
+                                self.graph_coord.append((x + (TILE_WIDTH/2),y + (TILE_WIDTH/2)))
                             else:
                                 self.all_tiles.append(res["tiles"]["selectMenuStageSheet"].subsurface(r, w, h, l))
                             self.all_tiles_rect.append([self.all_tiles[n].get_rect(x=x,y=y),tile[0]])
@@ -105,6 +111,25 @@ class StageMenu(object):
             if self.on_case and self.select:
                 self.scene_3.start(surface, self.dt, self.sfx)
 
+        x_pythagore = self.player.rect.x + TILE_WIDTH/2 - self.graph_coord[0][0]
+        y_pythagore = self.player.rect.y + TILE_WIDTH/2 - self.graph_coord[0][1]
+        hyphotenus = y_pythagore**2 + x_pythagore**2
+        close_point = sqrt(hyphotenus)
+        x_point = self.graph_coord[0][0]; y_point = self.graph_coord[0][1]
+        for sommet in self.graph_coord:
+            draw.circle(surface, (25, 255, 255), sommet, 5)
+
+            x_pythagore = self.player.rect.x + TILE_WIDTH/2 - sommet[0]
+            y_pythagore = self.player.rect.y + TILE_WIDTH/2 - sommet[1]
+            hyphotenus = y_pythagore**2 + x_pythagore**2
+
+            if sqrt(hyphotenus) < close_point:
+                close_point = sqrt(hyphotenus)
+                x_point = sommet[0]; y_point = sommet[1]
+
+        draw.line(surface, (255, 0, 0), (self.player.rect.x+TILE_WIDTH/2, self.player.rect.y+TILE_WIDTH/2), (x_point, y_point))
+        print(str(sqrt(close_point)) + "cm")
+
     def updates(self, dt, keys_pressed):
         self.dt = dt
 
@@ -118,9 +143,6 @@ class StageMenu(object):
         if self.scene_2.finish and self.select == 0:
             self.player.keys = keys_pressed
             self.player.update(dt)
-
-            for sommet in self.graph_level:
-                pass
 
             if keys_pressed[f"{K_d}"]:
                 pass

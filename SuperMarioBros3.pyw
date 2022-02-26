@@ -25,8 +25,9 @@ from src.entitys.koopa import Koopa
 from src.entitys.vegetable import Vegetable
 from src.fps import Fps
 from src.select_menu_stage import StageMenu
+from src.threads.introduction import Introduction
+from src.threads.loading import Loading
 from src.title_screen import TitleScreen
-from src.scenes.scene_0 import Scene0
 from src.maps_engine import Maps
 from src.events import Events
 from src.font import Font
@@ -79,32 +80,21 @@ class Main(object):
         self.stage_list = {}
         self.t = 0
 
-        # load all resources.
-        print("-" * 3 + "= Loading resources =" + "-" * 11)
-        with open(os.path.join("res", "pathIndex.json")) as f:
-            pathIndex = json.load(f)
+
         self.res = {}
-        for i in pathIndex:
-            self.res[i] = {}
-            for index in pathIndex[i]:
-                if index != ":type":
-                    directory = pathIndex[i][index][0]
-                    file = pathIndex[i][index][1]
-                    if pathIndex[i][":type"] == "image":
-                        self.res[i][index] = self.load_img(os.path.join(directory, file))
-                    elif pathIndex[i][":type"] == "music":
-                        self.res[i][index] = pg.mixer.Sound(os.path.join(directory, file))
-                    elif pathIndex[i][":type"] == "map":
-                        with open(os.path.join(directory, file)) as f:
-                            self.res[i][index] = json.load(f)
-                    print(f"{pathIndex[i][index][1]} loaded !")
-        print("-" * 3 + "= all resources loaded =" + "-" * 11 + "\n")
+        loading_res = Loading(self.res)
+        introduction = Introduction(self.screen, self.display, self.window_size, loading_res)
+
+        loading_res.start(); introduction.start()
+
+        # Bloque le programme tant que sa charge
+        while loading_res.is_alive() and introduction.is_alive(): pass
+
 
         self.stage_menu = StageMenu()
         # Keyboard event and/or remote control
         self.event = Events(self.res["annexe"])
-        # Intro CHRZASZCZ Development.
-        self.scene_0 = Scene0(self.res)
+
         # Title screen of Super Mario Bros3.
         self.title_screen = TitleScreen(self.res)
 
@@ -193,87 +183,83 @@ class Main(object):
                 self.fps.get(); self.fps.average()
             self.t += (1 * self.dt)
 
-            # Scene n°0
-            if not self.scene_0.getFinish():
-                self.scene_0.start(self.display, self.dt)
+            if len(self.event.joysticks) != 0 and not self.event.is_calibrate:
+                self.event.calibrate(self.display)
+                self.screen.blit(pg.transform.scale(self.display, (self.window_size[0], self.window_size[1])), (0, 0))
             else:
-                if len(self.event.joysticks) != 0 and not self.event.is_calibrate:
-                    self.event.calibrate(self.display)
-                    self.screen.blit(pg.transform.scale(self.display, (self.window_size[0], self.window_size[1])), (0, 0))
-                else:
-                    self.event.get()
-                    # LOAD
-                    # select stage maps
-                    if not self.title_screen.getIsTitle() and not self.stage_menu.load_stage_menu:
-                        self.display.fill((0, 0, 0))
-                        print("Game: Load stage menu...")
-                        self.stage_menu.new(self.res)
-                        print("Game: Stage menu is loaded !")
-                        self.stage_menu.load_stage_menu = True
-                    # maps
-                    elif not self.stage_menu.load_maps and self.stage_menu.pass_maps:
-                        self.display.fill((0, 0, 0))
-                        print("Game: Load maps...")
-                        self.player = self.maps.new(self.all_sprites, self.res, self.stage_menu.stage)
-                        print("Game: Maps is loaded !")
-                        self.stage_menu.load_maps = True
+                self.event.get()
+                # LOAD
+                # select stage maps
+                if not self.title_screen.getIsTitle() and not self.stage_menu.load_stage_menu:
+                    self.display.fill((0, 0, 0))
+                    print("Game: Load stage menu...")
+                    self.stage_menu.new(self.res)
+                    print("Game: Stage menu is loaded !")
+                    self.stage_menu.load_stage_menu = True
+                # maps
+                elif not self.stage_menu.load_maps and self.stage_menu.pass_maps:
+                    self.display.fill((0, 0, 0))
+                    print("Game: Load maps...")
+                    self.player = self.maps.new(self.all_sprites, self.res, self.stage_menu.stage)
+                    print("Game: Maps is loaded !")
+                    self.stage_menu.load_maps = True
 
-                    # DRAWs
-                    if self.title_screen.getIsTitle():
-                        self.title_screen.draw(self.display)
-                    if self.title_screen.getPassStageMenu():
-                        self.stage_menu.draw(self.display)
-                    if self.stage_menu.pass_maps:
-                        self.display.fill((156, 252, 240))
+                # DRAWs
+                if self.title_screen.getIsTitle():
+                    self.title_screen.draw(self.display)
+                if self.title_screen.getPassStageMenu():
+                    self.stage_menu.draw(self.display)
+                if self.stage_menu.pass_maps:
+                    self.display.fill((156, 252, 240))
 
-                        for sprite in self.all_sprites:
-                            if isinstance(sprite, Platform):
-                                if all([self.maps.camera.rect.left + 16 >= -sprite.rect.left, (TILE_WIDTH - self.maps.camera.rect.left + 390) >= sprite.rect.left]):
-                                    self.display.blit(sprite.image, self.maps.camera.apply(sprite))
-                                    if any([sprite.offset_img[0] == 5, sprite.offset_img[0] == 2,sprite.offset_img[0] == 3]):
-                                        sprite.apply_shadow(self.display, self.maps.camera)
+                    for sprite in self.all_sprites:
+                        if isinstance(sprite, Platform):
+                            if all([self.maps.camera.rect.left + 16 >= -sprite.rect.left, (TILE_WIDTH - self.maps.camera.rect.left + 390) >= sprite.rect.left]):
+                                self.display.blit(sprite.image, self.maps.camera.apply(sprite))
+                                if any([sprite.offset_img[0] == 5, sprite.offset_img[0] == 2,sprite.offset_img[0] == 3]):
+                                    sprite.apply_shadow(self.display, self.maps.camera)
 
-                            if isinstance(sprite, Floor):
-                                if all([self.maps.camera.rect.left + 16 >= -sprite.rect.left, (TILE_WIDTH - self.maps.camera.rect.left + 390) >= sprite.rect.left]):
-                                    self.display.blit(sprite.image, self.maps.camera.apply(sprite))
+                        if isinstance(sprite, Floor):
+                            if all([self.maps.camera.rect.left + 16 >= -sprite.rect.left, (TILE_WIDTH - self.maps.camera.rect.left + 390) >= sprite.rect.left]):
+                                self.display.blit(sprite.image, self.maps.camera.apply(sprite))
 
-                            if isinstance(sprite, LootBlock):
-                                if len(sprite.mushrooms) != 0:
-                                    for mush in sprite.mushrooms:
-                                        if all([self.maps.camera.rect.left + 16 >= -mush.rect.left, (TILE_WIDTH - self.maps.camera.rect.left + 390) >= mush.rect.left]):
-                                            self.display.blit(mush.image, self.maps.camera.apply(mush))
-                                if all([self.maps.camera.rect.left + 16 >= -sprite.rect.left, (TILE_WIDTH - self.maps.camera.rect.left + 390) >= sprite.rect.left]):
-                                    self.display.blit(sprite.image, self.maps.camera.apply(sprite))
+                        if isinstance(sprite, LootBlock):
+                            if len(sprite.mushrooms) != 0:
+                                for mush in sprite.mushrooms:
+                                    if all([self.maps.camera.rect.left + 16 >= -mush.rect.left, (TILE_WIDTH - self.maps.camera.rect.left + 390) >= mush.rect.left]):
+                                        self.display.blit(mush.image, self.maps.camera.apply(mush))
+                            if all([self.maps.camera.rect.left + 16 >= -sprite.rect.left, (TILE_WIDTH - self.maps.camera.rect.left + 390) >= sprite.rect.left]):
+                                self.display.blit(sprite.image, self.maps.camera.apply(sprite))
 
-                            if isinstance(sprite, Vegetable) or isinstance(sprite, Coin) or isinstance(sprite, Cloud):
-                                if all([self.maps.camera.rect.left + 16 >= -sprite.rect.left, (TILE_WIDTH - self.maps.camera.rect.left + 390) >= sprite.rect.left]):
-                                    self.display.blit(sprite.image, self.maps.camera.apply(sprite))
+                        if isinstance(sprite, Vegetable) or isinstance(sprite, Coin) or isinstance(sprite, Cloud):
+                            if all([self.maps.camera.rect.left + 16 >= -sprite.rect.left, (TILE_WIDTH - self.maps.camera.rect.left + 390) >= sprite.rect.left]):
+                                self.display.blit(sprite.image, self.maps.camera.apply(sprite))
 
-                            if isinstance(sprite, Goomba) or isinstance(sprite, Koopa) or isinstance(sprite, Coin):
-                                if sprite.step == 1:
-                                    self.all_sprites.remove(sprite)
-                                if all([self.maps.camera.rect.left + 16 >= -sprite.rect.left, (TILE_WIDTH - self.maps.camera.rect.left + 390) >= sprite.rect.left]):
-                                    self.display.blit(sprite.image, self.maps.camera.apply(sprite))
+                        if isinstance(sprite, Goomba) or isinstance(sprite, Koopa) or isinstance(sprite, Coin):
+                            if sprite.step == 1:
+                                self.all_sprites.remove(sprite)
+                            if all([self.maps.camera.rect.left + 16 >= -sprite.rect.left, (TILE_WIDTH - self.maps.camera.rect.left + 390) >= sprite.rect.left]):
+                                self.display.blit(sprite.image, self.maps.camera.apply(sprite))
 
-                        self.display.blit(self.player.image, self.maps.camera.apply(self.player))
-                    # HUD
-                    if not self.title_screen.getIsTitle():
-                        hud_sheet = self.res["tiles"]["HUDSheet"]
-                        pg.draw.rect(self.display, (0, 0, 0), Rect(0, self.display.get_height() - 45, self.display.get_width(), 45))
-                        self.display.blit(hud_sheet.subsurface(0, 0, 154, 30), (self.display.get_width() / 6, self.display.get_height() - 40))
-                        self.display.blit(hud_sheet.subsurface(155, 0, 74, 30), (self.display.get_width() / 1.5, self.display.get_height() - 40))
-                        self.font_custom.draw_msg(self.display, [self.display.get_width() / 6 + 133, self.display.get_height() - 33], f'{self.stage_menu.player.coins}') if self.stage_menu.is_menu_stage else self.font_custom.draw_msg(self.display, [98, 192], f'{self.maps.player.coins}')
-                        self.font_custom.draw_msg(self.display, [self.display.get_width() / 6 + 105, self.display.get_height() - 25], f'{self.stage_menu.player.score}', True) if self.stage_menu.is_menu_stage else self.font_custom.draw_msg(self.display, [98, 192], f'{self.maps.player.score}', True)
-                        self.font_custom.draw_msg(self.display, [self.display.get_width() / 6 + 28, self.display.get_height() - 25], f'{self.stage_menu.player.life}') if self.stage_menu.is_menu_stage else self.font_custom.draw_msg(self.display, [98, 192], f'{self.maps.player.life}')
-                        self.font_custom.draw_msg(self.display, [self.display.get_width() / 6 + 35, self.display.get_height() - 33], self.stage_menu.stage)
+                    self.display.blit(self.player.image, self.maps.camera.apply(self.player))
+                # HUD
+                if not self.title_screen.getIsTitle():
+                    hud_sheet = self.res["tiles"]["HUDSheet"]
+                    pg.draw.rect(self.display, (0, 0, 0), Rect(0, self.display.get_height() - 45, self.display.get_width(), 45))
+                    self.display.blit(hud_sheet.subsurface(0, 0, 154, 30), (self.display.get_width() / 6, self.display.get_height() - 40))
+                    self.display.blit(hud_sheet.subsurface(155, 0, 74, 30), (self.display.get_width() / 1.5, self.display.get_height() - 40))
+                    self.font_custom.draw_msg(self.display, [self.display.get_width() / 6 + 133, self.display.get_height() - 33], f'{self.stage_menu.player.coins}') if self.stage_menu.is_menu_stage else self.font_custom.draw_msg(self.display, [98, 192], f'{self.maps.player.coins}')
+                    self.font_custom.draw_msg(self.display, [self.display.get_width() / 6 + 105, self.display.get_height() - 25], f'{self.stage_menu.player.score}', True) if self.stage_menu.is_menu_stage else self.font_custom.draw_msg(self.display, [98, 192], f'{self.maps.player.score}', True)
+                    self.font_custom.draw_msg(self.display, [self.display.get_width() / 6 + 28, self.display.get_height() - 25], f'{self.stage_menu.player.life}') if self.stage_menu.is_menu_stage else self.font_custom.draw_msg(self.display, [98, 192], f'{self.maps.player.life}')
+                    self.font_custom.draw_msg(self.display, [self.display.get_width() / 6 + 35, self.display.get_height() - 33], self.stage_menu.stage)
 
-                    # UPDATES
-                    if self.title_screen.getIsTitle():
-                        self.title_screen.updates(self.dt, self.event.keys_pressed)
-                    if all([self.title_screen.getPassStageMenu(), self.stage_menu.load_stage_menu, not self.stage_menu.pass_maps]):
-                        self.stage_menu.updates(self.dt, self.event.keys_pressed)
-                    if self.stage_menu.pass_maps and self.stage_menu.load_maps:
-                        self.maps.updates(self.dt, self.event.keys_pressed, self.all_sprites)
+                # UPDATES
+                if self.title_screen.getIsTitle():
+                    self.title_screen.updates(self.dt, self.event.keys_pressed)
+                if all([self.title_screen.getPassStageMenu(), self.stage_menu.load_stage_menu, not self.stage_menu.pass_maps]):
+                    self.stage_menu.updates(self.dt, self.event.keys_pressed)
+                if self.stage_menu.pass_maps and self.stage_menu.load_maps:
+                    self.maps.updates(self.dt, self.event.keys_pressed, self.all_sprites)
 
             self.screen.blit(pg.transform.scale(self.display, self.window_size), (0, 0))
             self.fps.draw(self.screen)  # Monitoring
