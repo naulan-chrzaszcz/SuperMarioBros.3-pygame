@@ -1,3 +1,5 @@
+import pygame as pg
+
 from pygame import Surface
 
 
@@ -10,10 +12,10 @@ class Scene0(object):
                 4. Fin = Passe à la Scene n°1
     """
 
-    def __init__(self, res):
+    def __init__(self):
         self.step = [True, False]
         self.finish = False
-        self.background = res["annexe"]["introBG"]
+        self.background = pg.image.load("res/sheets/intro-bg.png")
         self.alpha = 0
         self.t = 0
 

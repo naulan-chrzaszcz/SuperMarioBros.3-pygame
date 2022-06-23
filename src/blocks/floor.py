@@ -1,11 +1,10 @@
-from pygame.sprite import ( Sprite )
+from pygame.sprite import Sprite
 
 
+class Floor(Sprite):
 
-class Floor( Sprite ):
-
-    def __init__( self, group_sprite, tiles, position, offset ):
-        Sprite.__init__( self, group_sprite )
+    def __init__(self, group_sprite, tiles, position, offset):
+        Sprite.__init__(self, group_sprite)
 
         # ### LIST VARIABLES ###
         self.offset_img = offset

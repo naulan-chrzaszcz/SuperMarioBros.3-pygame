@@ -3,7 +3,6 @@ from src.entitys.mushroom import ( Mushroom )
 from math import sin
 
 
-
 class LootBlock( Sprite ):
 
     def __init__( self, group_sprite, sheet, position, loot ):
