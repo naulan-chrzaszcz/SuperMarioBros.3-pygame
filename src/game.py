@@ -59,7 +59,7 @@ class Game(object):
     def run(self, screen, display):
         while True:
             # FPS MANAGEMENT
-            self.dt = self.fps.manage(fps=0)
+            self.dt = self.fps.manage(fps=144)
             if self.fps.benchmark and int(self.t)%15 == 0:
                 self.fps.get(); self.fps.average()
             self.t += (1 * self.dt)

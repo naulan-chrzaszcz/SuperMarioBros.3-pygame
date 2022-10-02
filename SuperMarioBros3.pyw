@@ -33,9 +33,9 @@ class Launcher(object):
         Loader.load(game)
         game.load()
 
-        window_size = (Launcher.width_screen(),Launcher.height_screen())
-        screen = pg.display.set_mode(window_size,0,32)
-        resolution: tuple = (Launcher.game_width_resolution(),Launcher.game_height_resolution())
+        window_size = (Launcher.width_screen(), Launcher.height_screen())
+        screen = pg.display.set_mode(window_size, 0, 32)
+        resolution: tuple = (Launcher.game_width_resolution(), Launcher.game_height_resolution())
         display = pg.Surface(resolution)
 
         game.run(screen, display)
