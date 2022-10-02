@@ -28,14 +28,14 @@ class TitleScreen(Scene1):
         return self.pass_stage_menu
 
     def draw(self, surface) -> None:
+        surface.fill(self.getBackgroundColor())
         h = surface.get_height()
 
-        surface.fill(self.getBackgroundColor())
         self.start(surface, self.dt)
-        if self.step[0] and not self.play_titleScreen:
+        if int(self.t) >= 20 and not self.play_titleScreen:
             self.titleScreenMusic.play(loops=-1)
             self.play_titleScreen = True
-        if self.step[3] and not self.play_voice:
+        if int(self.t) > 40 and not self.play_voice:
             self.voice.play()
             self.play_voice = True
         # Curtain
