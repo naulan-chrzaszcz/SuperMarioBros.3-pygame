@@ -1,11 +1,16 @@
-# **SuperMarioBros3 "like".**
-![illustration-TitleScreen](https://eapi.pcloud.com/getpubthumb?code=XZzBbJZwEoDuWD0fJJRWCIYAEUjpBhiDCek&linkpassword=undefined&size=1280x345&crop=0&type=auto)
-- ![discordLogo](https://eapi.pcloud.com/getpubthumb?code=XZj2bJZbGTjqDtGjLRdseh7mqUmlHwcHAFV&linkpassword=undefined&size=20x20&crop=0&type=auto) **Discord**: http://discord.chrz-development.fr
-- **WebSite**: https://www.chrz-development.fr
+<p align="center">
+<img src="https://img.shields.io/badge/Python-14354C?style=for-the-badge&logo=python&logoColor=white" width="125">
+<img src="https://img.shields.io/badge/Pygame-15354C?style=for-the-badge&logo=python&logoColor=white" width="125">
+</p>
 
-➡ Ce code source **contien toutes les ressources nécessaires pour pouvoir lancé le jeu**.
-Tous les fichiers ressource sont dans le fichier `res` du code source.
-Ce jeux se joue uniquement au clavier ou bien sur une manette !
+![illustration-TitleScreen](https://eapi.pcloud.com/getpubthumb?code=XZzBbJZwEoDuWD0fJJRWCIYAEUjpBhiDCek&linkpassword=undefined&size=1280x345&crop=0&type=auto)
+
+<p align="center">
+<a href="https://www.chrz-development.fr"><img src="https://img.shields.io/badge/Website-FF7139?style=for-the-badge&logo=Firefox-Browser&logoColor=white" width="125"></a>
+<a href="http://discord.chrz-development.fr"><img src="https://img.shields.io/badge/Discord-7289DA?style=for-the-badge&logo=discord&logoColor=white" width="125"></a>
+</p>
+ 
+➡ Ce code source **contient toutes les ressources nécessaires pour pouvoir lancer le jeu**. Tous les fichiers ressource sont dans le fichier `res` du code source. Ce jeu se joue uniquement au clavier ou bien sur une manette !
 
 ## **🗂 Sommaires:**
 - ⌨ [Touches par défaut](#touches-par-défaut)
@@ -48,6 +53,8 @@ scripts, vous pouvez lancer directement le jeux grâce à cette commande que Pyt
 ```commandline
 # Commande native lors que Python est installée sur la machine. 
 python3 ./SuperMarioBros3.pyw
+# Il est possible que python3 ne fonctionne pas
+python ./SuperMarioBros3.pyw
 ```
 Sinon, si vous voulez un lancement qui fonctionnera à 100%, lancé les scripts suivant.
 Sur Linux:
@@ -70,8 +77,6 @@ Vous devez installer la librairie qui est mentionner dans l'erreur, mais la plup
 nécessaire, il vous suffit de entrez cette commande:
 ```commandline
 python3 -m pip install pygame
-```
-Mais attention ! Il est possible que `python3` ne fonctionne pas... Si c'est le cas entré la commande suivante:
-```commandline
+# Il est possible que python3 ne fonctionne pas
 python -m pip install pygame
 ```
