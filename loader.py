@@ -48,11 +48,9 @@ class LoadingThread(Thread):
                     file = pathIndex[part][target][1]
 
                     if pathIndex[part][":type"] == "image":
-                        data[part][target] = self.load_img(
-                            os.path.join(directory, file))
+                        data[part][target] = self.load_img(os.path.join(directory, file))
                     elif pathIndex[part][":type"] == "music":
-                        data[part][target] = pg.mixer.Sound(
-                            os.path.join(directory, file))
+                        data[part][target] = pg.mixer.Sound(os.path.join(directory, file))
                     elif pathIndex[part][":type"] == "map":
                         with open(os.path.join(directory, file)) as f:
                             data[part][target] = json.load(f)

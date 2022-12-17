@@ -8,11 +8,10 @@ from src.game import Game
 
 
 class Entity(Sprite):
-
     game: Game
 
-    look: int   # -1 left, 1 right
-    offset: list    # [0] left, right & [1] up, down
+    look: int  # -1 left, 1 right
+    offset: list  # [0] left, right & [1] up, down
     velocity: float
 
     top_collision: bool
@@ -25,7 +24,6 @@ class Entity(Sprite):
 
     image: Surface
     rect: Rect
-
 
     def __init__(self,
                  game: Game,
@@ -45,6 +43,14 @@ class Entity(Sprite):
         self.right_collision = False
         self.left_collision = False
 
+    @staticmethod
+    def palette_swap(surf, old_c, new_c):
+        img_copy = Surface(surf.get_size())
+        img_copy.fill(new_c)
+        surf.set_colorkey(old_c)
+        img_copy.blit(surf, (0, 0))
+        return img_copy
+
     @abstractmethod
     def update(self, *args, **kwargs) -> None:
         pass
@@ -58,8 +64,7 @@ class Entity(Sprite):
 
     def move_left(self) -> None:
         self.look = -1
-        self.x -= self.velocity*self.game.dt
+        self.x -= self.velocity * self.game.dt
 
     def move_right(self) -> None:
         pass
-
