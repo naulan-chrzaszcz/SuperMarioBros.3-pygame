@@ -1,7 +1,7 @@
 from src.blocks.block import Block
 from src.blocks.type_of_block import TypeOfBlock
 from src.constantes import TILE_WIDTH
-from src.entitys.entity import Entity
+from src.entities.entity import Entity
 
 
 class Platform(Block):

@@ -9,8 +9,8 @@ from pygame.locals import K_a, K_d
 from src.constantes import TILE_WIDTH
 from src.scenes.scene_2 import Scene2
 from src.scenes.scene_3 import Scene3
-from src.entitys.player import Player
-from src.entitys.cactus import Cactus
+from src.entities.player import Player
+from src.entities.cactus import Cactus
 from src.maps_engine import Camera
 
 

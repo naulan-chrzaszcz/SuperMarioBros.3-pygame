@@ -1,5 +1,5 @@
 from pygame.sprite import ( Sprite )
-from src.entitys.mushroom import ( Mushroom )
+from src.entities.mushroom import (Mushroom)
 from math import sin
 
 

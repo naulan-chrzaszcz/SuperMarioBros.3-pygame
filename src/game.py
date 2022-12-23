@@ -9,11 +9,11 @@ from src.blocks.floor import Floor
 from src.blocks.lootBlock import LootBlock
 from src.blocks.platform import Platform
 from src.constantes import TILE_WIDTH
-from src.entitys.cloud import Cloud
-from src.entitys.coin import Coin
-from src.entitys.goomba import Goomba
-from src.entitys.koopa import Koopa
-from src.entitys.vegetable import Vegetable
+from src.entities.cloud import Cloud
+from src.entities.coin import Coin
+from src.entities.goomba import Goomba
+from src.entities.koopa import Koopa
+from src.entities.vegetable import Vegetable
 from src.events import Events
 from src.font import Font
 from src.fps import Fps
