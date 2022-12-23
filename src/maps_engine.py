@@ -3,14 +3,14 @@ import os
 
 from pygame import Rect,sprite,mixer
 
-from src.entities.vegetable import Vegetable
-from src.blocks.lootBlock import LootBlock
-from src.blocks.platform import Platform
-from src.entities.goomba import Goomba
+from src.entities.blocks.lootBlock import LootBlock
+from src.entities.blocks.platform import Platform
+from src.entities.decorations.vegetable import Vegetable
+from src.entities.enemies.goomba import Goomba
 from src.entities.player import Player
-from src.entities.koopa import Koopa
-from src.entities.cloud import Cloud
-from src.blocks.floor import Floor
+from src.entities.enemies.koopa import Koopa
+from src.entities.decorations.cloud import Cloud
+from src.entities.blocks.floor import Floor
 from src.entities.coin import Coin
 
 

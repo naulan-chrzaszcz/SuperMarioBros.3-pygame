@@ -1,5 +1,5 @@
-from src.blocks.block import Block
-from src.blocks.type_of_block import TypeOfBlock
+from src.entities.block import Block
+from src.entities.type_of_block import TypeOfBlock
 from src.constantes import TILE_WIDTH
 from src.entities.entity import Entity
 
@@ -31,7 +31,7 @@ class Platform(Block):
         maps = kwargs["maps"]
         display = kwargs["display"]
 
-        if maps.camera.rect.left + 16 >= -self.rect.lef and (TILE_WIDTH - maps.camera.rect.left + 390) >= self.rect.left:
+        if maps.camera.rect.left + 16 >= -self.rect.left and (TILE_WIDTH - maps.camera.rect.left + 390) >= self.rect.left:
             display.blit(self.image, maps.camera.apply(self))
             if any([TypeOfBlock.is_corner_right_top(self.type_of_block),
                     TypeOfBlock.is_left(self.type_of_block),

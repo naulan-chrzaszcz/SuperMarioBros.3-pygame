@@ -4,16 +4,15 @@ import pygame as pg
 
 from pygame.sprite import LayeredUpdates
 
-from src.blocks.block import Block
-from src.blocks.floor import Floor
-from src.blocks.lootBlock import LootBlock
-from src.blocks.platform import Platform
+from src.entities.block import Block
+from src.entities.blocks.floor import Floor
+from src.entities.blocks import LootBlock
 from src.constantes import TILE_WIDTH
-from src.entities.cloud import Cloud
+from src.entities.decorations.cloud import Cloud
 from src.entities.coin import Coin
-from src.entities.goomba import Goomba
-from src.entities.koopa import Koopa
-from src.entities.vegetable import Vegetable
+from src.entities.enemies.goomba import Goomba
+from src.entities.enemies.koopa import Koopa
+from src.entities.decorations.vegetable import Vegetable
 from src.events import Events
 from src.font import Font
 from src.fps import Fps

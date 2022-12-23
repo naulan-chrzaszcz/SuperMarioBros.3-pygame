@@ -4,14 +4,12 @@ from pygame import Surface
 from pygame.sprite import Sprite
 from pygame.transform import flip
 
-from src.blocks.type_of_block import TypeOfBlock
-from src.game import Game
+from src.entities.type_of_block import TypeOfBlock
 from src.maps_engine import Camera
 
 
 class Block(Sprite):
     type_of_block: TypeOfBlock
-    game: Game
 
     def __init__(self, game, group_sprite, type_of_block):
         Sprite.__init__(self, group_sprite)
