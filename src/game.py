@@ -6,17 +6,20 @@ from pygame.sprite import LayeredUpdates
 
 from src.entities.block import Block
 from src.entities.blocks.floor import Floor
-from src.entities.blocks import LootBlock
 from src.constantes import TILE_WIDTH
+from src.entities.blocks.lootBlock import LootBlock
 from src.entities.decorations.cloud import Cloud
 from src.entities.coin import Coin
 from src.entities.enemies.goomba import Goomba
 from src.entities.enemies.koopa import Koopa
 from src.entities.decorations.vegetable import Vegetable
+from src.entities.player.player import Player
 from src.events import Events
 from src.font import Font
 from src.fps import Fps
-from src.maps_engine import Maps
+from src.gallery.gallery import Gallery
+from src.maps_engine.maps_engine import MapsEngine
+from src.save import Save
 from src.select_menu_stage import StageMenu
 from src.title_screen import TitleScreen
 
@@ -24,18 +27,23 @@ from src.title_screen import TitleScreen
 class Game(object):
     dt: float  # Time between two frame
     sprites: LayeredUpdates
+    gallery: Gallery
+    maps: MapsEngine
+    player: Player
+    save: Save
 
     res: dict = {}
 
     def __init__(self):
         self.sprites = pg.sprite.LayeredUpdates()
+        self.gallery = Gallery()
+        self.maps = MapsEngine(self)
 
         # Stock all Maps (Stages) in memory
         self.stage_list = {}
         self.t = 0
 
         self.font_custom = Font()
-        self.maps = Maps()
         self.fps = Fps()
 
     def load(self):

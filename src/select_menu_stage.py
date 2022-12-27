@@ -9,9 +9,9 @@ from pygame.locals import K_a, K_d
 from src.constantes import TILE_WIDTH
 from src.scenes.scene_2 import Scene2
 from src.scenes.scene_3 import Scene3
-from src.entities.player import Player
+from src.entities.player.player import Player
 from src.entities.decorations.cactus import Cactus
-from src.maps_engine import Camera
+from src.maps_engine import camera
 
 
 class StageMenu(object):
