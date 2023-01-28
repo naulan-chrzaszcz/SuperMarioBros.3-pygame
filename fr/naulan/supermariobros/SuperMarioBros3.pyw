@@ -5,7 +5,7 @@
 import pygame as pg
 
 from loader import Loader
-from src.game import Game
+from fr.naulan.supermariobros.src.game import Game
 
 
 class Launcher(object):

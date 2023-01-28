@@ -1,33 +1,25 @@
-from typing import List
+from typing import List, Union
 
 from pygame.sprite import LayeredUpdates
 
-from src.entities.player.player import Player
-from src.entities.coin import Coin
-from src.game import Game
-from src.maps_engine.tiles import Tiles
-from src.maps_engine.camera import Camera
-from src.maps_engine.map import Map
-from src.maps_engine.type_of_map import TypeOfMap
-from src.position import Position
+from fr.naulan.supermariobros.src.maps.tiles import Tiles
+from fr.naulan.supermariobros.src.maps.camera import Camera
+from fr.naulan.supermariobros.src.maps.map import Map
+from fr.naulan.supermariobros.src.maps.type_of_map import TypeOfMap
 
 
 class MapsEngine(object):
-    maps: List[Map, ...]
-    game: Game
-
-    def __init__(self, game):
-        self.game = game
+    data: List = list()
 
     @staticmethod
     def get_maps_separator() -> str: return ','
 
-    def load(self) -> Map:
-        pass
-
-    def new(self, raw_data: str, name: str, header: bool = True) -> None:
+    def new(self, raw_data: Union[str, List], name: str, header: bool = True) -> None:
         # Knowing the map size
-        lines = raw_data.splitlines()
+        if isinstance(raw_data, str):
+            lines = raw_data.splitlines()
+        else:
+            lines = raw_data
         tile_width = len(lines[0 if not header else 1].split(MapsEngine.get_maps_separator()))
         tile_height = len(lines)
 
@@ -48,10 +40,10 @@ class MapsEngine(object):
         for y, line in enumerate(lines[0:] if header else lines):
             columns = line.split(MapsEngine.get_maps_separator())
             for x, col in enumerate(columns):
-                type_of_tile = int(col[0])
+                type_of_tile = int(col)
                 if type_of_tile != Tiles.EMPTY:
-                    position = Position(x * 16, y * 16)
-                    sheet = self.game.gallery.get(int(col))
+                    # position = Position(x * 16, y * 16)
+                    # sheet = self.game.gallery.get(int(col))     # TODO Improve this
                     if len(col) >= 3:
                         orientation = int(col[1])
                         color_of_tile = str(col[2])
@@ -59,10 +51,11 @@ class MapsEngine(object):
                             if color_of_tile == 1:
                                 pass
                     else:
-                        if len(col) == 1:
-                            if col in "0":
-                                player = Player(sprites, sheet, position)
-                            if col in "1":
-                                Coin(sprites, sheet, position)
+                        pass
+                        # if len(col) == 1:
+                            # if int(col) == Entity.PLAYER:
+                                # player = Player(sprites, None, position)
+                            # if int(col) == Entity.COIN:
+                                # Coin(sprites, None, position)
 
-        self.maps.append(Map(name, type_of_map, camera, player, sprites))
+        self.data.append(Map(name, type_of_map, camera, player, sprites))

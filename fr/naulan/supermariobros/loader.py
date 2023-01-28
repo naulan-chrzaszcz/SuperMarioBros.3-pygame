@@ -4,13 +4,13 @@ import os
 
 from threading import Thread
 
-from src.entities.player.inventory import Inventory
-from src.entities.player.state import State
-from src.fps import Fps
-from src.game import Game
-from src.position import Position
-from src.save import Save
-from src.scenes.scene_0 import Scene0
+from fr.naulan.supermariobros.src.entities import Inventory
+from fr.naulan.supermariobros.src.entities.player.state import State
+from fr.naulan.supermariobros.src.fps import Fps
+from fr.naulan.supermariobros.src.game import Game
+from fr.naulan.supermariobros.src import Position
+from fr.naulan.supermariobros.src.save import Save
+from fr.naulan.supermariobros.src.scenes import Scene0
 
 
 class LoadingThread(Thread):
@@ -29,7 +29,7 @@ class LoadingThread(Thread):
         return img
 
     def load_save(self):
-        with open(os.path.join("res", "save.join")) as f:
+        with open(os.path.join("src/res", "save.join")) as f:
             raw_save = json.load(f)
 
             inventory = Inventory()
@@ -51,14 +51,14 @@ class LoadingThread(Thread):
         super(LoadingThread, self).run()
         print("Starting of " + self.getName() + " ...")
 
-        resources_path = os.path.join("res")
+        resources_path = os.path.join("src/res")
         for _dir in os.listdir(resources_path):
             if "fonts" in _dir:
                 pass
             if "matrices" in _dir:
                 maps_path = os.path.join("res/" + _dir)
                 for file in os.listdir(maps_path):
-                    self.game.maps.new()
+                    self.game.data.new()
             if "sheets" in _dir:
                 pass
             if "sounds" in _dir:
@@ -70,12 +70,12 @@ class LoadingThread(Thread):
 
         # load save
         print(("-" * 3) + "= loading save file =" + ("-" * 11))
-        with open(os.path.join("res", "save.json")) as f:
+        with open(os.path.join("src/res", "save.json")) as f:
             data["save"] = json.load(f)
 
         # load all resources.
         print(("-" * 3) + "= LoadingThread resources =" + ("-" * 11))
-        with open(os.path.join("res", "pathIndex.json")) as f:
+        with open(os.path.join("src/res", "pathIndex.json")) as f:
             pathIndex = json.load(f)
         for part in pathIndex:
             data[part] = {}
