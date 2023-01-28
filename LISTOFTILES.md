@@ -1,7 +1,21 @@
-# List of tiles
+# **List of tiles**
+Wrote by `CHRZASZCZ Naulan`
+
+-- --
+
+## **Summary**
+- [Entities]()
+- [Tiles]()
+  - [Orientation]()
+- [Loot block]()
+
+-- --
+
 ## Entities
 - `0` player
 - `1` coin
+
+-- --
 
 ## Tiles
 - `-1` empty
@@ -11,8 +25,7 @@
 - `4xx` loot-block
 - `5xx` cloud
 
-## Where look up
-_Not for loot block_
+### Where look up (Orientation)
 - `x1x` corner left top
 - `x2x` corner left bottom
 - `x3x` bottom
@@ -23,6 +36,8 @@ _Not for loot block_
 - `x8x` left
 - `x9x` right
 
+-- --
+
 ## Loot block
-- `x0x` nothing
-- `x1x` mushroom
+- `xxx0` nothing
+- `xxx1` mushroom
