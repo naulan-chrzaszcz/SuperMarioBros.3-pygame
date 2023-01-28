@@ -1,9 +1,15 @@
+from enum import Enum
+
 from pygame.sprite import (Sprite)
 from src.entities.upgrades.mushroom import (Mushroom)
 from math import sin
 
 
 class LootBlock(Sprite):
+
+    class Loot(Enum):
+        NOTHING = 0
+        MUSHROOM = 1
 
     def __init__(self, group_sprite, sheet, position, loot):
 

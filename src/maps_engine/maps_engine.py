@@ -18,11 +18,12 @@ class MapsEngine(object):
 
     def __init__(self, game):
         self.game = game
-        self.t = 0
 
     @staticmethod
-    def get_maps_separator() -> str:
-        return ','
+    def get_maps_separator() -> str: return ','
+
+    def load(self) -> Map:
+        pass
 
     def new(self, raw_data: str, name: str, header: bool = True) -> None:
         # Knowing the map size
@@ -48,12 +49,12 @@ class MapsEngine(object):
             columns = line.split(MapsEngine.get_maps_separator())
             for x, col in enumerate(columns):
                 type_of_tile = int(col[0])
-                if type_of_tile == Tiles.EMPTY:
+                if type_of_tile != Tiles.EMPTY:
                     position = Position(x * 16, y * 16)
                     sheet = self.game.gallery.get(int(col))
                     if len(col) >= 3:
                         orientation = int(col[1])
-                        color_of_tile = int(col[2])
+                        color_of_tile = str(col[2])
                         if type_of_tile == Tiles.PLATFORM:
                             if color_of_tile == 1:
                                 pass
@@ -63,4 +64,5 @@ class MapsEngine(object):
                                 player = Player(sprites, sheet, position)
                             if col in "1":
                                 Coin(sprites, sheet, position)
+
         self.maps.append(Map(name, type_of_map, camera, player, sprites))
