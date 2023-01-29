@@ -2,6 +2,9 @@ from typing import List, Union
 
 from pygame.sprite import LayeredUpdates
 
+from fr.naulan.supermariobros.src.entities.entity import Entity
+from fr.naulan.supermariobros.src.entities.player import Player
+from fr.naulan.supermariobros.src.entities.position import Position
 from fr.naulan.supermariobros.src.maps.tiles import Tiles
 from fr.naulan.supermariobros.src.maps.camera import Camera
 from fr.naulan.supermariobros.src.maps.map import Map
@@ -42,7 +45,7 @@ class MapsEngine(object):
             for x, col in enumerate(columns):
                 type_of_tile = int(col)
                 if type_of_tile != Tiles.EMPTY:
-                    # position = Position(x * 16, y * 16)
+                    position = Position(x * 16, y * 16)
                     # sheet = self.game.gallery.get(int(col))     # TODO Improve this
                     if len(col) >= 3:
                         orientation = int(col[1])
@@ -51,11 +54,8 @@ class MapsEngine(object):
                             if color_of_tile == 1:
                                 pass
                     else:
-                        pass
-                        # if len(col) == 1:
-                            # if int(col) == Entity.PLAYER:
-                                # player = Player(sprites, None, position)
-                            # if int(col) == Entity.COIN:
-                                # Coin(sprites, None, position)
+                        if len(col) == 1:
+                            if int(col) == Entity.PLAYER:
+                                player = Player(None, position, sprites)
 
         self.data.append(Map(name, type_of_map, camera, player, sprites))
