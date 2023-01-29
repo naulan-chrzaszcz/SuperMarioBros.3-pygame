@@ -2,7 +2,6 @@ from pygame import Rect
 
 
 class Camera(object):
-
     def __init__(self, size):
         # ### INT/FLOAT VARIABLES ###
         self.width = size[0]

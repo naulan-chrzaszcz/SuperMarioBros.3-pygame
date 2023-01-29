@@ -17,6 +17,7 @@ class MapsEngineTest(TestCase):
 
         empty_map = maps_engine.data[0]
         self.assertTrue(len(empty_map.data) == 0, "Is really empty")
+        raw_data.close()
 
     def test_player(self):
         """
@@ -35,3 +36,4 @@ class MapsEngineTest(TestCase):
         player = player_map.player
         self.assertTrue(player.x == 4*16, "Generated at a good position on x axis")
         self.assertTrue(player.y == 16, "Generated at a good position on y axis")
+        raw_data.close()

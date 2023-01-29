@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class Tiles(Enum):
+class TypeOfTile(Enum):
     EMPTY = -1
     PLATFORM = 1
     FLOORS = 2
