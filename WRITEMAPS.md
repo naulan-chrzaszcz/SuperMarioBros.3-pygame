@@ -1,3 +1,4 @@
+Wrote by Naulan CHRZASZCZ
 # How to write a map
 First, you use a simple `txt` file
 -- --
