@@ -26,3 +26,6 @@ personnal branch for start to coding. **PLS CREATE ALWAYS A PULL REQUEST !**
 After that, me and all contributor we going to review your pull request and suggest to change something wrong or not.
 
 When all reviewer is done and ok with your code, we can merge you branch on `develop` or `master`.
+
+## How to view old code ?
+You can download the old code source on `release`
