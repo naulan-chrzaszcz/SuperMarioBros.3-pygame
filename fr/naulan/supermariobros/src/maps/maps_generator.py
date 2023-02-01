@@ -11,14 +11,14 @@ from fr.naulan.supermariobros.src.maps.map import Map
 from fr.naulan.supermariobros.src.maps.type_of_map import TypeOfMap
 
 
-class MapsEngine(object):
+class MapsGenerator(object):
     SEPARATOR = ','
 
     data = list()
 
     def new(self, raw_data: Union[str, List], name: str, have_header: bool = True) -> None:
         lines = raw_data.splitlines() if isinstance(raw_data, str) else raw_data
-        tile_width = len(lines[0 if not have_header else 1].split(MapsEngine.SEPARATOR))
+        tile_width = len(lines[0 if not have_header else 1].split(MapsGenerator.SEPARATOR))
         tile_height = len(lines)
 
         # Load camera
@@ -36,7 +36,7 @@ class MapsEngine(object):
         player = None
         sprites = LayeredUpdates()
         for y, line in enumerate(lines[0:] if have_header else lines):
-            columns = line.split(MapsEngine.SEPARATOR)
+            columns = line.split(MapsGenerator.SEPARATOR)
             for x, col in enumerate(columns):
                 type_of_tile = int(col)
                 if type_of_tile != TypeOfTile.EMPTY:

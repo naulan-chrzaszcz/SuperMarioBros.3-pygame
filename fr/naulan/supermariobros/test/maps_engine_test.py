@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 from fr.naulan.supermariobros.src.entities.player import Player
-from fr.naulan.supermariobros.src.maps.maps_engine import MapsEngine
+from fr.naulan.supermariobros.src.maps.maps_generator import MapsGenerator
 
 
 class MapsEngineTest(TestCase):
@@ -9,7 +9,7 @@ class MapsEngineTest(TestCase):
         """
             Test with full empty tiles
         """
-        maps_engine = MapsEngine()
+        maps_engine = MapsGenerator()
 
         raw_data = open("./res/matrices/empty.txt", "r")
         maps_engine.new(raw_data.readlines(), raw_data.name, False)
@@ -23,7 +23,7 @@ class MapsEngineTest(TestCase):
         """
             Test with only player on the map
         """
-        maps_engine = MapsEngine()
+        maps_engine = MapsGenerator()
 
         raw_data = open("./res/matrices/player.txt", "r")
         maps_engine.new(raw_data.readlines(), raw_data.name, False)
