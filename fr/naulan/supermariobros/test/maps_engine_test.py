@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 from fr.naulan.supermariobros.src.entities.player import Player
-from fr.naulan.supermariobros.src.maps.engine import MapsEngine
+from fr.naulan.supermariobros.src.maps.maps_engine import MapsEngine
 
 
 class MapsEngineTest(TestCase):
