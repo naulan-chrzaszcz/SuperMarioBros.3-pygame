@@ -4,10 +4,10 @@ Wrote by `CHRZASZCZ Naulan`
 -- --
 
 ## **Summary**
-- [Entities]()
-- [Tiles]()
-  - [Orientation]()
-- [Loot block]()
+- [Entities](#entities)
+- [Tiles](#tiles)
+  - [Orientation](#where-look-up--orientation-)
+- [Loot block](#loot-block)
 
 -- --
 
