@@ -13,7 +13,7 @@ class MapsEngineTest(TestCase):
         """
         maps_generator = MapsGenerator()
 
-        with open(os.getcwd() + "/test/res/matrices/empty.txt", "r") as f:
+        with open(os.getcwd() + "/fr/naulan/supermariobros/test/res/matrices/empty.txt", "r") as f:
             maps_generator.new(f.readlines(), f.name, False)
         self.assertTrue(len(maps_generator.data) == 1, "Have a map generated")
 
@@ -26,7 +26,7 @@ class MapsEngineTest(TestCase):
         """
         maps_generator = MapsGenerator()
 
-        with open(os.getcwd() + "/test/res/matrices/player.txt", "r") as f:
+        with open(os.getcwd() + "/fr/naulan/supermariobros/test/res/matrices/player.txt", "r") as f:
             maps_generator.new(f.readlines(), f.name, False)
         self.assertTrue(len(maps_generator.data) == 1, "Have a map generated")
 
