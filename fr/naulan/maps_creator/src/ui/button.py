@@ -17,7 +17,8 @@ class Button(Rect):
                  y: float = None,
                  width: int = None,
                  height: int = None,
-                 text: str = None):
+                 text: str = None,
+                 text_color: Tuple[int, int, int] = None):
         super().__init__(self)
 
         self.__surface = surface
@@ -27,13 +28,13 @@ class Button(Rect):
         self.width = width
         self.height = height
 
-        self.__font = SysFont("arial", height - 5)
-        self.__text_content = self.__font.render(text, True, (255, 255, 255))
+        self.__font = SysFont("arial", height//2)
+        self.__text_content = self.__font.render(text, True, text_color)
 
     def blit(self):
         draw.rect(self.__surface,
                   self.__color_background,
                   self,
                   self.width)
-        self.__surface.blit(self.__text_content, self.__surface, (self.x, self.y))
+        self.__surface.blit(self.__text_content, (self.x + (self.width/4), self.y + (self.height/4)))
 

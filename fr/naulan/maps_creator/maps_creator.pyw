@@ -22,11 +22,11 @@ class MapsCreator(object):
         button_builder = ButtonBuilder()
         button_builder.set_x(50)
         button_builder.set_y(50)
-        button_builder.set_text("Click !")
+        button_builder.set_text("Click !", (255, 255, 255))
         button_builder.set_color_background((255, 185, 45))
         button_builder.set_surface(screen)
-        button_builder.set_height(200)
-        button_builder.set_width(400)
+        button_builder.set_height(50)
+        button_builder.set_width(100)
 
         while True:
             screen.fill((0, 0, 0))

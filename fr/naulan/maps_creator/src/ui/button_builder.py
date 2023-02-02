@@ -14,6 +14,7 @@ class ButtonBuilder(object):
     __x: float
     __y: float
     __text_content: str
+    __text_color: Tuple[int, int, int]
 
     @property
     def button(self):
@@ -31,7 +32,8 @@ class ButtonBuilder(object):
                                self.__y,
                                self.__width,
                                self.__height,
-                               self.__text_content)
+                               self.__text_content,
+                               self.__text_color)
         return self.__button
 
     def set_color_background(self, color: Tuple[int, int, int]):
@@ -52,5 +54,6 @@ class ButtonBuilder(object):
     def set_y(self, y: float):
         self.__y = y
 
-    def set_text(self, text: str):
+    def set_text(self, text: str, color: Tuple[int, int, int]):
         self.__text_content = text
+        self.__text_color = color
