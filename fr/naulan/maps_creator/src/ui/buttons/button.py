@@ -9,7 +9,7 @@ from fr.naulan.maps_creator.src.ui.observable_object import ObservableObject
 from fr.naulan.maps_creator.src.ui.observer import Observer
 
 
-class Button(Rect, ObservableObject):
+class Button(ObservableObject, Rect):
     __surface: Surface
     color_background: Tuple[int, int, int]
     __text_content: Surface

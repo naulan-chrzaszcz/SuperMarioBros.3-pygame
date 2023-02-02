@@ -1,9 +1,12 @@
+from typing import List
+
 from pygame import Surface, display, Rect, mouse
 from pygame.time import Clock
 
 from pygame.locals import *
 
 from fr.naulan.maps_creator.src.ui.buttons.observers.onclick_observer import OnClickObserver
+from fr.naulan.maps_creator.src.ui.observable_object import ObservableObject
 
 
 class Creator(object):
@@ -13,6 +16,9 @@ class Creator(object):
     display: Surface
     mouse_pointer: Rect
     clock: Clock
+
+    observables_object: List[ObservableObject]
+    ui_interface: List      # TODO Problem typage
 
     def __new__(cls, screen: Surface, _display: Surface):
         if cls.__instance is None:
@@ -25,11 +31,11 @@ class Creator(object):
         self.mouse_pointer = Rect(0, 0, 5, 5)
         self.clock = Clock()
 
-    @staticmethod
-    def get_instance():
-        return Creator.__instance
+        self.observables_object = []
+        self.ui_interface = []
+        self.create_ui()
 
-    def run(self):
+    def create_ui(self):
         # Should make this import here because the creator class is not initialized
         from fr.naulan.maps_creator.src.ui.buttons.button_builder import ButtonBuilder
 
@@ -43,7 +49,14 @@ class Creator(object):
         button_builder.set_width(100)
         button = button_builder.button
         button.attach(OnClickObserver())
+        self.observables_object.append(button)
+        self.ui_interface.append(button)
 
+    @staticmethod
+    def get_instance():
+        return Creator.__instance
+
+    def run(self):
         while True:
             self.screen.fill((0, 0, 0))
             self.clock.tick(60)
@@ -51,6 +64,8 @@ class Creator(object):
             x, y = mouse.get_pos()
             self.mouse_pointer.update(x, y, self.mouse_pointer.width, self.mouse_pointer.height)
 
-            button.notify()
-            button.blit()
+            for obj in self.observables_object:
+                obj.notify()
+            for el in self.ui_interface:
+                el.blit()
             display.update()
