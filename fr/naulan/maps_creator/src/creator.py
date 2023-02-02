@@ -3,6 +3,8 @@ from pygame.time import Clock
 
 from pygame.locals import *
 
+from fr.naulan.maps_creator.src.ui.buttons.observers.onclick_observer import OnClickObserver
+
 
 class Creator(object):
     __instance = None
@@ -30,7 +32,6 @@ class Creator(object):
     def run(self):
         # Should make this import here because the creator class is not initialized
         from fr.naulan.maps_creator.src.ui.buttons.button_builder import ButtonBuilder
-        from fr.naulan.maps_creator.src.ui.buttons.action.change_color_button_action import ChangeColorButtonAction
 
         button_builder = ButtonBuilder()
         button_builder.set_x(50)
@@ -40,8 +41,8 @@ class Creator(object):
         button_builder.set_surface(self.screen)
         button_builder.set_height(50)
         button_builder.set_width(100)
-        button_builder.set_action(ChangeColorButtonAction())
         button = button_builder.button
+        button.attach(OnClickObserver())
 
         while True:
             self.screen.fill((0, 0, 0))
@@ -50,6 +51,6 @@ class Creator(object):
             x, y = mouse.get_pos()
             self.mouse_pointer.update(x, y, self.mouse_pointer.width, self.mouse_pointer.height)
 
-            button.event()
+            button.notify()
             button.blit()
             display.update()

@@ -1,19 +1,22 @@
-from typing import Tuple
+from typing import Tuple, List
 
 from pygame import Surface, draw, event
 from pygame.font import SysFont
 from pygame.locals import *
 
 from fr.naulan.maps_creator.src.creator import Creator
-from fr.naulan.maps_creator.src.ui.buttons.action.button_action import ButtonAction
+from fr.naulan.maps_creator.src.ui.observable_object import ObservableObject
+from fr.naulan.maps_creator.src.ui.observer import Observer
 
 
-class Button(Rect):
+class Button(Rect, ObservableObject):
     __surface: Surface
     color_background: Tuple[int, int, int]
     __text_content: Surface
     __font: SysFont
-    __action: ButtonAction
+    __observers: List[Observer]
+
+    clicked = False
 
     def __init__(self,
                  color_background: Tuple[int, int, int] = None,
@@ -23,8 +26,7 @@ class Button(Rect):
                  width: int = None,
                  height: int = None,
                  text: str = None,
-                 text_color: Tuple[int, int, int] = None,
-                 action: ButtonAction = None):
+                 text_color: Tuple[int, int, int] = None):
         super().__init__(self)
 
         self.__surface = surface
@@ -36,18 +38,24 @@ class Button(Rect):
 
         self.__font = SysFont("arial", height//2)
         self.__text_content = self.__font.render(text, True, text_color)
-        self.__action = action
-        self.__action(self)
+        self.__observers = []
 
-    def event(self):
+    def attach(self, observer: Observer) -> None:
+        self.__observers.append(observer)
+
+    def detach(self, observer: Observer) -> None:
+        self.__observers.remove(observer)
+
+    def notify(self) -> None:
+        self.clicked = False
         for e in event.get():
             if e.type == MOUSEBUTTONDOWN:
                 environment = Creator.get_instance()
                 if environment.mouse_pointer.colliderect(self):
-                    self.onclick()
+                    self.clicked = True
 
-    def onclick(self):
-        self.__action.action()
+        for ob in self.__observers:
+            ob.update(self)
 
     def blit(self):
         draw.rect(self.__surface,

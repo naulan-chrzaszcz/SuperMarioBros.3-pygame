@@ -3,7 +3,6 @@ from typing import Tuple
 from pygame import Surface
 
 from fr.naulan.maps_creator.src.ui.buttons.button import Button
-from fr.naulan.maps_creator.src.ui.buttons.action.button_action import ButtonAction
 
 
 class ButtonBuilder(object):
@@ -16,7 +15,6 @@ class ButtonBuilder(object):
     __y: float
     __text_content: str
     __text_color: Tuple[int, int, int]
-    __action: ButtonAction
 
     @property
     def button(self):
@@ -35,8 +33,7 @@ class ButtonBuilder(object):
                                self.__width,
                                self.__height,
                                self.__text_content,
-                               self.__text_color,
-                               self.__action)
+                               self.__text_color)
         return self.__button
 
     def set_color_background(self, color: Tuple[int, int, int]):
@@ -44,9 +41,6 @@ class ButtonBuilder(object):
 
     def set_surface(self, surface: Surface):
         self.__surface = surface
-
-    def set_action(self, action: ButtonAction):
-        self.__action = action
 
     def set_width(self, width: int):
         self.__width = width
