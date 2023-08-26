@@ -1,5 +1,5 @@
-from fr.naulan.supermariobros.src.entities.entity import Entity
-from fr.naulan.supermariobros.src.maps.orientation import Orientation
+from entities.entity import Entity
+from maps.orientation import Orientation
 
 
 class Tile(Entity):

@@ -1,11 +1,11 @@
 from pygame.sprite import Sprite, AbstractGroup
 from pygame.surface import Surface
 
-from fr.naulan.supermariobros.src.entities.position import Position
+from src.entities.position import Position
 
 
 class Entity(Sprite):
-    PLAYER = 0
+    PLAYER: int = 0
 
     x: float
     y: float
@@ -13,8 +13,8 @@ class Entity(Sprite):
     def __init__(self,
                  sheet: Surface,
                  position: Position,
-                 *groups: AbstractGroup):
-        super().__init__(*groups)
+                 groups: AbstractGroup):
+        Sprite.__init__(self, groups)
 
         self.x = position.x
         self.y = position.y
