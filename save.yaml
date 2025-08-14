@@ -3,7 +3,7 @@ position:
   x: 128
   y: 16
 game:
-  level: null
+  level: "WORLD 1"
   score: 0
   coins: 0
   life: 4

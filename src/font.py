@@ -1,48 +1,50 @@
-from pygame import image, mask, font, Surface
+from pygame import SRCALPHA, Surface
+
+from .inputs.ressources import Ressources
 
 
-class Font(object):
+class Font:
+    WIDTH_FONT = 8
+    HEIGHT_FONT = 8
+
+    _instance = None
+
     def __init__(self):
-        # It represent where a char (self.__letters[n][0]) is located in a picture (self.__letters[n][1])
-        self.__letters = [['A',0],['B',1],['C',2],['D',3],['E',4],['F',5],['G',6],['H',7],['I',8],['J',9],['K',10],
-                          ['L',11],['M',12],['N',13],['O',14],['P',15],['Q',16],['R',17],['S',18],['T',19],['U',20],
-                          ['V',21],['W',22],['X',23],['Y',24],['Z',25],['0',26],['1',27],['2',28],['3',29],['4',30],
-                          ['5',31],['6',32],['7',33],['8',34],['9',35]]
-        # TODO Clean les noms des variables
-        self.font = font.Font(r'res/font.ttf', 16)   # TODO <--
-        self.custom_font = image.load(r'res/sheets/custom_font.png')   # TODO <--
-        self.custom_font.set_colorkey((255, 174, 201))
+        self.font = Ressources()["images"]["font"]
 
-    def get_SystemFont(self) -> font.Font:
-        """ get_SystemFont() -> Font
-               get the font which as been loaded by a ".ttf" file and Font class """
-        return self.font
+    def __new__(cls, *args, **kwargs):
+        if not cls._instance:
+            cls._instance = super(Font, cls).__new__(cls)
+        return cls._instance
 
-    def get_GameFont(self) -> Surface:
-        return self.custom_font
+    def render(self, message: str) -> Surface:
+        if message is None:
+            return Surface((0, 0), SRCALPHA)
+        message = str(message)
 
-    @staticmethod
-    def outline(surface,img,loc):
-        masks = mask.from_surface(img)
-        mask_surf = masks.to_surface(setcolor=(1,1,1,255))
-        mask_surf.set_colorkey((0,0,0))
-        surface.blit(mask_surf,(loc[0] - 1,loc[1]))
-        surface.blit(mask_surf,(loc[0] + 1,loc[1]))
-        surface.blit(mask_surf,(loc[0],loc[1] - 1))
-        surface.blit(mask_surf,(loc[0],loc[1] + 1))
+        ascii_code = [ord(char) for char in message]
+        width_surface = len(ascii_code) * self.WIDTH_FONT
+        message_surface = Surface((width_surface, self.HEIGHT_FONT), SRCALPHA)
 
-    def draw_msg(self,surface,position,messages,score=None):
-        for char in reversed(messages.upper()):
-            for n in range(len(self.__letters)):
-                if any([char == '_',char == ' ',char == '.']):
-                    position[0] -= .1
-
-                elif char == self.__letters[n][0]:
-                    loc = (position[0], position[1])
-                    surface.blit(self.custom_font.subsurface((self.__letters[n][1]*8, 0), (8, 8)), loc)
-                    position[0] -= 6
-
-        if score is not None:
-            for fill in range(9 - len(messages)):
-                x__ = position[0] - (7 * fill if fill > 0 else 0)
-                surface.blit(self.custom_font.subsurface(self.__letters[25][1] * 8,0,8,8),(x__,position[1]))
+        for n, code in enumerate(ascii_code):
+            if code >= ord("A"):
+                message_surface.blit(
+                    self.font.subsurface(
+                        ((code - ord("A")) * self.WIDTH_FONT, 0),
+                        (self.WIDTH_FONT, self.HEIGHT_FONT),
+                    ),
+                    (n * self.WIDTH_FONT, 0),
+                )
+            elif code >= ord("0"):
+                message_surface.blit(
+                    self.font.subsurface(
+                        (
+                            ((ord("Z") - ord("A")) + (code - ord("0")))
+                            * self.WIDTH_FONT,
+                            0,
+                        ),
+                        (self.WIDTH_FONT, self.HEIGHT_FONT),
+                    ),
+                    (n * self.WIDTH_FONT, 0),
+                )
+        return message_surface

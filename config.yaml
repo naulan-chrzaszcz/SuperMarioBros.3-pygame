@@ -1,4 +1,5 @@
 framerateLimit: 120
+skipIntro: true
 mixer:
   frequency: 22050
   size: -16

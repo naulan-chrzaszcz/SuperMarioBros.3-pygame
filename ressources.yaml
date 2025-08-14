@@ -1,0 +1,42 @@
+images:
+  - id: font
+    path: res/sheets/custom_font.png
+    colorKey:
+      r: 255
+      g: 174
+      b: 201
+  - id: mario
+    path: res/sheets/player.png
+    colorKey:
+      r: 255
+      g: 174
+      b: 201
+  - id: intro
+    path: res/sheets/intro-bg.png
+  - id: mainMenu
+    path: res/sheets/title_screen.png
+    colorKey:
+      r: 255
+      g: 174
+      b: 201
+  - id: levels
+    path: res/sheets/choice_menu_stage.png
+    colorKey:
+      r: 255
+      g: 174
+      b: 201
+  - id: stars
+    path: res/sheets/stars.png
+    colorKey:
+      r: 255
+      g: 174
+      b: 201
+  - id: hud
+    path: res/sheets/hud.png
+    colorKey:
+      r: 255
+      g: 174
+      b: 201
+maps:
+  - id: levels
+    path: res/matrices/stage_menu.txt
