@@ -3,17 +3,14 @@
         * Created the 26/09/2020 at 8:35am.
 """
 import pygame as pg
-import subprocess
-import ctypes
 import json
-import sys
+import yaml
 import os
 
-from os import getpid
-from typing import Tuple
 from pygame.locals import *
 
 from src.fps import Fps
+from src.window import Window
 from src.select_menu_stage import StageMenu
 from src.title_screen import TitleScreen
 from src.scenes.scene_0 import Scene0
@@ -21,47 +18,39 @@ from src.maps_engine import Maps
 from src.events import Events
 from src.font import Font
 
-pg.mixer.init(22050, -16, 2, 512)
-pg.init()
-pg.joystick.init()
-pg.font.init()
-
 
 class Main(object):
-    window_size: Tuple[int, int]
+    window_size: Window.Size
     dt: float   # Time between two frame
 
     def __init__(self):
-        # load save
-        print("-"*3 + "= loading save file =" + "-"*11)
-        with open(os.path.join("res", "save.json")) as f:
-            self.save = json.load(f)
+        with open("config.yaml") as config_file:
+            self.config = yaml.safe_load(config_file)
 
-        # OS Check
-        operating_system = sys.platform
-        print(f"(!) Info: Le jeux est lancée sur \"{operating_system}\".")
-        """if operating_system.lower() == "win32":  # for Windows OS
-            self.__shouldClose = [0]
-            self.windowsStartupSettings()
-        elif operating_system.lower() in ["linux", "linux2"]:  # for Linux OS
-            self.linuxStartupSettings()
-        else:
-            print("(!) Warning: La resolution native n'a pas étais trouvé !")"""
-        self.window_size = (1280, 720)
-        # if resolution as been edited by user
-        if self.save["ResolutionEdited"]:
-            self.window_size = (self.save["Resolution"][0], self.save["Resolution"][1])
-        w, h = self.window_size
-        print(f"(!) Info: Resolution: {w}x{h}")
-        # Updates save file
-        with open(os.path.join("res", "save.json"), "w") as f:
-            json.dump(self.save, f, indent=4)
+        pg.mixer.init(
+            self.config["mixer"]["frequency"],
+            self.config["mixer"]["size"],
+            self.config["mixer"]["channels"],
+            self.config["mixer"]["buffer"]
+        )
+        pg.init()
+        pg.joystick.init()
+        pg.font.init()
 
-        # Create Window and Display Surface
-        self.screen = pg.display.set_mode(self.window_size, 0, 32)
-        self.display = pg.Surface((464, 240))
-        # Hide mouse
-        pg.mouse.set_visible(False)
+        self.window_size = Window.Size(
+            self.config["screen"]["width"],
+            self.config["screen"]["height"]
+        )
+        self.screen = pg.display.set_mode(
+            tuple(self.window_size),
+            self.config["screen"]["flags"],
+            self.config["screen"]["depth"]
+        )
+        self.display = pg.Surface((
+            self.config["display"]["width"],
+            self.config["display"]["height"]
+        ))
+        pg.mouse.set_visible(self.config["mouse"]["visible"])
 
         # Stock all Maps (Stages) in memory
         self.stage_list = {}
@@ -88,6 +77,9 @@ class Main(object):
                     print(f"{pathIndex[i][index][1]} loaded !")
         print("-" * 3 + "= all resources loaded =" + "-" * 11 + "\n")
 
+        with open("save.yaml") as save_file:
+            self.save = yaml.safe_load(save_file)
+
         self.stage_menu = StageMenu()
         # Keyboard event and/or remote control
         self.event = Events(self.res["annexe"])
@@ -99,73 +91,6 @@ class Main(object):
         self.font_custom = Font()
         self.maps = Maps()
         self.fps = Fps()
-
-    def windowsStartupSettings(self):
-        """ Apply and get some settings for Windows.
-                Priority set to High
-                Get native resolution.
-            (Use ctypes libraries) """
-        command = "wmic path win32_VideoController get name /value"
-        # For priority program.
-        set_priority_class = ctypes.windll.kernel32.SetPriorityClass
-        open_process = ctypes.windll.kernel32.OpenProcess
-        close_handle = ctypes.windll.kernel32.CloseHandle
-
-        def get_process_handle(process, inherit=False):
-            self.__shouldClose[0] = 1
-            process = getpid() if not process else 0
-            return open_process(ctypes.c_uint(0x0200|0x0400), ctypes.c_bool(inherit), ctypes.c_uint(process))
-
-        def set_priority(priority, process=None, inherit=None):
-            if not process:
-                process = get_process_handle(None, inherit)
-            result = set_priority_class(process, ctypes.c_uint(priority)) != 0
-            if self.__shouldClose:
-                close_handle(process)
-                self.__shouldClose[0] = 0
-            return result
-
-        # Get GPU Name
-        output = str(subprocess.Popen(command, shell=True, stdout=subprocess.PIPE).communicate()[0])
-        gpu_name = output.split("=")[1].replace("\\r\\r\\n\\r\\r\\n\\r\\r\\n\\r\\r\\n'", "")
-        if gpu_name != self.save["GraphicsDriver"]:
-            self.save["ResolutionEdited"] = False
-            # list all resolution available
-            for resolution in pg.display.list_modes():
-                w, h = resolution
-                self.save["ResolutionsAvailable"].append([w, h])
-            self.save["GraphicsDriver"] = gpu_name
-        if not self.save["ResolutionEdited"]:
-            # Get native resolution.
-            user32 = ctypes.windll.user32
-            self.window_size = (user32.GetSystemMetrics(0), user32.GetSystemMetrics(1))
-            self.save["Resolution"] = self.window_size
-        # Set the game in priority "high" in Windows (for performance in game).
-        set_priority(0x0080)
-
-    def linuxStartupSettings(self):
-        """ Get and apply some settings for Linux.
-                Priority set to High
-                Get native resolution.
-            (Use shell with subprocess libraries) """
-        commands = ["xrandr | grep \"\*\" | cut -d\" \" -f4", "lspci | grep VGA | cut -d\":\" -f3"]
-        gpu_name = str(subprocess.Popen(commands[1], shell=True, stdout=subprocess.PIPE).communicate()[0]).replace("b' ", "").replace("\\n'", "")
-        if gpu_name != self.save["GraphicsDriver"]:
-            self.save["ResolutionEdited"] = False
-            # list all resolution available
-            for resolution in pg.display.list_modes():
-                w, h = resolution
-                self.save["ResolutionsAvailable"].append([w, h])
-            self.save["GraphicsDriver"] = gpu_name
-        if not self.save["ResolutionEdited"]:
-            # Get native resolution.
-            output = str(subprocess.Popen(commands[0], shell=True, stdout=subprocess.PIPE).communicate()[0])
-            w, h = output.split('x')
-            # Remove useless element for correctly int conversion.
-            self.window_size = (int(f"{w}".replace("b'", "")), int(f"{h}".replace("\\n'", "")))
-            self.save["Resolution"] = self.window_size
-        # Process priority.
-        os.nice(1)
 
     @staticmethod
     def load_img(directory, color_key=(255, 174, 201)):
@@ -232,7 +157,7 @@ class Main(object):
                     if self.stage_menu.pass_maps and self.stage_menu.load_maps:
                         self.maps.updates(self.dt, self.event.keys_pressed)
 
-            self.screen.blit(pg.transform.scale(self.display, self.window_size), (0, 0))
+            self.screen.blit(pg.transform.scale(self.display, tuple(self.window_size)), (0, 0))
             self.fps.draw(self.screen)  # Monitoring
             pg.display.update()
 

@@ -1,0 +1,11 @@
+player: mario
+position:
+  x: 128
+  y: 16
+game:
+  level: null
+  score: 0
+  coins: 0
+  life: 4
+  inventory: [null, null, null]
+  state: little

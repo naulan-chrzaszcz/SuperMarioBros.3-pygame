@@ -1,0 +1,16 @@
+framerateLimit: 120
+mixer:
+  frequency: 22050
+  size: -16
+  channels: 2
+  buffer: 512
+display:
+  width: 464
+  height: 240
+screen:
+  width: 1280
+  height: 720
+  flags: 0
+  depth: 32
+mouse:
+  visible: false

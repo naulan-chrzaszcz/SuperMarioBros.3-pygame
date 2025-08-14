@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from pygame import Surface, Rect, draw
 
 from .font import Font
@@ -13,6 +14,22 @@ def check_goodChar(text: str) -> bool:
 
 
 class Window(object):
+
+    @dataclass
+    class Size(object):
+        width: int
+        height: int
+
+        def __iter__(self):
+            yield self.width
+            yield self.height
+
+        def get_width(self):
+            return self.width
+
+        def get_height(self):
+            return self.height
+
     """ Window()
             > It allow to display a window on the screen.
 
