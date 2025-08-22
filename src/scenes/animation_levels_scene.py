@@ -132,7 +132,7 @@ class AnimationLevelsScene(Scene):
 
         for tile in self.map_manager.current.tiles:
             # TODO: Dirty code to find the start tile
-            if tile.vector.x == Tile.WIDTH and tile.vector.y == Tile.HEIGHT * 5:
+            if tile.vector.x == Tile.WIDTH * 3 and tile.vector.y == Tile.HEIGHT * 5:
                 self.stars_end_pos = tile.vector
 
     def update(self, dt):

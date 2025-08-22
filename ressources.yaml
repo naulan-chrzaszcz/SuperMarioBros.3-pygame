@@ -39,4 +39,4 @@ images:
       b: 201
 maps:
   - id: levels
-    path: res/matrices/stage_menu.txt
+    path: res/maps/stage_menu.txt
