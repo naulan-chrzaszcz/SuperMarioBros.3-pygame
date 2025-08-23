@@ -13,6 +13,7 @@ from src.scene_manager import SceneManager
 from src.inputs.config import Config
 from src.scenes import (
     AnimationLevelsScene,
+    LevelsScene,
     MainMenuScene,
     AnimationMainMenuScene,
     IntroScene,
@@ -39,6 +40,7 @@ scene_manager.register("intro", IntroScene())
 scene_manager.register("animation_main_menu", AnimationMainMenuScene())
 scene_manager.register("main_menu", MainMenuScene())
 scene_manager.register("animation_levels", AnimationLevelsScene())
+scene_manager.register("levels", LevelsScene())
 scene_manager.set_default_scene("animation_main_menu" if config.skip_intro else "intro")
 
 map_manager = MapManager()
