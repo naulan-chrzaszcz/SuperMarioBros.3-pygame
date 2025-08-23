@@ -37,7 +37,7 @@ class AnimationLevelsScene(Scene):
         self.map_manager = MapManager()
 
         self.mario = res["images"]["mario"].subsurface(
-            (Tile.WIDTH, Tile.HEIGHT), (Tile.WIDTH, Tile.HEIGHT)
+            (Tile.WIDTH * 3, Tile.HEIGHT * 2), (Tile.WIDTH, Tile.HEIGHT)
         )
         self.sheet = res["images"]["levels"]
         self.stars_sheet = res["images"]["stars"]
@@ -119,7 +119,7 @@ class AnimationLevelsScene(Scene):
             pos = self.stars_start_pos.copy()
             self.stars_levels.append(
                 AnimatedTile(
-                    self.stars_sheet, pos, 4, speed=4, tile_width=11, tile_height=11
+                    (), self.stars_sheet, pos, 4, speed=4, tile_width=11, tile_height=11
                 )
             )
         self.stars_max_radius = 100
@@ -130,10 +130,10 @@ class AnimationLevelsScene(Scene):
             for i in range(len(self.stars_levels))
         ]
 
-        for tile in self.map_manager.current.tiles:
+        for sprite in self.map_manager.current.sprites:
             # TODO: Dirty code to find the start tile
-            if tile.vector.x == Tile.WIDTH * 3 and tile.vector.y == Tile.HEIGHT * 5:
-                self.stars_end_pos = tile.vector
+            if sprite.vector.x == Tile.WIDTH * 3 and sprite.vector.y == Tile.HEIGHT * 5:
+                self.stars_end_pos = sprite.vector
 
     def update(self, dt):
         self.timer += dt
@@ -170,8 +170,7 @@ class AnimationLevelsScene(Scene):
                     self.timer = 0
                     self.state = AnimationState.DONE
             case AnimationState.DONE:
-                # TODO
-                pass
+                self.manager.change_scene("levels")
 
     def draw(self):
         self.surface.fill((0, 0, 0))
@@ -179,7 +178,7 @@ class AnimationLevelsScene(Scene):
 
         if self.state == AnimationState.STARS:
             for star in self.stars_levels:
-                star.draw(self.levels)
+                self.levels.blit(star.image, star.vector)
 
         self.surface.blit(self.levels, self.levels_pos)
         if self.state != AnimationState.STARS:

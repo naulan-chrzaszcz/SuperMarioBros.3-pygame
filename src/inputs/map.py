@@ -1,4 +1,5 @@
 from pygame import Vector2, transform, Surface
+from pygame.sprite import LayeredUpdates
 
 from ..animated_tile import AnimatedTile
 from ..tile import Tile
@@ -11,8 +12,7 @@ class Map:
     TILE_FRAMES_SEPARATOR = "+"
     TILE_ROTATION_SEPARATOR = "&"
 
-    tiles = []
-    animated_tiles = []
+    sprites = LayeredUpdates()
 
     width = 0
     height = 0
@@ -43,34 +43,35 @@ class Map:
                 y_frames = int(y_frames)
                 tile_pos = Vector2(column * Tile.WIDTH, row * Tile.HEIGHT)
                 if x_frames > 1:
-                    self.animated_tiles.append(
-                        AnimatedTile(
-                            sheet.subsurface(
-                                (x * Tile.WIDTH, y * Tile.HEIGHT),
-                                (x_frames * Tile.WIDTH, Tile.HEIGHT),
-                            ),
-                            tile_pos,
-                            x_frames,
-                        )
+                    AnimatedTile(
+                        self.sprites,
+                        sheet.subsurface(
+                            (x * Tile.WIDTH, y * Tile.HEIGHT),
+                            (x_frames * Tile.WIDTH, Tile.HEIGHT),
+                        ),
+                        tile_pos,
+                        x_frames,
                     )
-                if y_frames > 1:
-                    self.animated_tiles.append(
-                        AnimatedTile(
-                            sheet.subsurface(
-                                (x * Tile.WIDTH, y * Tile.HEIGHT),
-                                (Tile.WIDTH, y_frames * Tile.HEIGHT),
-                            ),
-                            tile_pos,
-                            y_frames,
-                            subsurface_direction="y",
-                        )
+                elif y_frames > 1:
+                    AnimatedTile(
+                        self.sprites,
+                        sheet.subsurface(
+                            (x * Tile.WIDTH, y * Tile.HEIGHT),
+                            (Tile.WIDTH, y_frames * Tile.HEIGHT),
+                        ),
+                        tile_pos,
+                        y_frames,
+                        subsurface_direction="y",
                     )
                 else:
                     tile = sheet.subsurface(
                         (x * Tile.WIDTH, y * Tile.HEIGHT), (Tile.WIDTH, Tile.HEIGHT)
                     )
-                    tile = transform.rotate(tile, int(rotation) * 90)
-                    self.tiles.append(Tile(tile, tile_pos))
+                    Tile(
+                        self.sprites,
+                        transform.rotate(tile, int(rotation) * 90),
+                        tile_pos,
+                    )
                 column += 1
 
         self.width = column * Tile.WIDTH

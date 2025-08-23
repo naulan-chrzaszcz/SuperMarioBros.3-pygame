@@ -7,7 +7,7 @@ class MapManager:
         if not cls._instance:
             cls._instance = super(MapManager, cls).__new__(cls)
         return cls._instance
-    
+
     def register(self, name: str, _map) -> None:
         self.maps[name] = _map
 
@@ -15,11 +15,7 @@ class MapManager:
         self.current = self.maps[name]
 
     def update(self, dt: float) -> None:
-        for tile in self.current.animated_tiles:
-            tile.update(dt)
+        self.current.sprites.update(dt)
 
     def draw(self, surface) -> None:
-        for tile in self.current.tiles:
-            tile.draw(surface)
-        for tile in self.current.animated_tiles:
-            tile.draw(surface)
+        self.current.sprites.draw(surface)
