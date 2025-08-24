@@ -1,5 +1,7 @@
 # Map Editor
 
+<img width="1498" height="543" alt="Capture d’écran du 2025-08-24 19-17-53" src="https://github.com/user-attachments/assets/53b59467-76b4-4981-801f-571cf75671fe" />
+
 A basic 2D tile-based map editor using Python and Pygame.
 
 ## Requirements

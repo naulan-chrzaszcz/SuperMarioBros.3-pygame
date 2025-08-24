@@ -60,7 +60,13 @@ pygame.init()
 map_window = Window(size=(1280, 720))
 map_window.title = "Map editor"
 map_renderer = Renderer(map_window)
-map_surface = pygame.Surface((TILE_SIZE * args.map_width, TILE_SIZE * args.map_height))
+map_surface_tile = pygame.Surface(
+    (TILE_SIZE * args.map_width, TILE_SIZE * args.map_height)
+)
+map_surface_collidable = pygame.Surface(
+    (TILE_SIZE * args.map_width, TILE_SIZE * args.map_height), pygame.SRCALPHA
+)
+map_surface_collidable.set_alpha(50)
 map_scaling_surface = pygame.Surface(map_window.size)
 map_camera_width = TILE_SIZE * 29
 map_camera_height = TILE_SIZE * 15
@@ -69,13 +75,19 @@ if args.map_width < 29:
 if args.map_height < 15:
     map_camera_height = TILE_SIZE * args.map_height
 map_camera = Camera(
-    0, 0, map_camera_width, map_camera_height, map_surface.width, map_surface.height
+    0,
+    0,
+    map_camera_width,
+    map_camera_height,
+    map_surface_tile.width,
+    map_surface_tile.height,
 )
 map_scale_x = map_camera.width / map_scaling_surface.width
 map_scale_y = map_camera.height / map_scaling_surface.height
 map_tile_selection_x = 0
 map_tile_selection_y = 0
 map_tiles = {}
+map_collidables = {}
 
 cmd_window = Window(size=(200, 300))
 cmd_window.borderless = True
@@ -163,6 +175,25 @@ cmd_frames_y_btn_down_font_pos = (
     - cmd_frames_y_btn_down_font.height / 2,
 )
 cmd_frames_y_btn_val = 1
+cmd_collidable_btn = pygame.Rect(
+    cmd_frames_y_btn_font_pos[0],
+    cmd_frames_y_btn_down.bottom + BUTTON_GAP,
+    BUTTON_WIDTH,
+    BUTTON_HEIGHT,
+)
+COLLIDABLE_COLOR_ON_BTN = (0, 255, 0)
+COLLIDABLE_COLOR_OFF_BTN = (255, 0, 0)
+cmd_collidable_color_btn = COLLIDABLE_COLOR_OFF_BTN
+cmd_collidable_btn_font = cmd_font.render("collidable", False, FONT_COLOR)
+cmd_collidable_btn_font_pos = (
+    cmd_collidable_btn.left
+    + cmd_collidable_btn.width / 2
+    - cmd_collidable_btn_font.width / 2,
+    cmd_collidable_btn.top
+    + cmd_collidable_btn.height / 2
+    - cmd_collidable_btn_font.height / 2,
+)
+cmd_collidable_btn_val = False
 cmd_export_btn = pygame.Rect(
     BUTTON_GAP,
     cmd_surface.height - BUTTON_HEIGHT - BUTTON_GAP,
@@ -208,6 +239,7 @@ while True:
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
+        # Map editor
         if getattr(event, "window", None) == map_window:
             if event.type == pygame.MOUSEMOTION:
                 mouse_x, mouse_y = pygame.mouse.get_pos()
@@ -233,20 +265,26 @@ while True:
                     TILE_SIZE,
                 )
             if event.type == pygame.MOUSEBUTTONDOWN:
-                tile = Tile(
-                    sheet_selection_rect_x,
-                    sheet_selection_rect_y,
-                    cmd_frames_x_btn_val,
-                    cmd_frames_y_btn_val,
-                    cmd_rotation_btn_val,
-                )
-                tile.surface = pygame.transform.rotate(
-                    sheet.subsurface(
-                        (tile.x * TILE_SIZE, tile.y * TILE_SIZE), (TILE_SIZE, TILE_SIZE)
-                    ).copy(),
-                    cmd_rotation_btn_val,
-                )
-                map_tiles[(map_tile_selection_x, map_tile_selection_y)] = tile
+                if not cmd_collidable_btn_val:
+                    tile = Tile(
+                        sheet_selection_rect_x,
+                        sheet_selection_rect_y,
+                        cmd_frames_x_btn_val,
+                        cmd_frames_y_btn_val,
+                        cmd_rotation_btn_val,
+                    )
+                    tile.surface = pygame.transform.rotate(
+                        sheet.subsurface(
+                            (tile.x * TILE_SIZE, tile.y * TILE_SIZE),
+                            (TILE_SIZE, TILE_SIZE),
+                        ).copy(),
+                        cmd_rotation_btn_val,
+                    )
+                    map_tiles[(map_tile_selection_x, map_tile_selection_y)] = tile
+                else:
+                    map_collidables[(map_tile_selection_x, map_tile_selection_y)] = (
+                        pygame.Rect(map_tile_selection_x, map_tile_selection_y, 16, 16)
+                    )
             if (
                 event.type == pygame.KEYDOWN
                 and event.key == pygame.K_ESCAPE
@@ -277,6 +315,7 @@ while True:
                 if event.key == pygame.K_r:
                     cmd_rotation_btn_val += 90
                     cmd_rotation_btn_val %= 360
+        # Sheet selection controls
         if getattr(event, "window", None) == sheet_window:
             if event.type == pygame.MOUSEBUTTONDOWN:
                 mouse_x, mouse_y = pygame.mouse.get_pos()
@@ -288,6 +327,7 @@ while True:
                     TILE_SIZE,
                     TILE_SIZE,
                 )
+        # GUI controls
         if getattr(event, "window", None) == cmd_window:
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 mouse_pos = pygame.mouse.get_pos()
@@ -302,41 +342,74 @@ while True:
                     cmd_frames_y_btn_val += 1
                 if cmd_frames_y_btn_down.collidepoint(mouse_pos):
                     cmd_frames_y_btn_val = max(cmd_frames_y_btn_val - 1, 1)
+                if cmd_collidable_btn.collidepoint(mouse_pos):
+                    cmd_collidable_btn_val = not cmd_collidable_btn_val
+                    cmd_collidable_color_btn = COLLIDABLE_COLOR_OFF_BTN
+                    if cmd_collidable_btn_val:
+                        cmd_collidable_color_btn = COLLIDABLE_COLOR_ON_BTN
                 if cmd_export_btn.collidepoint(mouse_pos):
-                    Map.write(args.map_name, map_tiles, map_surface.width, map_surface.height)
+                    Map.write(
+                        args.map_name,
+                        map_tiles,
+                        map_collidables,
+                        map_surface_tile.width,
+                        map_surface_tile.height,
+                    )
 
-    map_surface.fill(WINDOW_COLOR_FILL)
+    map_surface_tile.fill(WINDOW_COLOR_FILL)
+    map_surface_collidable.fill((0, 0, 0, 0))
     # Map Grid
-    for line in range(map_surface.height // TILE_SIZE):
+    for line in range(map_surface_tile.height // TILE_SIZE):
         pygame.draw.line(
-            map_surface, (64, 64, 64), (0, line * 16), (map_surface.width, line * 16)
+            map_surface_tile,
+            (64, 64, 64),
+            (0, line * 16),
+            (map_surface_tile.width, line * 16),
         )
-    for row in range(map_surface.width // TILE_SIZE):
+    for row in range(map_surface_tile.width // TILE_SIZE):
         pygame.draw.line(
-            map_surface, (64, 64, 64), (row * 16, 0), (row * 16, map_surface.height)
+            map_surface_tile,
+            (64, 64, 64),
+            (row * 16, 0),
+            (row * 16, map_surface_tile.height),
         )
     # Map render
     for pos, tile in map_tiles.items():
-        map_surface.blit(tile.surface, pos)
-    # Display tile selection following the cursor
-    map_surface.blit(
-        pygame.transform.rotate(
-            sheet.subsurface(
-                (
+        map_surface_tile.blit(tile.surface, pos)
+    for pos, rect in map_collidables.items():
+        pygame.draw.rect(map_surface_collidable, (255, 0, 0), rect)
+    if not cmd_collidable_btn_val:
+        # Display tile selection following the cursor
+        map_surface_tile.blit(
+            pygame.transform.rotate(
+                sheet.subsurface(
                     (
-                        sheet_selection_rect_x * TILE_SIZE,
-                        sheet_selection_rect_y * TILE_SIZE,
-                    ),
-                    (TILE_SIZE, TILE_SIZE),
-                )
+                        (
+                            sheet_selection_rect_x * TILE_SIZE,
+                            sheet_selection_rect_y * TILE_SIZE,
+                        ),
+                        (TILE_SIZE, TILE_SIZE),
+                    )
+                ),
+                cmd_rotation_btn_val,
             ),
-            cmd_rotation_btn_val,
+            (map_tile_selection_x, map_tile_selection_y),
+        )
+    else:
+        pygame.draw.rect(
+            map_surface_collidable,
+            (255, 0, 0),
+            pygame.Rect(map_tile_selection_x, map_tile_selection_y, 16, 16),
+        )
+    map_scaling_surface.blit(
+        pygame.transform.scale(
+            map_surface_tile.subsurface(map_camera), map_scaling_surface.size
         ),
-        (map_tile_selection_x, map_tile_selection_y),
+        (0, 0),
     )
     map_scaling_surface.blit(
         pygame.transform.scale(
-            map_surface.subsurface(map_camera), map_scaling_surface.size
+            map_surface_collidable.subsurface(map_camera), map_scaling_surface.size
         ),
         (0, 0),
     )
@@ -385,6 +458,9 @@ while True:
             cmd_frames_y_btn_font_pos[1],
         ),
     )
+    # Collidable setting draw
+    pygame.draw.rect(cmd_surface, cmd_collidable_color_btn, cmd_collidable_btn)
+    cmd_surface.blit(cmd_collidable_btn_font, cmd_collidable_btn_font_pos)
     # Export setting draw
     pygame.draw.rect(cmd_surface, BUTTON_COLOR, cmd_export_btn)
     cmd_surface.blit(cmd_export_btn_font, cmd_export_btn_font_pos)

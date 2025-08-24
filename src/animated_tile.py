@@ -15,6 +15,7 @@ class AnimatedTile(Sprite):
         subsurface_direction="x",
         tile_width=Tile.WIDTH,
         tile_height=Tile.HEIGHT,
+        collidable=False,
     ):
         Sprite.__init__(self, group)
         self.tile = tile
@@ -27,6 +28,7 @@ class AnimatedTile(Sprite):
         self.timer = 0
         self.tile_width = tile_width
         self.tile_height = tile_height
+        self.collidable = collidable
 
     def update(self, dt: float) -> None:
         self.timer += self.speed * dt

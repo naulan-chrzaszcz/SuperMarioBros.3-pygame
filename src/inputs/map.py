@@ -6,8 +6,6 @@ from ..tile import Tile
 
 
 class Map:
-    LINE_SEPARATOR = "\n"
-    TILE_SEPARATOR = ";"
     TILE_COORD_SEPARATOR = ","
     TILE_FRAMES_SEPARATOR = "+"
     TILE_ROTATION_SEPARATOR = "&"
@@ -17,13 +15,14 @@ class Map:
     width = 0
     height = 0
 
-    def __init__(self, sheet: Surface, map_data: str):
+    def __init__(self, sheet: Surface, map_data: dict):
         column = 0
         row = 0
-        for row, line in enumerate(map_data.split(self.LINE_SEPARATOR)):
-            column = 0
-            for tile in line.split(self.TILE_SEPARATOR):
+        for row in range(len(map_data["tiles"])):
+            for column, tile in enumerate(map_data["tiles"][row]):
                 x, y = tile.split(self.TILE_COORD_SEPARATOR)
+                is_collidable = map_data["collidables"][row][column]
+
                 x_frames = 1
                 if x.count(self.TILE_FRAMES_SEPARATOR) > 0:
                     x, x_frames = x.split(self.TILE_FRAMES_SEPARATOR)
@@ -51,6 +50,7 @@ class Map:
                         ),
                         tile_pos,
                         x_frames,
+                        collidable=is_collidable,
                     )
                 elif y_frames > 1:
                     AnimatedTile(
@@ -62,6 +62,7 @@ class Map:
                         tile_pos,
                         y_frames,
                         subsurface_direction="y",
+                        collidable=is_collidable,
                     )
                 else:
                     tile = sheet.subsurface(
@@ -71,8 +72,8 @@ class Map:
                         self.sprites,
                         transform.rotate(tile, int(rotation) * 90),
                         tile_pos,
+                        collidable=is_collidable,
                     )
-                column += 1
 
-        self.width = column * Tile.WIDTH
+        self.width = (column + 1) * Tile.WIDTH
         self.height = (row + 1) * Tile.HEIGHT

@@ -1,6 +1,7 @@
 from enum import Enum, auto
 from pygame import image
 
+import json
 import yaml
 import os
 
@@ -26,7 +27,7 @@ class Ressources(dict):
                 ressources = yaml.safe_load(ressources_file)
                 for map_data in ressources["maps"]:
                     with open(os.path.join(map_data["path"])) as map_file:
-                        cls._instance["maps"][map_data["id"]] = map_file.read()
+                        cls._instance["maps"][map_data["id"]] = json.load(map_file)
 
                 for image_data in ressources["images"]:
                     img = image.load(image_data["path"]).convert()

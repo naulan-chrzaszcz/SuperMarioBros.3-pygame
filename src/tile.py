@@ -6,8 +6,9 @@ class Tile(Sprite):
     WIDTH = 16
     HEIGHT = 16
 
-    def __init__(self, group, tile: Surface, vector: Vector2):
+    def __init__(self, group, tile: Surface, vector: Vector2, collidable=False):
         Sprite.__init__(self, group)
         self.image = tile
         self.vector = vector
         self.rect = self.image.get_rect(topleft=vector)
+        self.collidable = collidable
