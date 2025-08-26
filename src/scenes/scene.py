@@ -1,18 +1,15 @@
-from typing import Protocol
-
 from ..display import Display
 from ..scene_manager import SceneManager
 
 
-class Scene(Protocol):
+class Scene:
     def __init__(self):
-        super().__init__()
         self.manager = SceneManager()
         self.surface = Display()
         self.timer = 0.0
 
-    def handle_event(self, event: list): ...
-    def update(self, dt: float): ...
-    def draw(self): ...
-    def on_enter(self): ...
-    def on_exit(self): ...
+    def handle_event(self, event: list): pass
+    def update(self, dt: float): pass
+    def draw(self): pass
+    def on_enter(self): pass
+    def on_exit(self): pass
