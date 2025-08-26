@@ -33,14 +33,12 @@ class AnimationLevelsScene(Scene):
         super().__init__()
         font = Font()
         save = Save()
-        res = Ressources()
         self.map_manager = MapManager()
 
-        self.mario = res["images"]["mario"].subsurface(
+        self.mario = Ressources()["images"]["mario"].subsurface(
             (Tile.WIDTH * 3, Tile.HEIGHT * 2), (Tile.WIDTH, Tile.HEIGHT)
         )
-        self.sheet = res["images"]["levels"]
-        self.stars_sheet = res["images"]["stars"]
+        self.stars_sheet = Ressources()["images"]["stars"]
 
         self.game_level_name = font.render(save.game.level)
         self.game_life = font.render(f"{save.game.life} X")
