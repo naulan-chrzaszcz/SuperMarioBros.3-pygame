@@ -7,7 +7,7 @@ from pygame import Surface, Vector2, Rect, draw
 from ..inputs.ressources import Ressources
 from ..inputs.save import Save
 from ..map_manager import MapManager
-from ..animated_tile import AnimatedTile
+from ..sprite_animation import SpriteAnimation
 from ..tile import Tile
 from ..hud import HUD
 from ..font import Font
@@ -115,18 +115,9 @@ class AnimationLevelsScene(Scene):
         self.stars_levels = []
         for _ in range(8):
             pos = self.stars_start_pos.copy()
-            self.stars_levels.append(
-                AnimatedTile(
-                    (),
-                    "",
-                    self.stars_sheet,
-                    pos,
-                    4,
-                    speed=4,
-                    tile_width=11,
-                    tile_height=11,
-                )
-            )
+            tile = Tile((), "", self.stars_sheet, pos, tile_width=11, tile_height=11)
+            tile.set_animation(SpriteAnimation(tile, self.stars_sheet, 4, 4))
+            self.stars_levels.append(tile)
         self.stars_max_radius = 100
         self.stars_speed = 2 * math.pi / self.duration[AnimationState.STARS]
         self.stars_angle = 0

@@ -3,7 +3,7 @@ from typing import Dict
 from pygame import Vector2, transform, Surface
 from pygame.sprite import LayeredUpdates
 
-from ..animated_tile import AnimatedTile
+from ..sprite_animation import SpriteAnimation
 from ..tile import Tile
 
 
@@ -42,45 +42,33 @@ class Map:
 
                 x = int(x)
                 y = int(y)
+                tile = Tile(
+                    self.sprites,
+                    sheet_metadata[f"{x},{y}"],
+                    transform.rotate(
+                        sheet.subsurface(
+                            (x * Tile.WIDTH, y * Tile.HEIGHT), (Tile.WIDTH, Tile.HEIGHT)
+                        ),
+                        int(rotation) * 90,
+                    ),
+                    Vector2(column * Tile.WIDTH, row * Tile.HEIGHT),
+                    collidable=is_collidable,
+                )
+
                 x_frames = int(x_frames)
                 y_frames = int(y_frames)
-                tile_id = sheet_metadata[f"{x},{y}"]
-                tile_pos = Vector2(column * Tile.WIDTH, row * Tile.HEIGHT)
-                if x_frames > 1:
-                    AnimatedTile(
-                        self.sprites,
-                        tile_id,
-                        sheet.subsurface(
-                            (x * Tile.WIDTH, y * Tile.HEIGHT),
-                            (x_frames * Tile.WIDTH, Tile.HEIGHT),
-                        ),
-                        tile_pos,
-                        x_frames,
-                        collidable=is_collidable,
-                    )
-                elif y_frames > 1:
-                    AnimatedTile(
-                        self.sprites,
-                        tile_id,
-                        sheet.subsurface(
-                            (x * Tile.WIDTH, y * Tile.HEIGHT),
-                            (Tile.WIDTH, y_frames * Tile.HEIGHT),
-                        ),
-                        tile_pos,
-                        y_frames,
-                        subsurface_direction="y",
-                        collidable=is_collidable,
-                    )
-                else:
-                    tile = sheet.subsurface(
-                        (x * Tile.WIDTH, y * Tile.HEIGHT), (Tile.WIDTH, Tile.HEIGHT)
-                    )
-                    Tile(
-                        self.sprites,
-                        tile_id,
-                        transform.rotate(tile, int(rotation) * 90),
-                        tile_pos,
-                        collidable=is_collidable,
+                if (x_frames > 1) != (y_frames > 1):
+                    tile.set_animation(
+                        SpriteAnimation(
+                            tile,
+                            sheet.subsurface(
+                                (x * Tile.WIDTH, y * Tile.HEIGHT),
+                                (x_frames * Tile.WIDTH, y_frames * Tile.HEIGHT),
+                            ),
+                            x_frames if x_frames > 1 else y_frames,
+                            1.5,  # TODO: speed animation should be parameterized
+                            subsurface_direction="x" if x_frames > 1 else "y",
+                        )
                     )
 
         self.width = (column + 1) * Tile.WIDTH
