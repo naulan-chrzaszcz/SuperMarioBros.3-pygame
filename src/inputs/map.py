@@ -1,3 +1,5 @@
+from typing import Dict
+
 from pygame import Vector2, transform, Surface
 from pygame.sprite import LayeredUpdates
 
@@ -15,7 +17,9 @@ class Map:
     width = 0
     height = 0
 
-    def __init__(self, sheet: Surface, map_data: dict):
+    def __init__(
+        self, sheet: Surface, sheet_metadata: Dict[str, str], map_data: dict
+    ):
         column = 0
         row = 0
         for row in range(len(map_data["tiles"])):
@@ -40,10 +44,12 @@ class Map:
                 y = int(y)
                 x_frames = int(x_frames)
                 y_frames = int(y_frames)
+                tile_id = sheet_metadata[f"{x},{y}"]
                 tile_pos = Vector2(column * Tile.WIDTH, row * Tile.HEIGHT)
                 if x_frames > 1:
                     AnimatedTile(
                         self.sprites,
+                        tile_id,
                         sheet.subsurface(
                             (x * Tile.WIDTH, y * Tile.HEIGHT),
                             (x_frames * Tile.WIDTH, Tile.HEIGHT),
@@ -55,6 +61,7 @@ class Map:
                 elif y_frames > 1:
                     AnimatedTile(
                         self.sprites,
+                        tile_id,
                         sheet.subsurface(
                             (x * Tile.WIDTH, y * Tile.HEIGHT),
                             (Tile.WIDTH, y_frames * Tile.HEIGHT),
@@ -70,6 +77,7 @@ class Map:
                     )
                     Tile(
                         self.sprites,
+                        tile_id,
                         transform.rotate(tile, int(rotation) * 90),
                         tile_pos,
                         collidable=is_collidable,

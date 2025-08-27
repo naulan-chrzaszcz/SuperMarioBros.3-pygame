@@ -117,7 +117,14 @@ class AnimationLevelsScene(Scene):
             pos = self.stars_start_pos.copy()
             self.stars_levels.append(
                 AnimatedTile(
-                    (), self.stars_sheet, pos, 4, speed=4, tile_width=11, tile_height=11
+                    (),
+                    "",
+                    self.stars_sheet,
+                    pos,
+                    4,
+                    speed=4,
+                    tile_width=11,
+                    tile_height=11,
                 )
             )
         self.stars_max_radius = 100
@@ -129,9 +136,9 @@ class AnimationLevelsScene(Scene):
         ]
 
         for sprite in self.map_manager.current.sprites:
-            # TODO: Dirty code to find the start tile
-            if sprite.vector.x == Tile.WIDTH * 3 and sprite.vector.y == Tile.HEIGHT * 5:
+            if sprite.id == "start":
                 self.stars_end_pos = sprite.vector
+                break
 
     def update(self, dt):
         self.timer += dt

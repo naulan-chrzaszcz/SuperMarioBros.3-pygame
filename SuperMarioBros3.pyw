@@ -43,7 +43,7 @@ scene_manager.set_default_scene("animation_main_menu" if config.skip_intro else 
 
 map_manager = MapManager()
 map_manager.register(
-    "levels", Map(Ressources()["images"]["levels"], Ressources()["maps"]["levels"])
+    "levels", Map(Ressources()["images"]["levels"], Ressources()["metadata"]["levels"], Ressources()["maps"]["levels"])
 )
 
 display = Display()

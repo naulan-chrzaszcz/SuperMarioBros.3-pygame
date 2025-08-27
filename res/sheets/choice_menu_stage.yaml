@@ -1,0 +1,97 @@
+tiles:
+  - name: level1
+    coordinate:
+      x: 0
+      y: 0
+  - name: level2
+    coordinate:
+      x: 1
+      y: 0
+  - name: level3
+    coordinate:
+      x: 2
+      y: 0
+  - name: level4
+    coordinate:
+      x: 3
+      y: 0
+  - name: level5
+    coordinate:
+      x: 4
+      y: 0
+  - name: level6
+    coordinate:
+      x: 5
+      y: 0
+  - name: start
+    coordinate:
+      x: 6
+      y: 0
+  - name: bridge
+    coordinate:
+      x: 7
+      y: 0
+  - name: path_bottom_coin
+    coordinate:
+      x: 0
+      y: 1
+  - name: path_right_coin
+    coordinate:
+      x: 1
+      y: 1
+  - name: path_corner_coin
+    coordinate:
+      x: 2
+      y: 1
+  - name: path
+    coordinate:
+      x: 3
+      y: 1
+  - name: floor
+    coordinate:
+      x: 4
+      y: 1
+  - name: river_left_right
+    coordinate:
+      x: 5
+      y: 1
+  - name: river_corner_left_bottom
+    coordinate:
+      x: 6
+      y: 1
+  - name: river_corner_bottom_right
+    coordinate:
+      x: 7
+      y: 1
+  - name: cactus_frame_0
+    coordinate:
+      x: 0
+      y: 2
+  - name: cactus_frame_1
+    coordinate:
+      x: 1
+      y: 2
+  - name: cactus_frame_2
+    coordinate:
+      x: 2
+      y: 2
+  - name: cactus_frame_3
+    coordinate:
+      x: 3
+      y: 2
+  - name: river_top_bottom
+    coordinate:
+      x: 4
+      y: 2
+  - name: river_corner_left_top
+    coordinate:
+      x: 5
+      y: 2
+  - name: river_corner_top_right
+    coordinate:
+      x: 6
+      y: 2
+  - name: rock
+    coordinate:
+      x: 7
+      y: 2

@@ -21,6 +21,7 @@ images:
       b: 201
   - id: levels
     path: res/sheets/choice_menu_stage.png
+    metadata: res/sheets/choice_menu_stage.yaml
     colorKey:
       r: 255
       g: 174

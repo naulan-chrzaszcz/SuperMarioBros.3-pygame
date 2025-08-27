@@ -8,6 +8,7 @@ class AnimatedTile(Sprite):
     def __init__(
         self,
         group,
+        id: str,
         tile: Surface,
         vector: Vector2,
         frames: int,
@@ -18,6 +19,7 @@ class AnimatedTile(Sprite):
         collidable=False,
     ):
         Sprite.__init__(self, group)
+        self.id = id
         self.tile = tile
         self.image = tile.subsurface((0, 0), (tile_width, tile_height))
         self.rect = self.image.get_rect(topleft=vector)
