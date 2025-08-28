@@ -42,6 +42,10 @@ class Map:
 
                 x = int(x)
                 y = int(y)
+
+                if x == -1 and y == -1:
+                    continue
+
                 tile = Tile(
                     self.sprites,
                     sheet_metadata[f"{x},{y}"],
