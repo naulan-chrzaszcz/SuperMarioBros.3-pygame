@@ -16,6 +16,7 @@ import pygame
 from pygame._sdl2 import Window, Texture, Renderer
 
 import argparse
+import json
 import sys
 import os
 
@@ -88,6 +89,52 @@ map_tile_selection_x = 0
 map_tile_selection_y = 0
 map_tiles = {}
 map_collidables = {}
+
+if os.path.exists(args.map_name):
+    map_data = None
+    with open(args.map_name) as map_file:
+        map_data = json.load(map_file)
+
+    for row, tiles in enumerate(map_data["tiles"]):
+        for column, tile in enumerate(tiles):
+            sheet_x, sheet_y = tile.split(Map.TILE_COORD_SEPARATOR)
+            frames_x = "1"
+            if sheet_x.count("+") == 1:
+                sheet_x, frames_x = sheet_x.split("+")
+            frames_y = "1"
+            if sheet_y.count("+") == 1:
+                sheet_y, frames_y = sheet_y.split("+")
+            rotation = "0"
+            if sheet_y.count("&") == 1:
+                sheet_y, rotation = sheet_y.split("&")
+            if frames_y.count("&") == 1:
+                frames_y, rotation = frames_y.split("&")
+
+            if sheet_x == "-1" and sheet_y == "-1":
+                continue
+
+            tile = Tile(
+                int(sheet_x),
+                int(sheet_y),
+                int(frames_x),
+                int(frames_y),
+                int(rotation) * 90,
+            )
+            tile.surface = pygame.transform.rotate(
+                sheet.subsurface(
+                    (tile.x * TILE_SIZE, tile.y * TILE_SIZE),
+                    (TILE_SIZE, TILE_SIZE),
+                ).copy(),
+                int(rotation) * 90,
+            )
+            map_tiles[(column * TILE_SIZE, row * TILE_SIZE)] = tile
+
+    for row, collidables in enumerate(map_data["collidables"]):
+        for column, collidable in enumerate(collidables):
+            if collidable:
+                map_collidables[(column * TILE_SIZE, row * TILE_SIZE)] = (
+                        pygame.Rect(column * TILE_SIZE, row * TILE_SIZE, 16, 16)
+                    )
 
 cmd_window = Window(size=(200, 300))
 cmd_window.borderless = True
