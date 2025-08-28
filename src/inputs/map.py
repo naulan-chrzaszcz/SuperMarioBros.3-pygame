@@ -12,14 +12,13 @@ class Map:
     TILE_FRAMES_SEPARATOR = "+"
     TILE_ROTATION_SEPARATOR = "&"
 
-    sprites = LayeredUpdates()
-
-    width = 0
-    height = 0
-
     def __init__(
         self, sheet: Surface, sheet_metadata: Dict[str, str], map_data: dict
     ):
+        self.sprites = LayeredUpdates()
+        self.width = 0
+        self.height = 0
+
         column = 0
         row = 0
         for row in range(len(map_data["tiles"])):
