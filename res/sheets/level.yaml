@@ -1,0 +1,265 @@
+tiles:
+  - name: floor_top_left
+    coordinate:
+      x: 0
+      y: 0
+  - name: floor_top
+    coordinate:
+      x: 1
+      y: 0
+  - name: floor_top_right
+    coordinate:
+      x: 2
+      y: 0
+  - name: floor_left
+    coordinate:
+      x: 3
+      y: 0
+  - name: floor_center
+    coordinate:
+      x: 4
+      y: 0
+  - name: floor_right
+    coordinate:
+      x: 5
+      y: 0
+  - name: shadow_platforms_top_right
+    coordinate:
+      x: 6
+      y: 0
+  - name: shadow_platforms_right
+    coordinate:
+      x: 7
+      y: 0
+  - name: cactus_corner_left
+    coordinate:
+      x: 9
+      y: 0
+  - name: cactus_corner_right
+    coordinate:
+      x: 10
+      y: 0
+  - name: cactus_eyes_corner_left
+    coordinate:
+      x: 11
+      y: 0
+  - name: cactus_eyes_corner_right
+    coordinate:
+      x: 12
+      y: 0
+  - name: flowering_bushes_frame_0
+    coordinate:
+      x: 14
+      y: 0
+  - name: platform_top_left
+    coordinate:
+      x: 0
+      y: 1
+  - name: platform_top
+    coordinate:
+      x: 1
+      y: 1
+  - name: platform_top_right
+    coordinate:
+      x: 2
+      y: 1
+  - name: platform_bottom_right
+    coordinate:
+      x: 3
+      y: 1
+  - name: platform_center
+    coordinate:
+      x: 4
+      y: 1
+  - name: platform_right
+    coordinate:
+      x: 5
+      y: 1
+  - name: platform_bottom_left
+    coordinate:
+      x: 6
+      y: 1
+  - name: platform_bottom
+    coordinate:
+      x: 7
+      y: 1
+  - name: platform_left
+    coordinate:
+      x: 8
+      y: 1
+  - name: cactus_left
+    coordinate:
+      x: 9
+      y: 1
+  - name: cactus_right
+    coordinate:
+      x: 10
+      y: 1
+  - name: cactus_eyes_left
+    coordinate:
+      x: 11
+      y: 1
+  - name: cactus_eyes_right
+    coordinate:
+      x: 12
+      y: 1
+  - name: cactus_eyes_center
+    coordinate:
+      x: 13
+      y: 1
+  - name: flowering_bushes_frame_1
+    coordinate:
+      x: 13
+      y: 1
+  - name: case_top_left
+    coordinate:
+      x: 0
+      y: 2
+  - name: case_top
+    coordinate:
+      x: 1
+      y: 2
+  - name: case_top_right
+    coordinate:
+      x: 2
+      y: 2
+  - name: case_bottom_right
+    coordinate:
+      x: 3
+      y: 2
+  - name: case_center
+    coordinate:
+      x: 4
+      y: 2
+  - name: case_right
+    coordinate:
+      x: 5
+      y: 2
+  - name: cloud_platform
+    coordinate:
+      x: 6
+      y: 2
+  - name: cactus_corner_left_center
+    coordinate:
+      x: 9
+      y: 2
+  - name: cactus_corner_right_center
+    coordinate:
+      x: 10
+      y: 2
+  - name: cactus_eyes_corner_left_center
+    coordinate:
+      x: 11
+      y: 2
+  - name: cactus_eyes_corner_right_center
+    coordinate:
+      x: 12
+      y: 2
+  - name: cactus_center
+    coordinate:
+      x: 13
+      y: 2
+  - name: flowering_bushes_frame_2
+    coordinate:
+      x: 14
+      y: 2
+  - name: cloud_0
+    coordinate:
+      x: 0
+      y: 3
+  - name: cloud_1_frame_0
+    coordinate:
+      x: 1
+      y: 3
+  - name: cloud_2
+    coordinate:
+      x: 2
+      y: 3
+  - name: cloud_1_frame_1
+    coordinate:
+      x: 3
+      y: 3
+  - name: coin_frame_0
+    coordinate:
+      x: 4
+      y: 3
+  - name: coin_frame_1
+    coordinate:
+      x: 5
+      y: 3
+  - name: coin_frame_2
+    coordinate:
+      x: 6
+      y: 3
+  - name: coin_frame_3
+    coordinate:
+      x: 7
+      y: 3
+  - name: coin_frame_4
+    coordinate:
+      x: 8
+      y: 3
+  - name: pipe_top_left
+    coordinate:
+      x: 9
+      y: 3
+  - name: pipe_top_right
+    coordinate:
+      x: 10
+      y: 3
+  - name: cloud_3
+    coordinate:
+      x: 0
+      y: 4
+  - name: cloud_4
+    coordinate:
+      x: 1
+      y: 4
+  - name: cloud_5
+    coordinate:
+      x: 2
+      y: 4
+  - name: brick_frame_0
+    coordinate:
+      x: 4
+      y: 4
+  - name: brick_frame_1
+    coordinate:
+      x: 5
+      y: 4
+  - name: brick_frame_2
+    coordinate:
+      x: 6
+      y: 4
+  - name: brick_frame_3
+    coordinate:
+      x: 7
+      y: 4
+  - name: pipe_left
+    coordinate:
+      x: 9
+      y: 4
+  - name: pipe_right
+    coordinate:
+      x: 10
+      y: 4
+  - name: mystery_block_frame_0
+    coordinate:
+      x: 4
+      y: 5
+  - name: mystery_block_frame_1
+    coordinate:
+      x: 5
+      y: 5
+  - name: mystery_block_frame_2
+    coordinate:
+      x: 6
+      y: 5
+  - name: mystery_block_frame_3
+    coordinate:
+      x: 7
+      y: 5
+  - name: block
+    coordinate:
+      x: 8
+      y: 5
