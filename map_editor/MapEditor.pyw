@@ -22,7 +22,7 @@ import os
 
 from src.tile_selection_surface import TileSelectionSurface
 from src.commands_surface import CommandsSurface
-from src.camera import Camera
+from src.controllers import CameraController
 from src.outputs.map import Map
 from src.outputs.tile import Tile
 
@@ -68,7 +68,7 @@ if args.map_width < 29:
     map_camera_width = TILE_SIZE * args.map_width
 if args.map_height < 15:
     map_camera_height = TILE_SIZE * args.map_height
-map_camera = Camera(
+map_camera = CameraController(
     0,
     0,
     map_camera_width,
@@ -261,7 +261,7 @@ while True:
                         (TILE_SIZE, TILE_SIZE),
                     )
                 ),
-                cmd_surface.rotation_btn.value,
+                cmd_surface.rotation_btn_model.value,
             ),
             (map_tile_selection_x, map_tile_selection_y),
         )
