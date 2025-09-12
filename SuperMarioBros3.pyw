@@ -14,6 +14,7 @@ from src.inputs.config import Config
 from src.scenes import (
     AnimationLevelsScene,
     LevelsScene,
+    Level1Scene,
     MainMenuScene,
     AnimationMainMenuScene,
     IntroScene,
@@ -41,11 +42,15 @@ scene_manager.register("animation_main_menu", AnimationMainMenuScene())
 scene_manager.register("main_menu", MainMenuScene())
 scene_manager.register("animation_levels", AnimationLevelsScene())
 scene_manager.register("levels", LevelsScene())
+scene_manager.register("level_1", Level1Scene())
 scene_manager.set_default_scene("animation_main_menu" if config.skip_intro else "intro")
 
 map_manager = MapManager()
 map_manager.register(
     "levels", Map(Ressources()["images"]["levels"], Ressources()["metadata"]["levels"], Ressources()["maps"]["levels"])
+)
+map_manager.register(
+    "level_1", Map(Ressources()["images"]["level"], Ressources()["metadata"]["level"], Ressources()["maps"]["level1"])
 )
 
 display = Display()
