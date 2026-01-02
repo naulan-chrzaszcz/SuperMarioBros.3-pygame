@@ -1,7 +1,7 @@
 import pygame
 
 
-class Camera(pygame.Rect):
+class CameraController(pygame.Rect):
     def __init__(self, x, y, width, height, width_surface, height_surface):
         super().__init__(x, y, width, height)
         self.width_surface = width_surface
