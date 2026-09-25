@@ -1,69 +1,152 @@
-from dataclasses import dataclass
+from __future__ import annotations
+
+from dataclasses import dataclass, field, fields, replace
+from enum import Enum, auto
+from pathlib import Path
+from typing import Any, Dict, Mapping, Tuple
 
 import yaml
-import os
+
+from ..constants import CONFIG_FILE
 
 
-@dataclass
+@dataclass(frozen=True)
 class Mixer:
-    frequency: int
-    size: int
-    channels: int
-    buffer: int
+    frequency: int = 22050
+    size: int = -16
+    channels: int = 2
+    buffer: int = 512
 
 
-@dataclass
+@dataclass(frozen=True)
 class Display:
-    width: int
-    height: int
+    """Size of the surface the game is drawn on, in game pixels."""
+
+    width: int = 464
+    height: int = 240
 
 
-@dataclass
+@dataclass(frozen=True)
 class Screen:
-    width: int
-    height: int
-    flags: int
-    depth: int
+    """The window: the display surface is scaled to fit it."""
+
+    width: int = 1280
+    height: int = 720
+    flags: int = 0
+    depth: int = 32
+    resizable: bool = True
+    # True keeps sharp square pixels (integer zoom) at the cost of black borders.
+    integer_scaling: bool = False
 
 
-@dataclass
+@dataclass(frozen=True)
 class Mouse:
-    visible: bool
+    visible: bool = False
 
 
+class Action(Enum):
+    UP = auto()
+    DOWN = auto()
+    LEFT = auto()
+    RIGHT = auto()
+    CONFIRM = auto()
+    BACK = auto()
+
+
+DEFAULT_CONTROLS: Dict[Action, Tuple[str, ...]] = {
+    Action.UP: ("z", "up"),
+    Action.DOWN: ("s", "down"),
+    Action.LEFT: ("q", "left"),
+    Action.RIGHT: ("d", "right"),
+    Action.CONFIRM: ("a", "return", "space"),
+    Action.BACK: ("escape",),
+}
+
+
+@dataclass(frozen=True)
+class Controls:
+    """Keyboard bindings, as pygame key names (``pygame.key.name``)."""
+
+    bindings: Mapping[Action, Tuple[str, ...]] = field(
+        default_factory=lambda: dict(DEFAULT_CONTROLS)
+    )
+
+    def action_of(self, key_name: str) -> Action | None:
+        key_name = key_name.lower()
+        for action, names in self.bindings.items():
+            if key_name in names:
+                return action
+        return None
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any] | None) -> "Controls":
+        bindings = dict(DEFAULT_CONTROLS)
+        for name, keys in (data or {}).items():
+            try:
+                action = Action[str(name).upper()]
+            except KeyError:
+                raise ValueError(f"Unknown action in controls: {name!r}") from None
+            if isinstance(keys, str):
+                keys = [keys]
+            bindings[action] = tuple(str(key).lower() for key in keys)
+        return cls(bindings)
+
+
+def _camel_to_snake(name: str) -> str:
+    return "".join(f"_{char.lower()}" if char.isupper() else char for char in name)
+
+
+def _section(cls, data: Mapping[str, Any] | None):
+    """Builds a dataclass from a YAML section, keeping defaults for missing keys."""
+    known = {item.name for item in fields(cls)}
+    values = {}
+    for key, value in (data or {}).items():
+        name = _camel_to_snake(key)
+        if name not in known:
+            raise ValueError(f"Unknown setting {key!r} for {cls.__name__.lower()}")
+        values[name] = value
+    return cls(**values)
+
+
+@dataclass(frozen=True)
 class Config:
-    framerate_limit: int
-    skip_intro: bool
-    mixer: Mixer
-    display: Display
-    screen: Screen
-    mouse: Mouse
+    framerate_limit: int = 120
+    skip_intro: bool = False
+    mixer: Mixer = Mixer()
+    display: Display = Display()
+    screen: Screen = Screen()
+    mouse: Mouse = Mouse()
+    controls: Controls = field(default_factory=Controls)
 
-    _instance = None
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any] | None) -> "Config":
+        data = dict(data or {})
+        config = cls(
+            framerate_limit=int(data.pop("framerateLimit", cls.framerate_limit)),
+            skip_intro=bool(data.pop("skipIntro", cls.skip_intro)),
+            mixer=_section(Mixer, data.pop("mixer", None)),
+            display=_section(Display, data.pop("display", None)),
+            screen=_section(Screen, data.pop("screen", None)),
+            mouse=_section(Mouse, data.pop("mouse", None)),
+            controls=Controls.from_dict(data.pop("controls", None)),
+        )
+        if data:
+            raise ValueError(f"Unknown settings: {', '.join(sorted(data))}")
+        for name, size in (("display", config.display), ("screen", config.screen)):
+            if size.width <= 0 or size.height <= 0:
+                raise ValueError(f"{name} width and height must be positive")
+        if config.framerate_limit <= 0:
+            config = replace(config, framerate_limit=Config.framerate_limit)
+        return config
 
-    def __new__(cls, *args, **kwargs):
-        if not cls._instance:
-            cls._instance = super(Config, cls).__new__(cls)
-            with open(os.path.join("config.yaml")) as config_file:
-                config = yaml.safe_load(config_file)
-                cls._instance.framerate_limit = config["framerateLimit"]
-                cls._instance.skip_intro = config["skipIntro"]
-                mixer_data = config["mixer"]
-                cls._instance.mixer = Mixer(
-                    mixer_data["frequency"],
-                    mixer_data["size"],
-                    mixer_data["channels"],
-                    mixer_data["buffer"],
-                )
-                cls._instance.display = Display(
-                    config["display"]["width"], config["display"]["height"]
-                )
-                screen_data = config["screen"]
-                cls._instance.screen = Screen(
-                    screen_data["width"],
-                    screen_data["height"],
-                    screen_data["flags"],
-                    screen_data["depth"],
-                )
-                cls._instance.mouse = Mouse(config["mouse"]["visible"])
-        return cls._instance
+    @classmethod
+    def load(cls, path: Path = CONFIG_FILE) -> "Config":
+        """Reads ``config.yaml``; a missing file gives the default settings."""
+        path = Path(path)
+        if not path.exists():
+            return cls()
+        with path.open(encoding="utf-8") as config_file:
+            try:
+                return cls.from_dict(yaml.safe_load(config_file))
+            except ValueError as error:
+                raise ValueError(f"{path.name}: {error}") from None

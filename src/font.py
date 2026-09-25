@@ -1,50 +1,41 @@
-from pygame import SRCALPHA, Surface
+from __future__ import annotations
 
-from .inputs.ressources import Ressources
+from typing import Dict
+
+from pygame import SRCALPHA, Surface
 
 
 class Font:
+    """Bitmap font of ``custom_font.png``: 8x8 glyphs in the order of ``CHARSET``.
+
+    The sheet has no ``Y``; missing characters (and spaces) are left blank.
+    """
+
     WIDTH_FONT = 8
     HEIGHT_FONT = 8
+    CHARSET = "ABCDEFGHIJKLMNOPQRSTUVWXZ0123456789"
 
-    _instance = None
+    def __init__(self, sheet: Surface):
+        self.sheet = sheet
+        glyph_count = sheet.get_width() // self.WIDTH_FONT
+        self.glyphs: Dict[str, Surface] = {
+            char: sheet.subsurface((index * self.WIDTH_FONT, 0), (self.WIDTH_FONT, self.HEIGHT_FONT))
+            for index, char in enumerate(self.CHARSET[:glyph_count])
+        }
 
-    def __init__(self):
-        self.font = Ressources()["images"]["font"]
+    def has_glyph(self, char: str) -> bool:
+        return char.upper() in self.glyphs
 
-    def __new__(cls, *args, **kwargs):
-        if not cls._instance:
-            cls._instance = super(Font, cls).__new__(cls)
-        return cls._instance
+    def size(self, message) -> tuple[int, int]:
+        return len(str(message)) * self.WIDTH_FONT, self.HEIGHT_FONT
 
-    def render(self, message: str) -> Surface:
+    def render(self, message) -> Surface:
         if message is None:
             return Surface((0, 0), SRCALPHA)
-        message = str(message)
-
-        ascii_code = [ord(char) for char in message]
-        width_surface = len(ascii_code) * self.WIDTH_FONT
-        message_surface = Surface((width_surface, self.HEIGHT_FONT), SRCALPHA)
-
-        for n, code in enumerate(ascii_code):
-            if code >= ord("A"):
-                message_surface.blit(
-                    self.font.subsurface(
-                        ((code - ord("A")) * self.WIDTH_FONT, 0),
-                        (self.WIDTH_FONT, self.HEIGHT_FONT),
-                    ),
-                    (n * self.WIDTH_FONT, 0),
-                )
-            elif code >= ord("0"):
-                message_surface.blit(
-                    self.font.subsurface(
-                        (
-                            ((ord("Z") - ord("A")) + (code - ord("0")))
-                            * self.WIDTH_FONT,
-                            0,
-                        ),
-                        (self.WIDTH_FONT, self.HEIGHT_FONT),
-                    ),
-                    (n * self.WIDTH_FONT, 0),
-                )
-        return message_surface
+        message = str(message).upper()
+        surface = Surface(self.size(message), SRCALPHA)
+        for index, char in enumerate(message):
+            glyph = self.glyphs.get(char)
+            if glyph is not None:
+                surface.blit(glyph, (index * self.WIDTH_FONT, 0))
+        return surface

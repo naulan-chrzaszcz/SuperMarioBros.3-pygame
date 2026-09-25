@@ -41,3 +41,4 @@ images:
 maps:
   - id: levels
     path: res/maps/stage_menu.json
+    sheet: levels
