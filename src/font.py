@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict
+from typing import Dict, List
 
 from pygame import SRCALPHA, Surface
 
@@ -8,7 +8,8 @@ from pygame import SRCALPHA, Surface
 class Font:
     """Bitmap font of ``custom_font.png``: 8x8 glyphs in the order of ``CHARSET``.
 
-    The sheet has no ``Y``; missing characters (and spaces) are left blank.
+    The sheet has no ``Y``: it is built from the top of ``V`` and the stem of
+    ``T``. Other missing characters (and spaces) are left blank.
     """
 
     WIDTH_FONT = 8
@@ -22,6 +23,30 @@ class Font:
             char: sheet.subsurface((index * self.WIDTH_FONT, 0), (self.WIDTH_FONT, self.HEIGHT_FONT))
             for index, char in enumerate(self.CHARSET[:glyph_count])
         }
+        if "Y" not in self.glyphs and "V" in self.glyphs and "T" in self.glyphs:
+            self.glyphs["Y"] = self._compose_y(self.glyphs["V"], self.glyphs["T"])
+
+    @classmethod
+    def _compose_y(cls, v: Surface, t: Surface) -> Surface:
+        glyph = v.copy()
+        # Rows of V (arms converging) then the bottom of T's stem.
+        for row, (source, source_row) in enumerate(
+            ((v, 0), (v, 1), (v, 2), (v, 4), (v, 5), (v, 6), (t, 6), (t, 7))
+        ):
+            glyph.blit(source, (0, row), (0, source_row, cls.WIDTH_FONT, 1))
+        return glyph
+
+    @staticmethod
+    def wrap(text: str, width: int) -> List[str]:
+        """Splits ``text`` in lines of at most ``width`` characters."""
+        lines, line = [], ""
+        for word in str(text).split():
+            if line and len(line) + 1 + len(word) > width:
+                lines.append(line)
+                line = word
+            else:
+                line = f"{line} {word}".strip()
+        return lines + ([line] if line else [])
 
     def has_glyph(self, char: str) -> bool:
         return char.upper() in self.glyphs

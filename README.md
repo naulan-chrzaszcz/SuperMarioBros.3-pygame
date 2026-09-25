@@ -22,12 +22,39 @@ game finds its files from its own folder, whatever the working directory.
 
 | Action  | Keys (default)          | Use                                        |
 |---------|-------------------------|--------------------------------------------|
-| Move    | `Z Q S D` or arrows     | Walk on the world map (hold to keep going) |
-| Confirm | `A`, `Enter` or `Space` | Start, skip the opening, enter a level     |
-| Back    | `Esc`                   | World map → title screen → quit            |
+| Move    | `Z Q S D` or arrows     | Menus, world map (hold to keep going), walk in a level |
+| Confirm | `A`, `Enter` or `Space` | Choose, skip the opening, enter a level; **jump** in a level (hold to jump higher) |
+| Run     | `Shift` or `E`          | Run in a level (running jumps go higher)  |
+| Back    | `Esc`                   | Pause a level (twice: leave it), world map → title screen → quit |
 
 Keys can be changed in the `controls` section of `config.yaml`, with
 [pygame key names](https://www.pygame.org/docs/ref/key.html).
+
+## Title screen
+
+- `START GAME`: the world map.
+- `CUSTOM LEVELS`: every map of `res/maps` made with the map editor, to play it.
+- `MAP EDITOR`: the map editor, in the game window. `F5` (or `Play the map`)
+  saves the map and plays it right away; leaving the level comes back to the
+  editor. Lives are not lost while testing.
+- `QUIT`.
+
+## Levels
+
+Any map of `res/maps` (except the world maps of `ressources.yaml`) is a
+playable level:
+
+- the **solid** cells are the collisions painted in the editor (`Collisions`
+  mode): a tile not marked solid is only decoration;
+- Mario appears on the first ground from the left and the course is cleared
+  when he reaches the right edge of the map (the time left gives points);
+- tiles named `coin*` are collected, and solid `mystery_block*` tiles give a
+  coin once when hit from below (they become `block`);
+- falling out of the map or running out of time costs a life; with no life
+  left it is game over.
+
+On the world map, the `levelN` tile plays `res/maps/level_N.json` when there is
+no `level_N` scene.
 
 ## Settings: `config.yaml`
 
@@ -49,9 +76,10 @@ The game image is always scaled without distortion (black bars fill the rest).
 
 - `ressources.yaml`: images (`id`, `path`, optional `colorKey` and tile
   `metadata`) and maps (`id`, `path`, `sheet` = id of the tileset image).
-- `res/maps/*.json`: maps made with the map editor.
+- `res/maps/*.json`: maps made with the map editor; each one records its
+  tileset (`sheet`).
 - `res/sheets/*.yaml`: tile names of a tileset. The world map needs a tile
-  named `start`; a tile named `levelN` opens the scene `level_N`.
+  named `start`; a tile named `levelN` opens the level `level_N`.
 - `save.yaml`: progress of the player (world, lives, score, coins...).
 
 ## Code structure
@@ -64,26 +92,32 @@ src/
   scene_manager.py         current scene; scene changes happen after the update
   map_manager.py           maps of ressources.yaml, loaded on first use
   world_map.py             grid movement on the world map (no pygame drawing)
+  levels.py                playable maps of res/maps and their tileset
+  platformer.py            Mario's movement and collisions (no pygame drawing)
+  editor_bridge.py         runs the map editor in the game window
   font.py, hud.py          bitmap font and status bar
   sprite_animation.py      frame animation (frames cut once)
   tile.py                  a tile sprite
   inputs/                  config.yaml, save.yaml, ressources.yaml and map files
-  scenes/                  intro, title screen, world card, world map
+  scenes/                  intro, title screen, world card, world map,
+                           custom level list, platform level
   entities/, blocks/       old prototypes, not used yet (except player.py)
 tests/                     python -m unittest discover -s tests
 ```
 
 Scenes receive a `GameContext` (config, ressources, save, font, HUD, maps,
-display surface) instead of reaching global singletons, and react to
+display surface, level catalog, `open_editor` and `play_level`) instead of reaching global singletons, and react to
 *actions* (`Action.CONFIRM`...) rather than raw keys.
 
 ### Adding a level
 
-1. Draw the level with the map editor and declare it in `ressources.yaml`.
-2. Write a scene (subclass of `src.scenes.Scene`) and register it in
-   `src/game.py` as `level_1`, `level_2`...
-3. The world map enters it when the player confirms on the `level1` tile;
-   until then it shows "LEVEL 1 COMING SOON".
+1. Draw the level with the map editor (from the game: `MAP EDITOR`), save it
+   as `res/maps/level_1.json` and paint its solid cells. Test it with `F5`.
+2. The world map plays it when the player confirms on the `level1` tile; with
+   no map (and no `level_1` scene) it shows "LEVEL 1 COMING SOON".
+3. A level that needs more than a map can still be a scene (subclass of
+   `src.scenes.Scene`) registered in `src/game.py` as `level_1`: it wins over
+   the map.
 
 ## Tests
 

@@ -38,6 +38,7 @@ HELP_LINES = (
     "G: grid   O: solid overlay",
     "Ctrl+Z / Ctrl+Y: undo / redo",
     "Ctrl+S: save   Esc: close the map",
+    "F5: play the map (from the game)",
 )
 
 

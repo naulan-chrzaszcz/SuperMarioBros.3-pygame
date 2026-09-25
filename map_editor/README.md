@@ -23,12 +23,17 @@ repository root:
 python map_editor/MapEditor.pyw
 ```
 
+The editor can also be opened from the game: choose `MAP EDITOR` on the title
+screen (or `OPEN THE MAP EDITOR` in `CUSTOM LEVELS`). It then runs in the game
+window and can **test the map** (see below).
+
 The launcher opens:
 
 - on the left, the maps of `res/maps` with their size, and `+ New map`;
 - on the right, the map name (for a new map), its size in tiles and the
-  tileset, with a preview. The tileset of an existing map is the one used the
-  last time, otherwise the first tileset that declares every tile of the map.
+  tileset, with a preview. The tileset of an existing map is the one recorded
+  in the map file, otherwise the one used the last time, otherwise the first
+  tileset that declares every tile of the map.
   Changing the size of an existing map resizes it.
 
 Double-click a map or press `Enter` to open it; `Create` makes the new map file
@@ -60,7 +65,8 @@ python map_editor/MapEditor.pyw res/maps/stage_menu.json --sheet res/sheets/choi
 
 - `map_path` is opened with its own size when it exists, and is created on the
   first save otherwise.
-- `--sheet` is the tileset image (default: `res/sheets/level.png`).
+- `--sheet` is the tileset image (default: the one recorded in the map,
+  otherwise `res/sheets/level.png`).
 - `--size` is measured in 16x16 tiles. It defaults to 29x15 (one game screen)
   for a new map; on an existing map it resizes it (content outside the new
   size is dropped when saving).
@@ -135,6 +141,7 @@ the map unchanged there. Every paste, cut or clear is a single undo step.
 | Toggle the solid overlay | `O` |
 | Undo / redo | `Ctrl+Z` / `Ctrl+Y` (or `Ctrl+Shift+Z`) |
 | Save | `Ctrl+S` |
+| Test the map in the game (saves it first) | `F5` or `Play the map`, only when the editor was opened from the game. `Esc` in the level (twice) comes back to the editor, with its undo history |
 | Close the map (back to the launcher) | `Esc` (press twice if there are unsaved changes; the first `Esc` stops pasting or deselects) |
 | Quit | Close the window |
 
@@ -175,9 +182,19 @@ The editor writes the same JSON structure consumed by the game:
   ],
   "collidables": [
     [false, true, true]
-  ]
+  ],
+  "sheet": "res/sheets/level.png"
 }
 ```
+
+`sheet` is the tileset the map was drawn with, relative to the repository
+root: the game uses it to know which image the coordinates refer to. Maps
+without it still load (the game then looks for a tileset that declares every
+tile of the map).
+
+`collidables` are the solid cells of the level: Mario stands on them and hits
+them. Paint them in the `Collisions` mode; a tile that is not marked solid is
+only decoration, even if it looks like a floor.
 
 Each tile uses this encoding:
 

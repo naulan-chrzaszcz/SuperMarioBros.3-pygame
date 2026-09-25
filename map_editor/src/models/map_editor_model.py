@@ -69,9 +69,9 @@ class MapEditorModel:
         columns, rows, tiles, collidables = Map.read(path)
         return cls(columns, rows, tiles, collidables)
 
-    def save(self, path: Path) -> None:
+    def save(self, path: Path, sheet: Optional[Path] = None) -> None:
         self.end_edit()
-        Map.write(path, self.columns, self.rows, self.tiles, self.collidables)
+        Map.write(path, self.columns, self.rows, self.tiles, self.collidables, sheet)
         self._saved_edit = self._last_edit()
         self._resized = False
 

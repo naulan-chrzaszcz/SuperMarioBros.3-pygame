@@ -28,14 +28,18 @@ class MapEntry:
     size: Optional[Tuple[int, int]] = None
     sheet_cells: FrozenSet[SheetCell] = frozenset()
     error: Optional[str] = None
+    # Tileset recorded in the map file by the editor.
+    sheet: Optional[Path] = None
 
     @classmethod
     def read(cls, path: Path) -> "MapEntry":
         try:
             columns, rows, tiles, _ = Map.read(path)
+            sheet = Map.read_sheet(path)
         except (OSError, ValueError) as error:
             return cls(path, error=str(error))
-        return cls(path, (columns, rows), frozenset((tile.x, tile.y) for tile in tiles.values()))
+        cells = frozenset((tile.x, tile.y) for tile in tiles.values())
+        return cls(path, (columns, rows), cells, sheet=sheet)
 
 
 @dataclass(frozen=True)
@@ -141,8 +145,12 @@ class LauncherModel:
         self.sheet_index = index
 
     def guess_sheet(self, entry: MapEntry) -> int:
-        """The tileset last used with this map, otherwise the first tileset that
-        declares every tile of the map."""
+        """The tileset recorded in the map, otherwise the one last used with this
+        map, otherwise the first tileset that declares every tile of the map."""
+        if entry.sheet is not None:
+            for index, sheet in enumerate(self.sheets):
+                if sheet.path.resolve() == entry.sheet:
+                    return index
         remembered = self.settings.get("sheets", {}).get(entry.path.name)
         if remembered:
             index = self._sheet_index_of(PROJECT_ROOT / remembered)
@@ -191,7 +199,7 @@ class LauncherModel:
             if map_path.exists():
                 raise ValueError(f"{map_path.name} already exists: select it in the list")
             self.maps_directory.mkdir(parents=True, exist_ok=True)
-            MapEditorModel(*size).save(map_path)
+            MapEditorModel(*size).save(map_path, self.sheet.path)
             request = LaunchRequest(map_path, self.sheet.path)
         else:
             request = LaunchRequest(entry.path, self.sheet.path, size if self.resizes else None)

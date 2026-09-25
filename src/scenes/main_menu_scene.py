@@ -3,6 +3,7 @@ from __future__ import annotations
 from enum import Enum, auto
 from math import sin
 
+import pygame
 from pygame import SRCALPHA, Surface, Vector2
 
 from ..constants import BLACK, SAND
@@ -18,11 +19,15 @@ class AnimationState(Enum):
 
 
 class MainMenuScene(Scene):
-    """Title screen: the curtain rises, the title drops, then "PRESS A TO START".
+    """Title screen: the curtain rises, the title drops, then a menu appears.
 
-    Confirming during the opening skips it; confirming afterwards starts the
-    game and going back quits.
+    Confirming during the opening skips it. In the menu, up and down choose,
+    confirm opens the choice and going back quits.
     """
+
+    MENU = ("START GAME", "CUSTOM LEVELS", "MAP EDITOR", "QUIT")
+    MENU_TOP = 150
+    MENU_SPACING = 12
 
     duration = {
         AnimationState.PAUSE: 1.0,
@@ -46,7 +51,8 @@ class MainMenuScene(Scene):
         self.title = Surface((179, 113), SRCALPHA)
         self.title.blit(sheet.subsurface((0, 226), (179, 72)), (0, 0))
         self.title.blit(sheet.subsurface((180, 226), (42, 41)), (self.title.get_width() // 2 - 20, 72))
-        self.subtitle = context.font.render("PRESS A TO START")
+        self.menu = [context.font.render(item) for item in self.MENU]
+        self.selected = 0
 
         width = self.surface.get_width()
         title_x = width // 2 - self.title.get_width() // 2
@@ -86,10 +92,23 @@ class MainMenuScene(Scene):
     def on_action(self, action: Action) -> None:
         if action == Action.CONFIRM:
             if self.ready:
-                self.manager.change_scene("animation_levels")
+                self.choose(self.MENU[self.selected])
             else:
                 self.skip_opening()
         elif action == Action.BACK:
+            self.manager.quit()
+        elif self.ready and action in (Action.UP, Action.DOWN):
+            step = -1 if action == Action.UP else 1
+            self.selected = (self.selected + step) % len(self.MENU)
+
+    def choose(self, item: str) -> None:
+        if item == "START GAME":
+            self.manager.change_scene("animation_levels")
+        elif item == "CUSTOM LEVELS":
+            self.manager.change_scene("custom_levels")
+        elif item == "MAP EDITOR":
+            self.context.open_editor()
+        elif item == "QUIT":
             self.manager.quit()
 
     def _next_state(self, state: AnimationState) -> None:
@@ -125,7 +144,12 @@ class MainMenuScene(Scene):
         self.surface.blit(self.floor, (0, self.FLOOR_TOP))
         self.surface.blit(self.title, self.title_pos)
         if self.ready:
-            self.surface.blit(
-                self.subtitle,
-                (width // 2 - self.subtitle.get_width() // 2, height // 4 + self.title.get_height()),
-            )
+            self._draw_menu(width)
+
+    def _draw_menu(self, width: int) -> None:
+        left = width // 2 - max(item.get_width() for item in self.menu) // 2
+        for index, item in enumerate(self.menu):
+            y = self.MENU_TOP + index * self.MENU_SPACING
+            self.surface.blit(item, (left, y))
+            if index == self.selected:
+                pygame.draw.polygon(self.surface, BLACK, [(left - 12, y), (left - 12, y + 7), (left - 5, y + 3)])

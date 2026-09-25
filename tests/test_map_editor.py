@@ -295,6 +295,24 @@ class ApplicationTest(unittest.TestCase):
         self.key(pygame.K_ESCAPE)
         self.assertFalse(self.app.controller.running)
 
+    def test_play_saves_the_map_with_its_tileset_and_leaves(self):
+        self.click(self.app.camera.map_rect().center)
+        self.key(pygame.K_F5)
+        self.assertTrue(self.app.controller.running, "the standalone editor cannot play")
+        self.assertTrue(self.app.model.dirty)
+
+        self.app.controller.can_play = True
+        self.key(pygame.K_F5)
+        self.assertFalse(self.app.controller.running)
+        self.assertTrue(self.app.controller.play_requested)
+        self.assertFalse(self.app.model.dirty)
+        self.assertEqual(Map.read_sheet(self.map_path), LEVEL_SHEET.resolve())
+
+        self.app.resume()
+        self.assertTrue(self.app.controller.running)
+        self.assertFalse(self.app.controller.play_requested)
+        self.assertEqual(len(self.app.model.tiles), 1, "the edits are kept")
+
     def test_quitting_a_saved_map_is_immediate(self):
         self.app.step([Event(pygame.QUIT)], 0.016)
         self.assertFalse(self.app.controller.running)
@@ -439,6 +457,14 @@ class LauncherTest(unittest.TestCase):
         model.select_map(2)
         self.assertEqual(model.sheet.path.name, "level.png")
 
+    def test_the_tileset_recorded_in_the_map_is_preferred(self):
+        Map.write(self.maps / "world.json", 30, 15, {}, set(), MENU_SHEET)
+        model = self.model()
+        model.select_map(2)
+        self.assertEqual(model.sheet.path.name, "choice_menu_stage.png")
+        self.assertEqual(json.loads((self.maps / "world.json").read_text())["sheet"],
+                         "res/sheets/choice_menu_stage.png")
+
     def test_unreadable_maps_cannot_be_opened(self):
         model = self.model()
         model.select_map(0)
@@ -516,6 +542,16 @@ class CLITest(unittest.TestCase):
         self.assertEqual(cli.map_path, Path("map.json"))
         self.assertEqual(cli.size, (100, 15))
         self.assertIsNone(MapEditorCLI.from_args(["map.json"]).size)
+
+    def test_the_tileset_recorded_in_the_map_is_the_default(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "menu.json"
+            Map.write(path, 2, 2, {}, set(), MENU_SHEET)
+            self.assertEqual(MapEditorCLI.from_args([str(path)]).sheet_path, MENU_SHEET.resolve())
+            self.assertEqual(
+                MapEditorCLI.from_args([str(path), "--sheet", str(LEVEL_SHEET)]).sheet_path, LEVEL_SHEET
+            )
+        self.assertEqual(MapEditorCLI.from_args(["missing.json"]).sheet_path.name, "level.png")
 
     def test_invalid_size_is_rejected(self):
         with self.assertRaises(SystemExit), open(os.devnull, "w") as devnull:

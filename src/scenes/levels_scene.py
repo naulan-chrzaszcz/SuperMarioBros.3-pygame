@@ -43,8 +43,9 @@ def inverse_spiral_segments(columns: int, rows: int) -> List[Segment]:
 class LevelsScene(Scene):
     """World map: walk with the arrows, confirm on a level tile to enter it.
 
-    A tile named ``levelN`` opens the scene ``level_N``. Levels without a
-    scene yet show a message instead of crashing the game.
+    A tile named ``levelN`` opens the scene ``level_N`` if there is one,
+    otherwise the map ``res/maps/level_N.json`` made with the map editor.
+    Levels without either show a message instead of crashing the game.
     """
 
     duration = {AnimationState.ENTER_WORLD: 1.0}
@@ -80,6 +81,7 @@ class LevelsScene(Scene):
         self.spiral: List[Segment] = []
         self.spiral_index = 0
         self.target_scene: Optional[str] = None
+        self.target_level = None
         self.message: Optional[Surface] = None
         self.message_timer = 0.0
         self.player.play(self.player.levels_animation)
@@ -95,11 +97,19 @@ class LevelsScene(Scene):
         tile, scene = self.level_under_player()
         if scene is None:
             return
-        if not self.manager.has_scene(scene):
-            number = scene.rsplit("_", 1)[-1]
-            self.show_message(f"LEVEL {number} COMING SOON")
-            return
-        self.target_scene = scene
+        number = scene.rsplit("_", 1)[-1]
+        if self.manager.has_scene(scene):
+            self.target_scene = scene
+        else:
+            levels = self.context.levels
+            level = levels.find(scene) if levels is not None else None
+            if level is None:
+                self.show_message(f"LEVEL {number} COMING SOON")
+                return
+            if not level.playable:
+                self.show_message(f"LEVEL {number} CANNOT BE PLAYED")
+                return
+            self.target_level = level
         self.spiral = inverse_spiral_segments(self.world.columns, self.world.rows)
         self.state = AnimationState.ENTER_WORLD
         self.timer = 0.0
@@ -141,7 +151,12 @@ class LevelsScene(Scene):
             t = min(self.timer / self.duration[self.state], 1.0)
             self.spiral_index = round(len(self.spiral) * t)
             if t >= 1.0:
-                self.manager.change_scene(self.target_scene)
+                if self.target_level is not None:
+                    self.context.play_level(
+                        self.target_level, lambda cleared: self.manager.change_scene("levels")
+                    )
+                else:
+                    self.manager.change_scene(self.target_scene)
 
     def draw(self) -> None:
         self.surface.fill(BLACK)

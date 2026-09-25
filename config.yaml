@@ -25,5 +25,7 @@ controls:
   down: [s, down]
   left: [q, left]
   right: [d, right]
+  # confirm also jumps in the levels, hold run to run.
   confirm: [a, return, space]
   back: [escape]
+  run: [left shift, right shift, e]

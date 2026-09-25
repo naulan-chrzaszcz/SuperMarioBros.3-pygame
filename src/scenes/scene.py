@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Callable, Optional
 
 from pygame import KEYDOWN, KEYUP, Surface, key
 
@@ -10,6 +11,15 @@ from ..inputs.config import Action, Config
 from ..inputs.ressources import Ressources
 from ..inputs.save import Save
 from ..map_manager import MapManager
+
+if TYPE_CHECKING:
+    from ..levels import LevelCatalog, LevelInfo
+
+PlayLevel = Callable[["LevelInfo", Callable[[bool], None]], None]
+
+
+def _unavailable(*_args, **_kwargs) -> None:
+    raise RuntimeError("Not available outside of the game")
 
 
 @dataclass
@@ -23,6 +33,11 @@ class GameContext:
     hud: HUD
     maps: MapManager
     display: Surface
+    levels: Optional["LevelCatalog"] = None
+    # Opens the map editor in the game window (after the current frame).
+    open_editor: Callable[[], None] = field(default=_unavailable)
+    # play_level(level, on_finish): plays a map, then calls on_finish(cleared).
+    play_level: PlayLevel = field(default=_unavailable)
 
 
 class Scene:
