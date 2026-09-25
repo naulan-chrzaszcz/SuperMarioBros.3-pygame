@@ -36,6 +36,7 @@ class MapEditorApplication:
         size: Optional[Tuple[int, int]] = None,
         window_size: Optional[Tuple[int, int]] = None,
         clipboard: Optional[Clipboard] = None,
+        playable: bool = False,
     ) -> None:
         self.map_path = Path(map_path)
         self.tileset = Tileset.load(sheet_path)
@@ -78,6 +79,7 @@ class MapEditorApplication:
             self.map_controller,
             self.sidebar_controller,
         )
+        self.controller.can_play = playable
         self.sidebar_view.set_rows(self._create_buttons())
         self.camera.fit()
 
@@ -85,8 +87,13 @@ class MapEditorApplication:
         clock = pygame.time.Clock()
         while self.controller.running:
             self.step(pygame.event.get(), clock.tick(FRAMERATE_LIMIT) / 1000.0)
-        if self.model.dirty:
+        if self.model.dirty and not self.controller.play_requested:
             print("Warning: the editor closed with unsaved changes", file=sys.stderr)
+
+    def resume(self) -> None:
+        """Prepares a new ``run`` after the game played the map."""
+        self.view.reopen()
+        self.controller.resume()
 
     def step(self, events, dt: float) -> None:
         for event in events:
@@ -168,6 +175,10 @@ class MapEditorApplication:
                 Button("Redo", controller.redo, is_enabled=lambda: self.model.can_redo),
                 Button("Save", controller.save, is_enabled=lambda: self.model.dirty
                        or not self.map_path.exists()),
+            ],
+            [
+                Button("Play the map  (F5)", controller.request_play,
+                       is_enabled=lambda: controller.can_play),
             ],
         ]
 
