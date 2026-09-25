@@ -9,12 +9,12 @@ os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 import pygame
 
 from map_editor.src.commands_surface import CommandsSurface
-from map_editor.src.controllers import MapEditorController
+from map_editor.src.controllers import ApplicationController, MapEditorController
 from map_editor.src.models import MapEditorModel
 from map_editor.src.outputs.map import Map
 from map_editor.src.outputs.tile import Tile
 from map_editor.src.tile_selection_surface import TileSelectionSurface
-from map_editor.src.views import MapEditorView
+from map_editor.src.views import ApplicationView, MapEditorView
 from src.inputs.map import Map as GameMap
 
 
@@ -138,6 +138,76 @@ class MapEditorTests(unittest.TestCase):
                 model.load(path)
 
         self.assertIn((0, 0), model.tiles)
+
+
+class ApplicationTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        pygame.init()
+
+    @classmethod
+    def tearDownClass(cls):
+        pygame.quit()
+
+    def setUp(self):
+        sheet = pygame.Surface((64, 32))
+        self.model = MapEditorModel(64, 64, sheet)
+        map_view = MapEditorView((64, 64), (320, 180))
+        self.commands = CommandsSurface(240, 180)
+        self.selection = TileSelectionSurface(sheet)
+        self.view = ApplicationView(
+            "test", map_view, self.commands, self.selection, 10
+        )
+        map_controller = MapEditorController(
+            self.model, map_view, self.commands, self.selection
+        )
+        self.saved = False
+
+        def save():
+            self.saved = True
+
+        self.app = ApplicationController(
+            self.view, map_controller, self.commands, self.selection, save
+        )
+
+    def click(self, position, button=1):
+        self.app.handle_event(
+            pygame.event.Event(pygame.MOUSEBUTTONDOWN, button=button, pos=position)
+        )
+
+    def test_everything_is_in_a_single_window(self):
+        self.assertEqual(pygame.display.get_surface().get_size(), self.view.size)
+        self.assertFalse(self.view.map_rect.colliderect(self.view.commands_rect))
+        self.assertFalse(self.view.commands_rect.colliderect(self.view.tiles_rect))
+        self.view.draw()
+
+    def test_click_in_tile_panel_selects_scaled_tile(self):
+        tiles = self.view.tiles_rect
+        scale = self.view.tile_scale
+        self.click((tiles.x + 16 * scale + 1, tiles.y + 16 * scale + 1))
+
+        self.assertEqual((self.selection.selection_x, self.selection.selection_y), (1, 1))
+
+    def test_click_in_commands_panel_uses_local_coordinates(self):
+        button = self.commands.rotation_btn_model
+        self.click((self.view.commands_rect.x + button.x + 1,
+                    self.view.commands_rect.y + button.y + 1))
+
+        self.assertEqual(button.value, 90)
+
+    def test_click_on_map_places_tile_and_shortcuts_work(self):
+        self.click((1, 1))
+        self.assertIn((0, 0), self.model.tiles)
+
+        self.app.handle_event(
+            pygame.event.Event(pygame.KEYDOWN, key=pygame.K_s, mod=pygame.KMOD_CTRL)
+        )
+        self.assertTrue(self.saved)
+
+        self.app.handle_event(
+            pygame.event.Event(pygame.KEYDOWN, key=pygame.K_ESCAPE, mod=0)
+        )
+        self.assertFalse(self.app.running)
 
 
 if __name__ == "__main__":
