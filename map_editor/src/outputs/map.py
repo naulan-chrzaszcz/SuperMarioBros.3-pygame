@@ -106,6 +106,35 @@ class Map:
         return columns, len(tile_rows), tiles, collidables
 
     @classmethod
+    def read_entities(cls, path: Path) -> Dict[Cell, str]:
+        """The entities placed on the map: ``{(col, row): type}``."""
+        with Path(path).open(encoding="utf-8") as file:
+            map_data = json.load(file)
+        tile_rows = map_data.get("tiles") if isinstance(map_data, dict) else None
+        if not isinstance(tile_rows, list) or not tile_rows or not isinstance(tile_rows[0], list):
+            raise ValueError("Map 'tiles' must be a non-empty matrix")
+        return cls.decode_entities(map_data.get("entities"), len(tile_rows[0]), len(tile_rows))
+
+    @classmethod
+    def decode_entities(cls, entries, columns: int, rows: int) -> Dict[Cell, str]:
+        if entries is None:
+            return {}
+        if not isinstance(entries, list):
+            raise ValueError("Map 'entities' must be a list")
+        entities: Dict[Cell, str] = {}
+        for entry in entries:
+            if not isinstance(entry, dict) or not isinstance(entry.get("type"), str) or not entry["type"]:
+                raise ValueError(f"Invalid entity: {entry!r}")
+            col, row = entry.get("x"), entry.get("y")
+            if type(col) is not int or type(row) is not int:
+                raise ValueError(f"Entity {entry['type']!r} has invalid coordinates")
+            cls._check_cell(col, row, columns, rows)
+            if (col, row) in entities:
+                raise ValueError(f"Two entities are on the cell {(col, row)}")
+            entities[(col, row)] = entry["type"]
+        return entities
+
+    @classmethod
     def write(
         cls,
         path: Path,
@@ -114,9 +143,11 @@ class Map:
         tiles: Dict[Cell, Tile],
         collidables: Iterable[Cell],
         sheet: Optional[Path] = None,
+        entities: Optional[Dict[Cell, str]] = None,
     ) -> None:
         """Writes the map. ``sheet`` is the tileset the map is drawn with: the game
-        uses it to know which image the tile coordinates refer to."""
+        uses it to know which image the tile coordinates refer to. ``entities``
+        are the enemies and items placed on it (see ``res/entities.yaml``)."""
         if columns <= 0 or rows <= 0:
             raise ValueError("Map dimensions must be positive")
 
@@ -132,6 +163,13 @@ class Map:
             map_data["collidables"][row][col] = True
         if sheet is not None:
             map_data["sheet"] = cls.sheet_reference(sheet)
+        if entities:
+            for col, row in entities:
+                cls._check_cell(col, row, columns, rows)
+            map_data["entities"] = [
+                {"type": kind, "x": col, "y": row}
+                for (col, row), kind in sorted(entities.items(), key=lambda item: (item[0][1], item[0][0]))
+            ]
 
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)

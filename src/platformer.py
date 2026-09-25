@@ -1,7 +1,8 @@
 """Movement and collisions of Mario in a platform level.
 
 Positions are in pixels, speeds in pixels per second. The level is a grid of
-16x16 cells and ``is_solid(column, row)`` tells which ones block Mario.
+16x16 cells and ``is_solid(column, row)`` tells which ones block Mario. The
+same bodies move the enemies and items (see ``src/entities``).
 """
 
 from __future__ import annotations
@@ -33,6 +34,7 @@ class Controls:
 class Body:
     WIDTH = 12
     HEIGHT = 15
+    BIG_HEIGHT = 26
 
     WALK_SPEED = 90.0
     RUN_SPEED = 150.0
@@ -51,30 +53,56 @@ class Body:
     JUMP_BUFFER = 0.1
     MAX_STEP = 4.0
 
-    def __init__(self, x: float, y: float):
+    def __init__(self, x: float, y: float, width: int = WIDTH, height: int = HEIGHT):
         self.x = float(x)
         self.y = float(y)
+        self.width = width
+        self.height = height
         self.vx = 0.0
         self.vy = 0.0
         self.on_ground = False
         self.facing = 1
         self.skidding = False
+        # True when the last move was stopped by a wall.
+        self.hit_wall = False
         self._air_time = 0.0
         self._jump_buffer = 0.0
 
     @property
     def rect(self) -> Rect:
-        return Rect(math.floor(self.x), math.floor(self.y), self.WIDTH, self.HEIGHT)
+        return Rect(math.floor(self.x), math.floor(self.y), self.width, self.height)
+
+    @property
+    def center_x(self) -> float:
+        return self.x + self.width / 2
+
+    @property
+    def bottom(self) -> float:
+        return self.y + self.height
 
     @property
     def jumping(self) -> bool:
         return not self.on_ground
 
+    def resize(self, height: int) -> None:
+        """Changes the height, the feet staying where they are (Mario grows)."""
+        self.y += self.height - height
+        self.height = height
+
     def update(self, dt: float, controls: Controls, is_solid: IsSolid) -> List[Cell]:
-        """Moves the body; returns the solid cells its head bumped into."""
+        """Moves Mario; returns the solid cells his head bumped into."""
         self._walk(dt, controls)
         self._jump(dt, controls)
+        return self.move(dt, is_solid)
 
+    def fall(self, dt: float, gravity: float = GRAVITY) -> None:
+        """Gravity for the bodies that do not jump (enemies, items)."""
+        self.vy = min(self.vy + gravity * dt, self.MAX_FALL_SPEED)
+
+    def move(self, dt: float, is_solid: IsSolid) -> List[Cell]:
+        """Moves by the current speed, stopping on solid cells; returns the
+        cells bumped from below."""
+        self.hit_wall = False
         dx, dy = self.vx * dt, self.vy * dt
         steps = max(1, math.ceil(max(abs(dx), abs(dy)) / self.MAX_STEP))
         bumped: List[Cell] = []
@@ -118,34 +146,36 @@ class Body:
         self.vy = min(self.vy + gravity * dt, self.MAX_FALL_SPEED)
 
     def _columns(self) -> range:
-        return range(math.floor(self.x / TILE_WIDTH), math.floor((self.x + self.WIDTH - 1e-6) / TILE_WIDTH) + 1)
+        return range(math.floor(self.x / TILE_WIDTH), math.floor((self.x + self.width - 1e-6) / TILE_WIDTH) + 1)
 
     def _rows(self) -> range:
-        return range(math.floor(self.y / TILE_HEIGHT), math.floor((self.y + self.HEIGHT - 1e-6) / TILE_HEIGHT) + 1)
+        return range(math.floor(self.y / TILE_HEIGHT), math.floor((self.y + self.height - 1e-6) / TILE_HEIGHT) + 1)
 
     def _move_x(self, dx: float, is_solid: IsSolid) -> None:
         if not dx:
             return
         self.x += dx
         if dx > 0:
-            column = math.floor((self.x + self.WIDTH - 1e-6) / TILE_WIDTH)
+            column = math.floor((self.x + self.width - 1e-6) / TILE_WIDTH)
             if any(is_solid(column, row) for row in self._rows()):
-                self.x = column * TILE_WIDTH - self.WIDTH
+                self.x = column * TILE_WIDTH - self.width
                 self.vx = 0.0
+                self.hit_wall = True
         else:
             column = math.floor(self.x / TILE_WIDTH)
             if any(is_solid(column, row) for row in self._rows()):
                 self.x = (column + 1) * TILE_WIDTH
                 self.vx = 0.0
+                self.hit_wall = True
 
     def _move_y(self, dy: float, is_solid: IsSolid) -> List[Cell]:
         if not dy:
             return []
         self.y += dy
         if dy > 0:
-            row = math.floor((self.y + self.HEIGHT - 1e-6) / TILE_HEIGHT)
+            row = math.floor((self.y + self.height - 1e-6) / TILE_HEIGHT)
             if any(is_solid(column, row) for column in self._columns()):
-                self.y = row * TILE_HEIGHT - self.HEIGHT
+                self.y = row * TILE_HEIGHT - self.height
                 self.vy = 0.0
                 self.on_ground = True
             return []
@@ -156,5 +186,5 @@ class Body:
         self.y = (row + 1) * TILE_HEIGHT
         self.vy = 0.0
         # Only the block above the middle of Mario is bumped, as in the NES games.
-        center = math.floor((self.x + self.WIDTH / 2) / TILE_WIDTH)
+        center = math.floor(self.center_x / TILE_WIDTH)
         return [min(hit, key=lambda cell: abs(cell[0] - center))]

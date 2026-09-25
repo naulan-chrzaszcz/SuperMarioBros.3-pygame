@@ -2,6 +2,8 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 RESSOURCES_FILE = PROJECT_ROOT / "ressources.yaml"
+# Enemies and items that can be placed on a map (shared with the game).
+ENTITIES_FILE = PROJECT_ROOT / "res" / "entities.yaml"
 MAPS_DIRECTORY = PROJECT_ROOT / "res" / "maps"
 SHEETS_DIRECTORY = PROJECT_ROOT / "res" / "sheets"
 DEFAULT_SHEET = SHEETS_DIRECTORY / "level.png"

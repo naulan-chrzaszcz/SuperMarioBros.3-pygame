@@ -13,6 +13,7 @@ from ..constantes import (
 )
 from ..models import EditorState, MapEditorModel, Mode, Region, make_region
 from .camera import Camera, Cell
+from .entity_renderer import EntityRenderer
 from .tile_renderer import TileRenderer
 
 RectangleSelection = Tuple[Cell, Cell, int]
@@ -25,10 +26,12 @@ REGION_ALPHA = 45
 
 
 class MapView:
-    """Draws the visible part of the map, the grid, collisions and the cursor."""
+    """Draws the visible part of the map, the grid, collisions, entities and
+    the cursor."""
 
-    def __init__(self, renderer: TileRenderer) -> None:
+    def __init__(self, renderer: TileRenderer, entity_renderer: Optional[EntityRenderer] = None) -> None:
         self.renderer = renderer
+        self.entity_renderer = entity_renderer or EntityRenderer()
         self._collision_cache: Dict[Tuple[int, int], pygame.Surface] = {}
 
     def draw(
@@ -68,6 +71,10 @@ class MapView:
 
         if state.show_grid and size >= MIN_GRID_TILE_SIZE:
             self._draw_grid(surface, camera, columns, rows, map_rect)
+        # Tall entities (a koopa) go above their cell: draw one more row.
+        for (col, row), kind in model.entities.items():
+            if col in columns and rows.start <= row <= rows.stop:
+                self._draw_entity(surface, camera, (col, row), state.entity_type(kind))
         pygame.draw.rect(surface, BORDER_COLOR, map_rect.inflate(2, 2), 1)
 
         if state.region is not None:
@@ -109,6 +116,8 @@ class MapView:
                 surface.blit(self.renderer.render(tile, size, time), position)
             if solid:
                 surface.blit(overlay, position)
+        for (col, row), kind in clipboard.entities.items():
+            self._draw_entity(surface, camera, (origin[0] + col, origin[1] + row), state.entity_type(kind))
         region = (origin[0], origin[1], origin[0] + clipboard.columns - 1, origin[1] + clipboard.rows - 1)
         pygame.draw.rect(surface, REGION_COLOR, self._region_rect(camera, region), 2)
 
@@ -129,6 +138,10 @@ class MapView:
             pygame.draw.rect(surface, HOVER_COLOR, rect, 1)
         elif state.mode is Mode.SELECT:
             pygame.draw.rect(surface, REGION_COLOR, rect, 1)
+        elif state.mode is Mode.ENTITIES:
+            if state.selected_entity is not None:
+                self._draw_entity(surface, camera, cell, state.selected_entity, PREVIEW_ALPHA)
+            pygame.draw.rect(surface, HOVER_COLOR, rect, 1)
         else:
             pygame.draw.rect(surface, COLLISION_COLOR, rect, 2)
 
@@ -147,12 +160,25 @@ class MapView:
             preview.set_alpha(PREVIEW_ALPHA)
             for cell in cells:
                 surface.blit(preview, camera.cell_to_screen(cell))
+        elif state.mode is Mode.ENTITIES and not erase and state.selected_entity is not None:
+            for cell in cells:
+                self._draw_entity(surface, camera, cell, state.selected_entity, PREVIEW_ALPHA)
         else:
             shade = pygame.Surface(rect.size, pygame.SRCALPHA)
             color = COLLISION_COLOR if state.mode is Mode.COLLISIONS and not erase else (0, 0, 0)
             shade.fill((*color, 120))
             surface.blit(shade, rect)
         pygame.draw.rect(surface, COLLISION_COLOR if erase else HOVER_COLOR, rect, 2)
+
+    def _draw_entity(self, surface, camera, cell: Cell, entity, alpha: Optional[int] = None) -> None:
+        """Entities stand on the bottom of their cell, like in the game."""
+        image = self.entity_renderer.render(entity, camera.tile_size)
+        if alpha is not None:
+            image = image.copy()
+            image.set_alpha(alpha)
+        x, y = camera.cell_to_screen(cell)
+        size = camera.tile_size
+        surface.blit(image, (x + (size - image.get_width()) // 2, y + size - image.get_height()))
 
     def _collision_overlay(self, size: int, alpha: int) -> pygame.Surface:
         key = (size, alpha)

@@ -561,3 +561,107 @@ class CLITest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class EntityEditorTest(unittest.TestCase):
+    def setUp(self):
+        pygame.init()
+        self.directory = tempfile.TemporaryDirectory()
+        self.path = Path(self.directory.name) / "map.json"
+
+    def tearDown(self):
+        self.directory.cleanup()
+
+    def test_entity_types_come_from_the_shared_catalog(self):
+        state = EditorState(make_tileset())
+        ids = [entity.id for entity in state.entity_types]
+        self.assertEqual(ids[0], "start")
+        self.assertTrue({"goomba", "koopa", "mushroom", "one_up"} <= set(ids))
+        self.assertEqual(state.unique_entities, {"start"})
+        for entity in state.entity_types:
+            self.assertTrue(entity.sheet_path.is_file(), entity.id)
+
+    def test_entities_are_written_and_read_back(self):
+        entities = {(3, 1): "goomba", (0, 1): "start"}
+        Map.write(self.path, 4, 2, {}, set(), entities=entities)
+        data = json.loads(self.path.read_text())
+        self.assertEqual(data["entities"], [
+            {"type": "start", "x": 0, "y": 1}, {"type": "goomba", "x": 3, "y": 1},
+        ])
+        self.assertEqual(Map.read_entities(self.path), entities)
+        self.assertEqual(MapEditorModel.from_file(self.path).entities, entities)
+
+    def test_a_map_without_entities_has_no_entities_key(self):
+        Map.write(self.path, 1, 1, {}, set())
+        self.assertNotIn("entities", json.loads(self.path.read_text()))
+        self.assertEqual(Map.read_entities(self.path), {})
+
+    def test_invalid_entities_are_rejected(self):
+        for entries in (
+            {"type": "goomba"},
+            [{"type": "goomba", "x": 9, "y": 0}],
+            [{"type": 3, "x": 0, "y": 0}],
+            [{"type": "goomba", "x": 0, "y": 0}, {"type": "koopa", "x": 0, "y": 0}],
+        ):
+            with self.assertRaises(ValueError, msg=entries):
+                Map.decode_entities(entries, 2, 2)
+
+    def test_the_game_reads_the_entities_saved_by_the_editor(self):
+        model = MapEditorModel(3, 2)
+        model.set_entity((1, 1), "koopa")
+        model.save(self.path)
+        game_map = GameMap(pygame.Surface((16, 16)), {}, json.loads(self.path.read_text()))
+        self.assertEqual([(e.type, e.column, e.row) for e in game_map.entities], [("koopa", 1, 1)])
+
+    def test_place_undo_redo_and_unique_start(self):
+        model = MapEditorModel(5, 5)
+        model.set_entity((0, 0), "start", unique=True)
+        model.set_entity((1, 0), "goomba")
+        model.set_entity((4, 4), "start", unique=True)
+        self.assertEqual(model.entities, {(1, 0): "goomba", (4, 4): "start"})
+        model.undo()
+        self.assertEqual(model.entities, {(0, 0): "start", (1, 0): "goomba"})
+        model.redo()
+        self.assertEqual(model.entities, {(1, 0): "goomba", (4, 4): "start"})
+        model.resize(3, 3)
+        self.assertEqual(model.entities, {(1, 0): "goomba"})
+
+    def test_copy_rotate_and_paste_entities(self):
+        model = MapEditorModel(6, 6, {(0, 0): Tile(0, 0)})
+        model.set_entity((1, 0), "goomba")
+        model.set_entity((0, 1), "start", unique=True)
+        clipboard = model.copy((0, 0, 1, 1))
+        self.assertEqual(clipboard.entities, {(1, 0): "goomba", (0, 1): "start"})
+        self.assertEqual(set(clipboard.rotated().entities.values()), {"goomba", "start"})
+        model.paste(clipboard, (3, 3), unique_entities={"start"})
+        self.assertEqual(model.entities, {(1, 0): "goomba", (4, 3): "goomba", (3, 4): "start"})
+        self.assertTrue(model.clear((3, 3, 4, 4)))
+        self.assertEqual(model.entities, {(1, 0): "goomba"})
+
+    def test_entities_mode_in_the_application(self):
+        app = MapEditorApplication(self.path, LEVEL_SHEET, window_size=(1280, 720))
+        app.step([Event(pygame.KEYDOWN, key=pygame.K_e, mod=0, unicode="")], 0.016)
+        self.assertIs(app.state.mode, Mode.ENTITIES)
+
+        palette = app.sidebar_view.palette_rect
+        goomba = [entity.id for entity in app.state.entity_types].index("goomba")
+        row = (palette.x + 10, palette.y + goomba * 36 + 10)
+        center = app.camera.map_rect().center
+        app.step([Event(pygame.MOUSEBUTTONDOWN, pos=row, button=1),
+                  Event(pygame.MOUSEBUTTONUP, pos=row, button=1)], 0.016)
+        self.assertEqual(app.state.selected_entity.id, "goomba")
+        app.step([Event(pygame.MOUSEBUTTONDOWN, pos=center, button=1),
+                  Event(pygame.MOUSEBUTTONUP, pos=center, button=1)], 0.016)
+        self.assertEqual(list(app.model.entities.values()), ["goomba"])
+        self.assertEqual(app.model.tiles, {}, "no tile is painted in the entities mode")
+        app.render()
+
+        app.state.select_entity(0)
+        app.step([Event(pygame.MOUSEBUTTONDOWN, pos=center, button=2),
+                  Event(pygame.MOUSEBUTTONUP, pos=center, button=2)], 0.016)
+        self.assertEqual(app.state.selected_entity.id, "goomba", "middle click picks the entity")
+        app.step([Event(pygame.MOUSEBUTTONDOWN, pos=center, button=3),
+                  Event(pygame.MOUSEBUTTONUP, pos=center, button=3)], 0.016)
+        self.assertEqual(app.model.entities, {})
+        app.step([Event(pygame.KEYDOWN, key=pygame.K_e, mod=0, unicode="")], 0.016)
+        self.assertIs(app.state.mode, Mode.TILES)

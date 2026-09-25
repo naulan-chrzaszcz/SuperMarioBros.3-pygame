@@ -60,8 +60,45 @@ class TileCode:
         return "y" if self.y_frames > 1 else "x"
 
 
+@dataclass(frozen=True)
+class EntitySpawn:
+    """An entity placed on a map with the editor, e.g. a goomba."""
+
+    type: str
+    column: int
+    row: int
+
+
+def parse_entities(entries, columns: int, rows: int) -> List[EntitySpawn]:
+    """The ``"entities"`` list of a map file, in reading order.
+
+    Every entry is ``{"type": str, "x": column, "y": row}``. Maps made before
+    entities existed have no such list.
+    """
+    if entries is None:
+        return []
+    if not isinstance(entries, list):
+        raise ValueError("The entities of a map must be a list")
+    spawns: Dict[Cell, EntitySpawn] = {}
+    for entry in entries:
+        if not isinstance(entry, dict):
+            raise ValueError(f"Invalid entity: {entry!r}")
+        kind, column, row = entry.get("type"), entry.get("x"), entry.get("y")
+        if not isinstance(kind, str) or not kind:
+            raise ValueError(f"An entity has no type: {entry!r}")
+        if type(column) is not int or type(row) is not int:
+            raise ValueError(f"Entity {kind!r} has invalid coordinates")
+        if not (0 <= column < columns and 0 <= row < rows):
+            raise ValueError(f"Entity {kind!r} at {column},{row} is outside the map")
+        if (column, row) in spawns:
+            raise ValueError(f"Two entities are on the cell {column},{row}")
+        spawns[(column, row)] = EntitySpawn(kind, column, row)
+    return sorted(spawns.values(), key=lambda spawn: (spawn.row, spawn.column))
+
+
 class Map:
-    """A level made with the map editor: tile sprites plus a collision grid."""
+    """A level made with the map editor: tile sprites, a collision grid and the
+    entities to spawn."""
 
     # Kept for the code that still reads them from the map.
     TILE_COORD_SEPARATOR = TileCode.COORD_SEPARATOR
@@ -83,6 +120,7 @@ class Map:
         self.width = self.columns * Tile.WIDTH
         self.height = self.rows * Tile.HEIGHT
         self.collidables: List[List[bool]] = [[bool(value) for value in row] for row in collidables]
+        self.entities = parse_entities(map_data.get("entities"), self.columns, self.rows)
         self.sprites = LayeredUpdates()
         self.sheet = sheet
         self._by_name: Dict[str, List[Tile]] = {}
@@ -170,6 +208,13 @@ class Map:
             self._by_name[tile.id].remove(tile)
         if tile in self._animated:
             self._animated.remove(tile)
+
+    def set_collidable(self, column: int, row: int, value: bool) -> None:
+        """Changes the collision of a cell (e.g. a broken brick lets Mario pass)."""
+        self.collidables[row][column] = value
+        tile = self._by_cell.get((column, row))
+        if tile is not None:
+            tile.collidable = value
 
     def replace(self, tile: Tile, name: str) -> None:
         """Draws ``tile`` with the still tileset tile called ``name`` from now on
