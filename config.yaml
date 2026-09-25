@@ -5,6 +5,7 @@ mixer:
   size: -16
   channels: 2
   buffer: 512
+# Size of the game image; it is scaled to the window without distortion.
 display:
   width: 464
   height: 240
@@ -13,5 +14,16 @@ screen:
   height: 720
   flags: 0
   depth: 32
+  resizable: true
+  # true: sharp square pixels (integer zoom) with black borders.
+  integerScaling: false
 mouse:
   visible: false
+# pygame key names (https://www.pygame.org/docs/ref/key.html)
+controls:
+  up: [z, up]
+  down: [s, down]
+  left: [q, left]
+  right: [d, right]
+  confirm: [a, return, space]
+  back: [escape]
