@@ -2,7 +2,11 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 RESSOURCES_FILE = PROJECT_ROOT / "ressources.yaml"
-DEFAULT_SHEET = PROJECT_ROOT / "res" / "sheets" / "level.png"
+MAPS_DIRECTORY = PROJECT_ROOT / "res" / "maps"
+SHEETS_DIRECTORY = PROJECT_ROOT / "res" / "sheets"
+DEFAULT_SHEET = SHEETS_DIRECTORY / "level.png"
+# Tileset chosen for each map in the launcher (not versioned).
+LAUNCHER_SETTINGS_FILE = PROJECT_ROOT / "map_editor" / ".launcher.json"
 # Transparent color used by every sheet of the game.
 DEFAULT_COLOR_KEY = (255, 174, 201)
 
@@ -20,6 +24,8 @@ HISTORY_LIMIT = 200
 FRAMERATE_LIMIT = 60
 DEFAULT_WINDOW_SIZE = (1600, 900)
 MIN_WINDOW_SIZE = (960, 600)
+LAUNCHER_WINDOW_SIZE = (1000, 640)
+MAX_MAP_SIZE = 1000
 MIN_SIDEBAR_WIDTH = 300
 MAX_SIDEBAR_WIDTH = 520
 STATUS_BAR_HEIGHT = 26
@@ -44,9 +50,11 @@ SUCCESS_COLOR = (120, 220, 120)
 WARNING_COLOR = (255, 190, 80)
 ERROR_COLOR = (255, 100, 100)
 BUTTON_COLOR = (58, 58, 70)
+FIELD_COLOR = (28, 28, 34)
 BUTTON_HOVER_COLOR = (80, 80, 98)
 BUTTON_ACTIVE_COLOR = (45, 105, 185)
 SELECTION_COLOR = (255, 60, 60)
 HOVER_COLOR = (255, 255, 255)
 COLLISION_COLOR = (255, 40, 40)
+REGION_COLOR = (80, 200, 255)
 UNDECLARED_TILE_SHADE = (0, 0, 0, 160)

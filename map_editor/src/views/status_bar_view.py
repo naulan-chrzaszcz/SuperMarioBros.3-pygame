@@ -13,7 +13,7 @@ from ..constantes import (
     TEXT_COLOR,
     WARNING_COLOR,
 )
-from ..models import EditorState, MapEditorModel, MessageLevel
+from ..models import EditorState, MapEditorModel, MessageLevel, region_size
 from .camera import Camera, Cell
 
 MESSAGE_COLORS = {
@@ -42,6 +42,10 @@ class StatusBarView:
         pygame.draw.line(surface, BORDER_COLOR, rect.topleft, rect.topright)
 
         parts = [f"Map {model.columns}x{model.rows}", f"Zoom x{camera.zoom}", f"Mode: {state.mode.value}"]
+        if state.pasting:
+            parts.append(f"Pasting {state.clipboard.columns}x{state.clipboard.rows}")
+        elif state.region is not None:
+            parts.append("Selection {}x{}".format(*region_size(state.region)))
         if hover_cell is not None and model.contains(hover_cell):
             parts.insert(0, f"Cell {hover_cell[0]},{hover_cell[1]}")
             tile = model.tiles.get(hover_cell)
