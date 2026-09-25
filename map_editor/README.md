@@ -1,52 +1,85 @@
 # Map Editor
 
-<img width="1498" height="543" alt="Capture d’écran du 2025-08-24 19-17-53" src="https://github.com/user-attachments/assets/53b59467-76b4-4981-801f-571cf75671fe" />
-
-A basic 2D tile-based map editor using Python and Pygame.
+A 2D tile map editor for the JSON maps loaded by `SuperMarioBros3.pyw`.
 
 ## Requirements
 
 - Python 3.8+
-- Pygame (`pip install pygame`)
+- Pygame 2
 
-## How to Run
+Install dependencies from the repository root:
 
 ```bash
-python MapEditor.pyw <map_width> <map_height> <sheet_path> <map_name>
+python -m pip install -r requirements.txt
 ```
 
-- `<map_width>`: Width in number of 16x16 tiles.
-- `<map_height>`: Height in number of 16x16 tiles.
-- `<sheet_path>`: Path to the tileset image.
-- `<map_name>`: Output map file name.
+## Run
 
-## Controls
+From the repository root:
 
-- Mouse wheel: Scroll tile selection
-- Mouse click on map: Place tile
-- Mouse click on tileset: Select tile
-- Arrow keys: Move camera
-- R key: Rotate tile
-- ESC: Exit
-
-## Editor UI
-
-- Change tile rotation (0°, 90°, 180°, 270°)
-- Set tile animation frames (X/Y)
-- Export to file
-
-## Output Format
-
-- Each tile is saved as:
+```bash
+python map_editor/MapEditor.pyw <map_width> <map_height> <sheet_path> <map_path>
 ```
-x[+xFrames],y[+yFrames][&rotation]
-```
-- Empty tiles are -1,-1
-- Tiles are separated by ;
-- Rows are separated by newlines (\n)
 
-### Example:
+Example using the level tileset:
 
+```bash
+python map_editor/MapEditor.pyw 100 15 res/sheets/level.png res/maps/level_1.json
 ```
--1,-1;-1,-1;-1,-1;0+3,0&1;1,0
+
+- `map_width` and `map_height` are measured in 16x16 tiles.
+- `sheet_path` is the tileset image.
+- `map_path` is loaded when it already exists and is created on export.
+- When loading, the dimensions passed on the command line must match the map.
+
+## Controls
+
+### Map window
+
+- Left click or drag: place the selected tile.
+- Right click or drag: erase a tile.
+- Arrow keys: move the camera by one viewport.
+- `R`: rotate the tile by 90 degrees.
+- `Ctrl+S`: save the map.
+- `Esc`: close the editor.
+
+### Tile selector
+
+- Left click: select a tile.
+- Mouse wheel: move the selection.
+
+### Settings
+
+- `ROTATION`: choose 0, 90, 180, or 270 degrees.
+- `FRAMES X/Y`: configure a horizontal or vertical animation. Only one axis
+  can contain multiple frames, and the count is limited by the tileset bounds.
+- `COLLIDABLE`: switch to collision editing mode. Left click adds a collision
+  cell and right click removes it.
+- `EXPORT`: save the map.
+
+An asterisk in the map window title indicates unsaved changes.
+
+## Output format
+
+The editor writes the same JSON structure consumed by the game:
+
+```json
+{
+  "tiles": [
+    ["-1,-1", "0+3,0&1", "1,0"]
+  ],
+  "collidables": [
+    [false, true, true]
+  ]
+}
 ```
+
+Each tile uses this encoding:
+
+```text
+x[+xFrames],y[+yFrames][&quarterTurns]
+```
+
+- `-1,-1` means that the cell is empty.
+- `+N` sets the number of consecutive animation frames.
+- `&N` stores rotation in quarter turns (`1` = 90 degrees).
