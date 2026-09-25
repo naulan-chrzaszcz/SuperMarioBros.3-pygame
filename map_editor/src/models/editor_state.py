@@ -1,16 +1,18 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
-from typing import Optional
+from typing import Optional, Set, Tuple
 
 from ..constantes import MESSAGE_DURATION
 from ..outputs.tile import Tile
 from .clipboard import Clipboard, Region
+from .entities import EntityType, load_entity_types
 from .tileset import Tileset
 
 
 class Mode(Enum):
     TILES = "Tiles"
     COLLISIONS = "Collisions"
+    ENTITIES = "Entities"
     SELECT = "Select"
 
 
@@ -40,6 +42,8 @@ class EditorState:
     region: Optional[Region] = None
     clipboard: Optional[Clipboard] = None
     pasting: bool = False
+    entity_types: Tuple[EntityType, ...] = field(default_factory=load_entity_types)
+    entity_index: int = 0
 
     def __post_init__(self) -> None:
         if not self.tileset.is_declared(self.selection_x, self.selection_y):
@@ -88,6 +92,35 @@ class EditorState:
         index = cells.index(current) if current in cells else -1
         self.select(*cells[(index + step) % len(cells)])
 
+    @property
+    def selected_entity(self) -> Optional[EntityType]:
+        if not self.entity_types:
+            return None
+        return self.entity_types[self.entity_index % len(self.entity_types)]
+
+    @property
+    def unique_entities(self) -> Set[str]:
+        return {entity.id for entity in self.entity_types if entity.unique}
+
+    def entity_type(self, kind: str) -> Optional[EntityType]:
+        return next((entity for entity in self.entity_types if entity.id == kind), None)
+
+    def select_entity(self, index: int) -> None:
+        if self.entity_types:
+            self.entity_index = index % len(self.entity_types)
+
+    def cycle_entity(self, step: int) -> None:
+        self.select_entity(self.entity_index + step)
+
+    def pick_entity(self, kind: str) -> bool:
+        """Selects the entity type ``kind`` (eyedropper); False if it is unknown."""
+        for index, entity in enumerate(self.entity_types):
+            if entity.id == kind:
+                self.select_entity(index)
+                self.set_mode(Mode.ENTITIES)
+                return True
+        return False
+
     def rotate(self, direction: int = 1) -> None:
         self.rotation = (self.rotation + 90 * direction) % 360
 
@@ -117,6 +150,9 @@ class EditorState:
 
     def toggle_mode(self) -> None:
         self.set_mode(Mode.COLLISIONS if self.mode is Mode.TILES else Mode.TILES)
+
+    def toggle_entities_mode(self) -> None:
+        self.set_mode(Mode.TILES if self.mode is Mode.ENTITIES else Mode.ENTITIES)
 
     def toggle_select_mode(self) -> None:
         self.set_mode(Mode.TILES if self.mode is Mode.SELECT else Mode.SELECT)

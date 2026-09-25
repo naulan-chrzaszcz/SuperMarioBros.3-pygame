@@ -5,7 +5,7 @@ from ..views.sidebar_view import SidebarView
 
 
 class SidebarController:
-    """Clicks on the tool buttons and on the tileset picker."""
+    """Clicks on the tool buttons, the tileset picker and the entity palette."""
 
     def __init__(self, state: EditorState, view: SidebarView) -> None:
         self.state = state
@@ -17,6 +17,10 @@ class SidebarController:
         for button in self.view.buttons:
             if button.click(event.pos):
                 return
+        index = self.view.entity_at(event.pos)
+        if index is not None:
+            self.state.select_entity(index)
+            return
         cell = self.view.tileset_cell_at(event.pos)
         if cell is not None:
             self.state.select(*cell)
@@ -27,5 +31,11 @@ class SidebarController:
                 )
 
     def handle_wheel(self, event: pygame.event.Event, mouse) -> None:
-        if self.view.tileset_rect.collidepoint(mouse) and event.y:
-            self.state.cycle_selection(-1 if event.y > 0 else 1)
+        if not event.y:
+            return
+        step = -1 if event.y > 0 else 1
+        if self.view.showing_entities:
+            if self.view.palette_rect.collidepoint(mouse):
+                self.state.cycle_entity(step)
+        elif self.view.tileset_rect.collidepoint(mouse):
+            self.state.cycle_selection(step)

@@ -89,9 +89,9 @@ tile can be used.
 Everything is in a single resizable window:
 
 - left: the map, drawn with pixel-perfect integer zoom;
-- right: the selected tile preview, the tool buttons, the tileset and a
-  reminder of the shortcuts;
-- bottom: a status bar with the hovered cell, its tile name and collision,
+- right: the selected tile (or entity) preview, the tool buttons, the tileset
+  (or the entity palette) and a reminder of the shortcuts;
+- bottom: a status bar with the hovered cell, its tile name, entity and collision,
   the map size, the zoom and the mode, plus messages (save result, warnings).
 
 An asterisk in the window title indicates unsaved changes.
@@ -114,6 +114,19 @@ In **Collisions** mode (`C`), left click marks cells as solid and right click
 clears them. Solid cells are always shown with a red overlay that can be
 hidden with `O`.
 
+### Entities
+
+In **Entities** mode (`E` or the `Entities` button) the sidebar shows the
+entity palette (click or mouse wheel to choose): Mario start, Goomba, Koopa
+Troopa, Super Mushroom, 1-Up Mushroom. Left click places the chosen entity,
+right click removes the entity of the cell and middle click picks it. There is
+one entity per cell; `Mario start` is unique, so placing it again moves it.
+Entities are drawn in every mode, standing on the bottom of their cell like in
+the game. Put a mushroom on a solid `?` block to hide it inside.
+
+The types come from `res/entities.yaml` (shared with the game); an unknown type
+found in a map is shown as a magenta cross.
+
 ### Selection, copy and paste
 
 | Action | Control |
@@ -126,9 +139,9 @@ hidden with `O`.
 | Rotate the block being pasted | `R` (`Shift+R`: other way) |
 | Stop pasting / deselect | Right click or `Esc` |
 
-Copies keep the tiles (with their animation and rotation) and the collisions.
-Cells that have neither a tile nor a collision are transparent: pasting leaves
-the map unchanged there. Every paste, cut or clear is a single undo step.
+Copies keep the tiles (with their animation and rotation), the collisions and
+the entities. Cells that have no tile, no collision and no entity are
+transparent: pasting leaves the map unchanged there. Every paste, cut or clear is a single undo step.
 
 ### Tools
 
@@ -136,7 +149,8 @@ the map unchanged there. Every paste, cut or clear is a single undo step.
 | --- | --- |
 | Rotate the tile (counter-clockwise, as in the game) | `R` (`Shift+R`: other way) |
 | Horizontal / vertical animation frames | `Frames X` / `Frames Y` buttons |
-| Switch between tiles and collisions | `C`, or the `Tiles` / `Collisions` buttons |
+| Switch between tiles and collisions | `C`, or the `Tiles` / `Solid` buttons |
+| Entities mode (and back to tiles) | `E`, or the `Entities` button |
 | Toggle the grid | `G` |
 | Toggle the solid overlay | `O` |
 | Undo / redo | `Ctrl+Z` / `Ctrl+Y` (or `Ctrl+Shift+Z`) |
@@ -156,10 +170,10 @@ The editor follows a model / view / controller split:
 - `src/outputs/`: the JSON map format (`Map`) and the immutable `Tile` value.
 - `src/models/`: pure data without drawing code: the edited map with its
   undo/redo history (`MapEditorModel`), the tool settings (`EditorState`) and
-  the tileset with its metadata (`Tileset`), the copied cells (`Clipboard`)
-  and the launcher choices (`LauncherModel`).
-- `src/views/`: the camera (zoom and scrolling), the cached tile renderer and
-  the map, sidebar and status bar views.
+  the tileset with its metadata (`Tileset`), the copied cells (`Clipboard`),
+  the entity types (`EntityType`) and the launcher choices (`LauncherModel`).
+- `src/views/`: the camera (zoom and scrolling), the cached tile and entity
+  renderers and the map, sidebar and status bar views.
 - `src/controllers/`: the map interactions, the sidebar clicks and the global
   shortcuts / event routing.
 - `src/launcher.py` and `src/application.py`: build the launcher and the
@@ -183,9 +197,14 @@ The editor writes the same JSON structure consumed by the game:
   "collidables": [
     [false, true, true]
   ],
+  "entities": [
+    {"type": "goomba", "x": 0, "y": 0}
+  ],
   "sheet": "res/sheets/level.png"
 }
 ```
+
+`entities` is only written when the map has some; `x` / `y` are cells.
 
 `sheet` is the tileset the map was drawn with, relative to the repository
 root: the game uses it to know which image the coordinates refer to. Maps

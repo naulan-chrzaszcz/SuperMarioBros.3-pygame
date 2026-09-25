@@ -1,0 +1,46 @@
+# Entities that the map editor places on a map and that the game brings to life.
+#
+# A map stores them in its "entities" list: {"type": <id>, "x": <column>, "y": <row>}.
+# The behaviour of each id is written in src/entities/ (see CONTRIBUTING.md).
+#
+#   image:       id of the sheet in ressources.yaml
+#   frame:       [x, y, width, height] of the picture shown in the editor
+#   flip:        the frame faces left, draw it facing right
+#   palette:     [[from r, g, b], [to r, g, b]] color swaps applied to the sheet
+#   unique:      a map holds at most one of them
+#   description: help shown in the editor
+entities:
+  - id: start
+    name: Mario start
+    image: mario
+    frame: [0, 0, 16, 16]
+    flip: true
+    unique: true
+    description: Where Mario appears. Default is the first ground from the left.
+
+  - id: goomba
+    name: Goomba
+    image: goomba
+    frame: [0, 0, 16, 16]
+    description: Walks and falls off ledges. Stomp it!
+
+  - id: koopa
+    name: Koopa Troopa
+    image: koopa
+    frame: [0, 0, 16, 27]
+    description: Stomp it to get its shell, then kick the shell into enemies.
+
+  - id: mushroom
+    name: Super Mushroom
+    image: mushroom
+    frame: [0, 0, 16, 16]
+    description: Makes Mario big. Put it on a solid block to hide it inside.
+
+  - id: one_up
+    name: 1-Up Mushroom
+    image: mushroom
+    frame: [0, 0, 16, 16]
+    palette:
+      - [[248, 24, 16], [0, 168, 0]]
+      - [[192, 0, 16], [0, 104, 0]]
+    description: Gives a life. Put it on a solid block to hide it inside.

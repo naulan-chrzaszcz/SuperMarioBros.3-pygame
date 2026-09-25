@@ -38,6 +38,24 @@ images:
       r: 255
       g: 174
       b: 201
+  - id: goomba
+    path: res/sheets/goomba.png
+    colorKey:
+      r: 255
+      g: 174
+      b: 201
+  - id: koopa
+    path: res/sheets/koopa.png
+    colorKey:
+      r: 255
+      g: 174
+      b: 201
+  - id: mushroom
+    path: res/sheets/mushroomRed.png
+    colorKey:
+      r: 255
+      g: 174
+      b: 201
 maps:
   - id: levels
     path: res/maps/stage_menu.json
