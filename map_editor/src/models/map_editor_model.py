@@ -16,9 +16,10 @@ class Edit:
 
     tiles: Dict[Cell, Tuple[Optional[Tile], Optional[Tile]]] = field(default_factory=dict)
     collisions: Dict[Cell, Tuple[bool, bool]] = field(default_factory=dict)
+    entities: Dict[Cell, Tuple[Optional[str], Optional[str]]] = field(default_factory=dict)
 
     def is_empty(self) -> bool:
-        return not self.tiles and not self.collisions
+        return not self.tiles and not self.collisions and not self.entities
 
     def record_tile(self, cell: Cell, old: Optional[Tile], new: Optional[Tile]) -> None:
         old = self.tiles.get(cell, (old, None))[0]
@@ -34,9 +35,20 @@ class Edit:
         else:
             self.collisions[cell] = (old, new)
 
+    def record_entity(self, cell: Cell, old: Optional[str], new: Optional[str]) -> None:
+        old = self.entities.get(cell, (old, None))[0]
+        if old == new:
+            self.entities.pop(cell, None)
+        else:
+            self.entities[cell] = (old, new)
+
 
 class MapEditorModel:
-    """The edited map, in cell coordinates, with an undo/redo history."""
+    """The edited map, in cell coordinates, with an undo/redo history.
+
+    Besides tiles and collisions, a cell can hold one entity (a type of
+    ``res/entities.yaml``, e.g. ``"goomba"``).
+    """
 
     def __init__(
         self,
@@ -44,6 +56,7 @@ class MapEditorModel:
         rows: int,
         tiles: Optional[Dict[Cell, Tile]] = None,
         collidables: Iterable[Cell] = (),
+        entities: Optional[Dict[Cell, str]] = None,
     ) -> None:
         if columns <= 0 or rows <= 0:
             raise ValueError("Map dimensions must be positive")
@@ -57,6 +70,10 @@ class MapEditorModel:
         for cell in collidables:
             self._check_cell(cell)
             self.collidables.add(cell)
+        self.entities: Dict[Cell, str] = {}
+        for cell, kind in (entities or {}).items():
+            self._check_cell(cell)
+            self.entities[cell] = kind
 
         self._undo: List[Edit] = []
         self._redo: List[Edit] = []
@@ -67,11 +84,11 @@ class MapEditorModel:
     @classmethod
     def from_file(cls, path: Path) -> "MapEditorModel":
         columns, rows, tiles, collidables = Map.read(path)
-        return cls(columns, rows, tiles, collidables)
+        return cls(columns, rows, tiles, collidables, Map.read_entities(path))
 
     def save(self, path: Path, sheet: Optional[Path] = None) -> None:
         self.end_edit()
-        Map.write(path, self.columns, self.rows, self.tiles, self.collidables, sheet)
+        Map.write(path, self.columns, self.rows, self.tiles, self.collidables, sheet, self.entities)
         self._saved_edit = self._last_edit()
         self._resized = False
 
@@ -143,6 +160,22 @@ class MapEditorModel:
             self._apply_collision(cell, value)
         return True
 
+    def set_entity(self, cell: Cell, kind: Optional[str], unique: bool = False) -> bool:
+        """Places (or removes, when ``kind`` is None) the entity of a cell. A
+        ``unique`` entity is moved: the others of its type are removed."""
+        if not self.contains(cell):
+            return False
+        old = self.entities.get(cell)
+        if old == kind:
+            return False
+        with self.edit():
+            if unique and kind is not None:
+                for other in [other for other, value in self.entities.items() if value == kind]:
+                    self.set_entity(other, None)
+            self._current.record_entity(cell, old, kind)
+            self._apply_entity(cell, kind)
+        return True
+
     def undo(self) -> bool:
         self.end_edit()
         if not self._undo:
@@ -152,6 +185,8 @@ class MapEditorModel:
             self._apply_tile(cell, old)
         for cell, (old, _) in edit.collisions.items():
             self._apply_collision(cell, old)
+        for cell, (old, _) in edit.entities.items():
+            self._apply_entity(cell, old)
         self._redo.append(edit)
         return True
 
@@ -164,6 +199,8 @@ class MapEditorModel:
             self._apply_tile(cell, new)
         for cell, (_, new) in edit.collisions.items():
             self._apply_collision(cell, new)
+        for cell, (_, new) in edit.entities.items():
+            self._apply_entity(cell, new)
         self._undo.append(edit)
         return True
 
@@ -176,6 +213,7 @@ class MapEditorModel:
         self.rows = rows
         self.tiles = {cell: tile for cell, tile in self.tiles.items() if self.contains(cell)}
         self.collidables = {cell for cell in self.collidables if self.contains(cell)}
+        self.entities = {cell: kind for cell, kind in self.entities.items() if self.contains(cell)}
         self._undo.clear()
         self._redo.clear()
         self._saved_edit = None
@@ -204,22 +242,36 @@ class MapEditorModel:
                 (col - left, row - top) for col, row in cells if (col, row) in self.collidables
             ),
             sheet_path,
+            {
+                (col - left, row - top): self.entities[(col, row)]
+                for col, row in cells
+                if (col, row) in self.entities
+            },
         )
 
     def clear(self, region: Region) -> bool:
-        """Removes the tiles and collisions of a region in one undo step."""
+        """Removes the tiles, collisions and entities of a region in one undo step."""
         changed = False
         with self.edit():
             for cell in self.cells_between(region[:2], region[2:]):
                 changed |= self.set_tile(cell, None)
                 changed |= self.set_collidable(cell, False)
+                changed |= self.set_entity(cell, None)
         return changed
 
-    def paste(self, clipboard: Clipboard, origin: Cell, tileset: Optional[Tileset] = None) -> int:
+    def paste(
+        self,
+        clipboard: Clipboard,
+        origin: Cell,
+        tileset: Optional[Tileset] = None,
+        unique_entities: Iterable[str] = (),
+    ) -> int:
         """Pastes a block with its top-left corner on ``origin`` in one undo step.
 
         Tiles undeclared in ``tileset`` are skipped. Returns their number.
+        Entities of ``unique_entities`` types are moved rather than duplicated.
         """
+        unique_entities = set(unique_entities)
         skipped = 0
         with self.edit():
             for (col, row), tile, solid in clipboard.cells():
@@ -229,8 +281,10 @@ class MapEditorModel:
                 if tile is not None and tileset is not None and not tileset.is_declared(tile.x, tile.y):
                     skipped += 1
                     continue
+                kind = clipboard.entities.get((col, row))
                 self.set_tile(cell, tile)
                 self.set_collidable(cell, solid)
+                self.set_entity(cell, kind, kind in unique_entities)
         return skipped
 
     def undeclared_tiles(self, tileset: Tileset) -> Set[SheetCell]:
@@ -258,3 +312,9 @@ class MapEditorModel:
     def _check_cell(self, cell: Cell) -> None:
         if not self.contains(cell):
             raise ValueError(f"Cell is outside the map: {cell}")
+
+    def _apply_entity(self, cell: Cell, kind: Optional[str]) -> None:
+        if kind is None:
+            self.entities.pop(cell, None)
+        else:
+            self.entities[cell] = kind

@@ -184,6 +184,8 @@ class ApplicationController:
             self.state.toggle_select_mode()
         elif key == pygame.K_c:
             self.state.toggle_mode()
+        elif key == pygame.K_e:
+            self.state.toggle_entities_mode()
         elif key == pygame.K_g:
             self.state.show_grid = not self.state.show_grid
         elif key == pygame.K_o:

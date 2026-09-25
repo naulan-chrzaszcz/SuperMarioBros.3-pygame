@@ -1,106 +1,52 @@
-from pygame.sprite import ( Sprite, spritecollide )
-from pygame.transform import ( flip )
-from random import ( choice )
+from __future__ import annotations
+
+from pygame import Surface
+
+from .entity import Entity, Level, Sprites
 
 
+class Goomba(Entity):
+    """Walks towards Mario, falls from ledges and turns around at walls.
 
-class Goomba( Sprite ):
+    Stomping it squashes it; touching it from the side hurts Mario.
+    """
 
-    def __init__( self, class_access, sheet, position ):
-        self.groups = class_access.all_sprites
-        Sprite.__init__( self, self.groups )
+    TYPE = "goomba"
+    ENEMY = True
+    SPEED = 32.0
+    STEP_DURATION = 0.15  # the walk is the frame flipped back and forth
+    SQUASHED_DURATION = 0.5
 
-        self.sheet = sheet
+    def __init__(self, sprites: Sprites, column: int, row: int):
+        super().__init__(sprites, column, row)
+        self.walking = sprites.frame("goomba", (0, 0, 16, 16))
+        self.flat = sprites.frame("goomba", (16, 0, 16, 16))[-1]
+        self.squashed = False
+        self.squashed_time = 0.0
 
-        # ### STRING VARIABLES ###
-        self.state = 'normal'
-        self.id = 'goomba'
+    @property
+    def alive(self) -> bool:
+        return super().alive and not self.squashed
 
-        # ### DICT VARIABLES ###
-        self.move = { 'right': choice(( 0, 1 )), 'left': 1 }
-        if self.move[ 'right' ] == 0:
-            self.move[ 'left' ] = 1
+    def update(self, dt: float, level: Level) -> None:
+        super().update(dt, level)
+        if self.knocked:
+            return
+        if self.squashed:
+            self.squashed_time += dt
+            self.removed = self.squashed_time >= self.SQUASHED_DURATION
+            return
+        self.walk(dt, level, self.SPEED)
+
+    def touch_mario(self, level: Level, stomp: bool) -> None:
+        if stomp:
+            self.squashed = True
+            self.body.vx = 0.0
+            level.stomped(self)
         else:
-            self.move[ 'left' ] = 0
-        self.air = 0
+            level.hurt_mario()
 
-        # ### INT/FLOAT VARIABLES ###
-        self.velocity = 1
-        self.damage = 1
-        self.frame = 0
-        self.step = 0
-
-        # ### RECT VALUES ###
-        self.rect = self.image.get_rect()
-        self.rect.x = position[ 0 ]
-        self.rect.y = position[ 1 ]
-
-
-    def animation( self ):
-
-        # Is dead
-        if self.state == 'dead':
-            if self.step == 0:
-                # self.sfx[0].play(loops=0)
-                self.move[ 'right' ] = 0
-                self.move[ 'left' ] = 0
-                self.step += 1
-            elif self.step <= 10:
-                self.image = self.goomba_img[ self.state ][ 0 ]
-            else:
-                # Delete the current sprite
-                self.remove(self.groups)
-            self.step += 1
-            return self.image
-        # Not dead
-        else:
-            if self.frame >= 35:
-                self.image = flip( self.goomba_img[ self.state ][ 0 ], 1, 0 )
-            elif self.frame <= 50:
-                self.image = flip( self.goomba_img[ self.state ][ 0 ], 0, 0 )
-            if self.frame == 65:
-                self.frame = 0
-            self.frame += 5
-            return self.image
-
-
-    def move_right( self ): self.rect = self.rect.move(self.velocity, 0)
-
-
-    def move_left( self ):  self.rect = self.rect.move(-self.velocity, 0)
-
-
-    def collide_test( self ):
-        target_hit_list = spritecollide( self, self.groups, 0 )
-        if target_hit_list == []:
-            self.air = 1
-
-        collision_tolerance = 4
-        for target in target_hit_list:
-            if self.rect.colliderect( target.rect ):
-                # ### TOP COLLISION ###
-                if abs( self.rect.top - target.rect.bottom ) < collision_tolerance:
-                    pass
-                # ### BOTTOM COLLISION ###
-                elif abs( self.rect.bottom - target.rect.top ) < collision_tolerance:
-                    self.rect.bottom = target.rect.top
-                # ### RIGHT COLLISION ###
-                elif abs( self.rect.right - target.rect.left ) < collision_tolerance:
-                    if all([ target.id != 'vegetable', target.id != 'platforms', target.id != 'player' ]):
-                        self.rect.right = target.rect.left
-                        self.move['right'] = 0
-                        self.move['left'] = 1
-                # ### LEFT COLLISION ###
-                elif abs( self.rect.left - target.rect.right ) < collision_tolerance:
-                    if all([ target.id != 'vegetable', target.id != 'platforms', target.id != 'player' ]):
-                        self.rect.left = target.rect.right
-                        self.move['left'] = 0
-                        self.move['right'] = 1
-
-
-    def update(self, dt):
-        self.move_right()       if self.move['right'] else 0
-        self.move_left()        if self.move['left'] else 0
-        if self.air: self.rect.y += 4
-        self.collide_test()
-        self.animation()
+    def image(self) -> Surface:
+        if self.squashed:
+            return self.flat
+        return self.walking[1 if int(self.time / self.STEP_DURATION) % 2 else -1]

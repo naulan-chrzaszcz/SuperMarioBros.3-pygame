@@ -54,6 +54,10 @@ class StatusBarView:
                 parts.insert(1, f"Tile: {name}")
             if hover_cell in model.collidables:
                 parts.insert(1, "Solid")
+            kind = model.entities.get(hover_cell)
+            if kind is not None:
+                entity = state.entity_type(kind)
+                parts.insert(1, f"Entity: {entity.name if entity else kind + ' (unknown)'}")
         text = font.render(SEPARATOR.join(parts), True, TEXT_COLOR)
         surface.blit(text, text.get_rect(midleft=(rect.x + PANEL_PADDING, rect.centery)))
 

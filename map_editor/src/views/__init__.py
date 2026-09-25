@@ -1,5 +1,6 @@
 from .application_view import ApplicationView
 from .camera import Camera
+from .entity_renderer import EntityRenderer
 from .launcher_view import LauncherView
 from .map_view import MapView
 from .sidebar_view import SidebarView
@@ -11,6 +12,7 @@ __all__ = [
     "ApplicationView",
     "Button",
     "Camera",
+    "EntityRenderer",
     "LauncherView",
     "ListBox",
     "MapView",

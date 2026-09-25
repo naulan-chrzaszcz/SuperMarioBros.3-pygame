@@ -16,7 +16,8 @@ import yaml
 from pygame import Surface, image
 
 from .constants import PROJECT_ROOT, RESSOURCES_FILE
-from .inputs.map import Map, TileCode
+from .entities.spawner import known_types
+from .inputs.map import Map, TileCode, parse_entities
 from .inputs.ressources import Ressources
 
 MAPS_DIRECTORY = PROJECT_ROOT / "res" / "maps"
@@ -97,6 +98,9 @@ class LevelCatalog:
                 raise ValueError("this file is not a map")
             size = (len(data["tiles"][0]), len(data["tiles"]))
             cells = self._cells_of(data)
+            unknown = {spawn.type for spawn in parse_entities(data.get("entities"), *size)} - set(known_types())
+            if unknown:
+                raise ValueError(f"unknown entity type(s): {', '.join(sorted(unknown))}")
         except (OSError, ValueError, TypeError, IndexError) as error:
             return LevelInfo(name, path, error=f"Cannot read the map: {error}")
 
