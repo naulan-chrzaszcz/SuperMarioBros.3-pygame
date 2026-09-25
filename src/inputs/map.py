@@ -84,7 +84,14 @@ class Map:
         self.height = self.rows * Tile.HEIGHT
         self.collidables: List[List[bool]] = [[bool(value) for value in row] for row in collidables]
         self.sprites = LayeredUpdates()
+        self.sheet = sheet
         self._by_name: Dict[str, List[Tile]] = {}
+        self._by_cell: Dict[Cell, Tile] = {}
+        self._animated: List[Tile] = []
+        self._coordinates: Dict[str, Cell] = {}
+        for coordinate, name in sheet_metadata.items():
+            x, y = coordinate.split(",")
+            self._coordinates.setdefault(name, (int(x), int(y)))
 
         sheet_columns = sheet.get_width() // Tile.WIDTH
         sheet_rows = sheet.get_height() // Tile.HEIGHT
@@ -123,7 +130,9 @@ class Map:
                     tile, strip, code.frames, self.ANIMATION_SPEED, code.direction, code.rotation * 90
                 )
             )
+            self._animated.append(tile)
         self._by_name.setdefault(name, []).append(tile)
+        self._by_cell[(column, row)] = tile
 
     def contains(self, column: int, row: int) -> bool:
         return 0 <= column < self.columns and 0 <= row < self.rows
@@ -141,17 +150,47 @@ class Map:
         return tiles[0] if tiles else None
 
     def tile_at(self, column: int, row: int) -> Optional[Tile]:
-        for tiles in self._by_name.values():
-            for tile in tiles:
-                if tile.cell == (column, row):
-                    return tile
-        return None
+        return self._by_cell.get((column, row))
+
+    def has_tile_named(self, name: str) -> bool:
+        """True when the tileset declares a tile called ``name``."""
+        return name in self._coordinates
+
+    def image_of(self, name: str) -> Surface:
+        """Still image of the tileset tile called ``name``."""
+        x, y = self._coordinates[name]
+        return self.sheet.subsurface((x * Tile.WIDTH, y * Tile.HEIGHT), (Tile.WIDTH, Tile.HEIGHT))
+
+    def remove(self, tile: Tile) -> None:
+        """Takes a tile out of the map (e.g. a collected coin)."""
+        tile.kill()
+        if self._by_cell.get(tile.cell) is tile:
+            del self._by_cell[tile.cell]
+        if tile in self._by_name.get(tile.id, []):
+            self._by_name[tile.id].remove(tile)
+        if tile in self._animated:
+            self._animated.remove(tile)
+
+    def replace(self, tile: Tile, name: str) -> None:
+        """Draws ``tile`` with the still tileset tile called ``name`` from now on
+        (e.g. an emptied ? block)."""
+        image = self.image_of(name)
+        if tile in self._by_name.get(tile.id, []):
+            self._by_name[tile.id].remove(tile)
+        if tile in self._animated:
+            self._animated.remove(tile)
+        tile.set_animation(None)
+        tile.image = image
+        tile.id = name
+        self._by_name.setdefault(name, []).append(tile)
 
     def __iter__(self) -> Iterator[Tile]:
         return iter(self.sprites)
 
     def update(self, dt: float) -> None:
-        self.sprites.update(dt)
+        # Map tiles do not move: only the animated ones need an update.
+        for tile in self._animated:
+            tile.update(dt)
 
     def draw(self, surface: Surface) -> None:
         self.sprites.draw(surface)

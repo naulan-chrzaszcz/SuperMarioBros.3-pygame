@@ -17,6 +17,8 @@ class LauncherController:
         self.view: Optional[LauncherView] = None
         self.running = True
         self.result: Optional[LaunchRequest] = None
+        # True when the window was closed rather than the launcher left.
+        self.window_closed = False
         self.time = 0.0
         self._last_click = (-1, -1.0)
 
@@ -40,6 +42,7 @@ class LauncherController:
         if not self.running:
             return
         if event.type == pygame.QUIT:
+            self.window_closed = True
             self.quit()
         elif event.type == pygame.VIDEORESIZE:
             view.layout(view.screen.get_size())

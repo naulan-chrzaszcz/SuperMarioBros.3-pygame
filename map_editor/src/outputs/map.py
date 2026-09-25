@@ -3,6 +3,7 @@ import re
 from pathlib import Path
 from typing import Dict, Iterable, Optional, Set, Tuple
 
+from ..constantes import PROJECT_ROOT
 from .tile import Tile
 
 Cell = Tuple[int, int]
@@ -112,7 +113,10 @@ class Map:
         rows: int,
         tiles: Dict[Cell, Tile],
         collidables: Iterable[Cell],
+        sheet: Optional[Path] = None,
     ) -> None:
+        """Writes the map. ``sheet`` is the tileset the map is drawn with: the game
+        uses it to know which image the tile coordinates refer to."""
         if columns <= 0 or rows <= 0:
             raise ValueError("Map dimensions must be positive")
 
@@ -126,6 +130,8 @@ class Map:
         for col, row in collidables:
             cls._check_cell(col, row, columns, rows)
             map_data["collidables"][row][col] = True
+        if sheet is not None:
+            map_data["sheet"] = cls.sheet_reference(sheet)
 
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -133,6 +139,25 @@ class Map:
         with temporary_path.open("w", encoding="utf-8") as file:
             json.dump(map_data, file, separators=(",", ":"))
         temporary_path.replace(path)
+
+    @classmethod
+    def read_sheet(cls, path: Path) -> Optional[Path]:
+        """The tileset recorded in a map file, None when the file does not name one."""
+        with Path(path).open(encoding="utf-8") as file:
+            map_data = json.load(file)
+        sheet = map_data.get("sheet") if isinstance(map_data, dict) else None
+        if not isinstance(sheet, str) or not sheet:
+            return None
+        return (PROJECT_ROOT / sheet).resolve()
+
+    @staticmethod
+    def sheet_reference(sheet: Path) -> str:
+        """Path of a sheet as stored in a map: relative to the project when possible."""
+        sheet = Path(sheet).resolve()
+        try:
+            return sheet.relative_to(PROJECT_ROOT).as_posix()
+        except ValueError:
+            return str(sheet)
 
     @staticmethod
     def _check_cell(col: int, row: int, columns: int, rows: int) -> None:

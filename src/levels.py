@@ -1,0 +1,191 @@
+"""The maps of ``res/maps`` that can be played as platform levels.
+
+A map made with the editor records its tileset in a ``"sheet"`` key. Older
+maps do not: the first sheet whose metadata declares every tile of the map is
+used instead.
+"""
+
+from __future__ import annotations
+
+import json
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Dict, Iterable, List, Optional, Tuple
+
+import yaml
+from pygame import Surface, image
+
+from .constants import PROJECT_ROOT, RESSOURCES_FILE
+from .inputs.map import Map, TileCode
+from .inputs.ressources import Ressources
+
+MAPS_DIRECTORY = PROJECT_ROOT / "res" / "maps"
+SHEETS_DIRECTORY = PROJECT_ROOT / "res" / "sheets"
+# Tried first for maps that do not name their tileset, as in the map editor.
+DEFAULT_SHEET_NAME = "level.png"
+DEFAULT_COLOR_KEY = (255, 174, 201)
+
+
+@dataclass(frozen=True)
+class LevelInfo:
+    name: str
+    path: Path
+    sheet_path: Optional[Path] = None
+    size: Optional[Tuple[int, int]] = None
+    # Why the level cannot be played, None when it can.
+    error: Optional[str] = None
+
+    @property
+    def playable(self) -> bool:
+        return self.error is None
+
+
+@dataclass(frozen=True)
+class SheetInfo:
+    path: Path
+    color_key: Optional[Tuple[int, int, int]]
+    metadata: Optional[Dict[str, str]]
+
+
+class LevelCatalog:
+    def __init__(
+        self,
+        maps_directory: Path = MAPS_DIRECTORY,
+        sheets_directory: Path = SHEETS_DIRECTORY,
+        ressources_file: Path = RESSOURCES_FILE,
+        excluded: Iterable[Path] = (),
+        root: Path = PROJECT_ROOT,
+    ):
+        self.maps_directory = Path(maps_directory)
+        self.sheets_directory = Path(sheets_directory)
+        self.ressources_file = Path(ressources_file)
+        self.root = Path(root)
+        self.excluded = {Path(path).resolve() for path in excluded}
+        self._levels: List[LevelInfo] = []
+        self._sheets: Dict[Path, SheetInfo] = {}
+        self._images: Dict[Path, Surface] = {}
+
+    @property
+    def levels(self) -> List[LevelInfo]:
+        return list(self._levels)
+
+    def refresh(self) -> List[LevelInfo]:
+        """Scans the maps directory again (maps may have been edited)."""
+        self._sheets = {}
+        self._images = {}
+        paths = sorted(self.maps_directory.glob("*.json")) if self.maps_directory.is_dir() else []
+        self._levels = [self.info(path) for path in paths if path.resolve() not in self.excluded]
+        return self.levels
+
+    def find(self, name: str) -> Optional[LevelInfo]:
+        for level in self._levels:
+            if level.name == name:
+                return level
+        path = self.maps_directory / f"{name}.json"
+        if path.is_file() and path.resolve() not in self.excluded:
+            return self.info(path)
+        return None
+
+    def info(self, path: Path, sheet_path: Optional[Path] = None) -> LevelInfo:
+        """Describes a map file; ``sheet_path`` forces its tileset."""
+        path = Path(path)
+        name = path.stem
+        try:
+            with path.open(encoding="utf-8") as file:
+                data = json.load(file)
+            if not isinstance(data, dict) or not data.get("tiles"):
+                raise ValueError("this file is not a map")
+            size = (len(data["tiles"][0]), len(data["tiles"]))
+            cells = self._cells_of(data)
+        except (OSError, ValueError, TypeError, IndexError) as error:
+            return LevelInfo(name, path, error=f"Cannot read the map: {error}")
+
+        if sheet_path is None and isinstance(data.get("sheet"), str):
+            sheet_path = self.root / data["sheet"]
+        if sheet_path is not None:
+            sheet_path = Path(sheet_path).resolve()
+            if not sheet_path.is_file():
+                return LevelInfo(name, path, size=size, error=f"Missing tileset {sheet_path.name}")
+            metadata = self.sheet(sheet_path).metadata
+            if metadata is None:
+                return LevelInfo(name, path, sheet_path, size, f"{sheet_path.name} has no metadata")
+            missing = cells - metadata.keys()
+            if missing:
+                return LevelInfo(
+                    name, path, sheet_path, size,
+                    f"{len(missing)} tile type(s) are not declared in {sheet_path.name}",
+                )
+            return LevelInfo(name, path, sheet_path, size)
+
+        for candidate in self._sheet_paths():
+            metadata = self.sheet(candidate).metadata
+            if metadata is not None and cells <= metadata.keys():
+                return LevelInfo(name, path, candidate, size)
+        return LevelInfo(name, path, size=size, error="No tileset declares every tile of this map")
+
+    def load(self, level: LevelInfo) -> Map:
+        """Builds the map of a playable level. Raises ValueError otherwise."""
+        if not level.playable:
+            raise ValueError(level.error)
+        sheet = self.sheet(level.sheet_path)
+        with level.path.open(encoding="utf-8") as file:
+            data = json.load(file)
+        return Map(self._image(sheet), sheet.metadata, data)
+
+    def sheet(self, path: Path) -> SheetInfo:
+        path = Path(path).resolve()
+        if path not in self._sheets:
+            self._sheets[path] = self._read_sheet(path)
+        return self._sheets[path]
+
+    def _image(self, sheet: SheetInfo) -> Surface:
+        if sheet.path not in self._images:
+            surface = image.load(str(sheet.path)).convert()
+            if sheet.color_key is not None:
+                surface.set_colorkey(sheet.color_key)
+            self._images[sheet.path] = surface
+        return self._images[sheet.path]
+
+    def _sheet_paths(self) -> List[Path]:
+        if not self.sheets_directory.is_dir():
+            return []
+        paths = sorted(path.resolve() for path in self.sheets_directory.glob("*.png"))
+        return sorted(paths, key=lambda path: path.name != DEFAULT_SHEET_NAME)
+
+    def _read_sheet(self, path: Path) -> SheetInfo:
+        """Color key and tile names, from ``ressources.yaml`` or ``<sheet>.yaml``."""
+        color_key = DEFAULT_COLOR_KEY
+        metadata_path = None
+        for entry in self._ressource_images():
+            if (self.root / entry.get("path", "")).resolve() == path:
+                key = entry.get("colorKey")
+                color_key = (key["r"], key["g"], key["b"]) if key else None
+                if entry.get("metadata"):
+                    metadata_path = self.root / entry["metadata"]
+                break
+        if metadata_path is None and path.with_suffix(".yaml").is_file():
+            metadata_path = path.with_suffix(".yaml")
+        metadata = None
+        if metadata_path is not None:
+            try:
+                metadata = Ressources.read_metadata(metadata_path)
+            except (OSError, yaml.YAMLError, KeyError, TypeError):
+                metadata = None
+        return SheetInfo(path, color_key, metadata)
+
+    def _ressource_images(self) -> List[dict]:
+        try:
+            with self.ressources_file.open(encoding="utf-8") as file:
+                return (yaml.safe_load(file) or {}).get("images", [])
+        except (OSError, yaml.YAMLError):
+            return []
+
+    @staticmethod
+    def _cells_of(data: dict) -> set:
+        cells = set()
+        for row in data["tiles"]:
+            for code in row:
+                tile = TileCode.parse(code)
+                if tile is not None:
+                    cells.add(f"{tile.x},{tile.y}")
+        return cells

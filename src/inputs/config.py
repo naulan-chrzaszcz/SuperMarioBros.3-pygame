@@ -51,6 +51,7 @@ class Action(Enum):
     RIGHT = auto()
     CONFIRM = auto()
     BACK = auto()
+    RUN = auto()
 
 
 DEFAULT_CONTROLS: Dict[Action, Tuple[str, ...]] = {
@@ -60,6 +61,7 @@ DEFAULT_CONTROLS: Dict[Action, Tuple[str, ...]] = {
     Action.RIGHT: ("d", "right"),
     Action.CONFIRM: ("a", "return", "space"),
     Action.BACK: ("escape",),
+    Action.RUN: ("left shift", "right shift", "e"),
 }
 
 

@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Optional, Sequence, Tuple
 
 from .src.constantes import DEFAULT_MAP_SIZE, DEFAULT_SHEET
+from .src.outputs.map import Map
 
 SIZE_PATTERN = re.compile(r"^(\d+)[xX](\d+)$")
 
@@ -24,6 +25,13 @@ class MapEditorCLI:
     map_path: Path
     sheet_path: Path
     size: Optional[Tuple[int, int]]
+
+    @staticmethod
+    def recorded_sheet(map_path: Path) -> Optional[Path]:
+        try:
+            return Map.read_sheet(map_path)
+        except (OSError, ValueError):
+            return None
 
     @classmethod
     def from_args(cls, argv: Optional[Sequence[str]] = None) -> "MapEditorCLI":
@@ -46,8 +54,11 @@ class MapEditorCLI:
             "--sheet",
             dest="sheet_path",
             type=Path,
-            default=DEFAULT_SHEET,
-            help="tileset image (default: res/sheets/level.png)",
+            default=None,
+            help=(
+                "tileset image (default: the one recorded in the map, "
+                "otherwise res/sheets/level.png)"
+            ),
         )
         parser.add_argument(
             "--size",
@@ -59,6 +70,8 @@ class MapEditorCLI:
             ),
         )
         args = parser.parse_args(argv)
+        if args.sheet_path is None:
+            args.sheet_path = cls.recorded_sheet(args.map_path) or DEFAULT_SHEET
         if not args.sheet_path.is_file():
             parser.error(f"tileset not found: {args.sheet_path}")
         return cls(args.map_path, args.sheet_path, args.size)

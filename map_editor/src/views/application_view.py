@@ -34,6 +34,12 @@ class ApplicationView:
         self.sidebar.layout(self.sidebar_rect)
         self.camera.set_viewport(self.map_rect)
 
+    def reopen(self) -> None:
+        """Takes the window back after another program (the game) used it."""
+        self.screen = pygame.display.set_mode(self.screen.get_size(), pygame.RESIZABLE)
+        self._caption = None
+        self.layout(self.screen.get_size())
+
     def set_caption(self, caption: str) -> None:
         if caption != self._caption:
             pygame.display.set_caption(caption)
