@@ -19,6 +19,4 @@ class ButtonModel:
         self.color = color
         self.text = text
         self.value = value
-
-    def on_click(self) -> None:
-        pass
+        self.on_click = lambda: None
