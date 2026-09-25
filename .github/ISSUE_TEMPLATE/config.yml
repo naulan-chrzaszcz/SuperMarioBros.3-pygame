@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/naulan-chrzaszcz/SuperMarioBros.3-pygame/security/advisories/new
+    about: Report security issues privately, not in a public issue.
+  - name: Contribution guide
+    url: https://github.com/naulan-chrzaszcz/SuperMarioBros.3-pygame/blob/main/CONTRIBUTING.md
+    about: How to set up the project, run the tests and open a pull request.
