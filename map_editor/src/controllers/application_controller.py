@@ -1,73 +1,141 @@
-from typing import Callable
+from pathlib import Path
 
 import pygame
 
-from ..constantes import TILE_SIZE
-from ..views.application_view import COMMANDS_PANEL, MAP_PANEL, TILES_PANEL
+from ..constantes import QUIT_CONFIRMATION_DELAY
+from ..models import EditorState, MapEditorModel, MessageLevel
+from ..views import ApplicationView, Camera
+from .map_controller import MapController
+from .sidebar_controller import SidebarController
 
 MOUSE_EVENTS = (pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP, pygame.MOUSEMOTION)
 
 
 class ApplicationController:
-    """Routes window events to the panel under the mouse cursor."""
+    """Global shortcuts, saving, quitting and routing of the mouse events to the
+    area under the cursor."""
 
     def __init__(
         self,
-        view,
-        map_controller,
-        commands,
-        tile_selection,
-        on_save: Callable[[], None],
+        map_path: Path,
+        model: MapEditorModel,
+        state: EditorState,
+        camera: Camera,
+        view: ApplicationView,
+        map_controller: MapController,
+        sidebar_controller: SidebarController,
     ) -> None:
+        self.map_path = Path(map_path)
+        self.model = model
+        self.state = state
+        self.camera = camera
         self.view = view
         self.map_controller = map_controller
-        self.commands = commands
-        self.tile_selection = tile_selection
-        self.on_save = on_save
+        self.sidebar_controller = sidebar_controller
         self.running = True
-        self.update_frame_limits()
+        self._quit_deadline = 0.0
+        self.time = 0.0
+
+    def update(self, dt: float) -> None:
+        self.time += dt
 
     def handle_event(self, event: pygame.event.Event) -> None:
-        if event.type in (pygame.QUIT, pygame.WINDOWCLOSE):
-            self.running = False
+        if event.type == pygame.QUIT:
+            self.request_quit()
+        elif event.type == pygame.VIDEORESIZE:
+            self.view.layout(self.view.screen.get_size())
+        elif event.type == pygame.WINDOWLEAVE:
+            self.map_controller.leave()
         elif event.type in MOUSE_EVENTS:
-            self._handle_mouse_event(event)
+            self._route_mouse(event)
         elif event.type == pygame.MOUSEWHEEL:
-            self.tile_selection.handle_event(event)
-            self.update_frame_limits()
+            mouse = pygame.mouse.get_pos()
+            if self.view.map_rect.collidepoint(mouse):
+                self.map_controller.handle_wheel(event, mouse)
+            else:
+                self.sidebar_controller.handle_wheel(event, mouse)
         elif event.type == pygame.KEYDOWN:
             self._handle_key(event)
 
-    def update_frame_limits(self) -> None:
-        sheet = self.tile_selection.sheet_image
-        self.commands.set_frame_limits(
-            sheet.get_width() // TILE_SIZE - self.tile_selection.selection_x,
-            sheet.get_height() // TILE_SIZE - self.tile_selection.selection_y,
+    def save(self) -> None:
+        try:
+            self.model.save(self.map_path)
+        except (OSError, ValueError) as error:
+            self.state.notify(f"Save failed: {error}", MessageLevel.ERROR)
+            return
+        undeclared = self.model.undeclared_tiles(self.state.tileset)
+        if undeclared:
+            metadata = self.state.tileset.metadata_path.name
+            self.state.notify(
+                f"Saved, but {len(undeclared)} tile type(s) are not declared in "
+                f"{metadata}: the game will fail to load this map",
+                MessageLevel.WARNING,
+            )
+        else:
+            self.state.notify(f"Saved to {self.map_path.name}", MessageLevel.SUCCESS)
+
+    def undo(self) -> None:
+        if not self.model.undo():
+            self.state.notify("Nothing to undo")
+
+    def redo(self) -> None:
+        if not self.model.redo():
+            self.state.notify("Nothing to redo")
+
+    def zoom(self, delta: int) -> None:
+        mouse = pygame.mouse.get_pos()
+        anchor = mouse if self.view.map_rect.collidepoint(mouse) else None
+        self.camera.set_zoom(self.camera.zoom + delta, anchor)
+
+    def request_quit(self) -> None:
+        """Quits, asking for a confirmation first when there are unsaved changes."""
+        if not self.model.dirty or self.time < self._quit_deadline:
+            self.running = False
+            return
+        self._quit_deadline = self.time + QUIT_CONFIRMATION_DELAY
+        self.state.notify(
+            "Unsaved changes! Press Esc again to quit without saving, Ctrl+S to save",
+            MessageLevel.WARNING,
+            QUIT_CONFIRMATION_DELAY,
         )
 
-    def _handle_mouse_event(self, event: pygame.event.Event) -> None:
-        panel = self.view.panel_at(event.pos)
-        if panel is None:
+    def _route_mouse(self, event: pygame.event.Event) -> None:
+        # A drag started on the map keeps going even if the cursor leaves it.
+        if self.map_controller.is_dragging or self.view.map_rect.collidepoint(event.pos):
+            self.map_controller.handle_mouse(event)
             return
-
-        attributes = dict(event.dict)
-        attributes["pos"] = self.view.to_local(panel, event.pos)
-        local_event = pygame.event.Event(event.type, attributes)
-
-        if panel == MAP_PANEL:
-            self.map_controller.handle_event(local_event)
-        elif panel == COMMANDS_PANEL:
-            self.commands.handle_event(local_event)
-        elif panel == TILES_PANEL:
-            self.tile_selection.handle_event(local_event)
-            self.update_frame_limits()
+        if event.type == pygame.MOUSEMOTION:
+            self.map_controller.leave()
+        if self.view.sidebar_rect.collidepoint(event.pos):
+            self.sidebar_controller.handle_mouse(event)
 
     def _handle_key(self, event: pygame.event.Event) -> None:
-        if event.key == pygame.K_ESCAPE:
-            self.running = False
-        elif event.key == pygame.K_s and event.mod & pygame.KMOD_CTRL:
-            self.on_save()
-        elif event.key == pygame.K_r:
-            self.commands.rotate()
+        ctrl = event.mod & pygame.KMOD_CTRL
+        shift = event.mod & pygame.KMOD_SHIFT
+        key = event.key
+        if key == pygame.K_ESCAPE:
+            self.request_quit()
+        elif ctrl and key == pygame.K_s:
+            self.save()
+        elif ctrl and key == pygame.K_z:
+            self.redo() if shift else self.undo()
+        elif ctrl and key == pygame.K_y:
+            self.redo()
+        elif ctrl:
+            return
+        elif key == pygame.K_r:
+            self.state.rotate(-1 if shift else 1)
+        elif key == pygame.K_c:
+            self.state.toggle_mode()
+        elif key == pygame.K_g:
+            self.state.show_grid = not self.state.show_grid
+        elif key == pygame.K_o:
+            self.state.show_collisions = not self.state.show_collisions
+        elif key in (pygame.K_PLUS, pygame.K_EQUALS, pygame.K_KP_PLUS):
+            self.zoom(1)
+        elif key in (pygame.K_MINUS, pygame.K_KP_MINUS):
+            self.zoom(-1)
+        elif key == pygame.K_HOME:
+            self.camera.fit()
         else:
-            self.map_controller.handle_event(event)
+            self.map_controller.handle_key(event)
