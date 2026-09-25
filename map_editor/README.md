@@ -32,9 +32,17 @@ python map_editor/MapEditor.pyw 100 15 res/sheets/level.png res/maps/level_1.jso
 - `map_path` is loaded when it already exists and is created on export.
 - When loading, the dimensions passed on the command line must match the map.
 
+## Window layout
+
+Everything is in a single window:
+
+- left: the map, with the grid and a preview of the selected tile;
+- top right: the settings panel;
+- bottom right: the tile selector (the tileset is displayed at 2x).
+
 ## Controls
 
-### Map window
+### Map
 
 - Left click or drag: place the selected tile.
 - Right click or drag: erase a tile.
@@ -57,7 +65,7 @@ python map_editor/MapEditor.pyw 100 15 res/sheets/level.png res/maps/level_1.jso
   cell and right click removes it.
 - `EXPORT`: save the map.
 
-An asterisk in the map window title indicates unsaved changes.
+An asterisk in the window title indicates unsaved changes.
 
 ## Output format
 
