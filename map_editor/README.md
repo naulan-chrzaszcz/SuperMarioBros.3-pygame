@@ -6,6 +6,7 @@ A 2D tile map editor for the JSON maps loaded by `SuperMarioBros3.pyw`.
 
 - Python 3.8+
 - Pygame 2
+- PyYAML
 
 Install dependencies from the repository root:
 
@@ -18,54 +19,105 @@ python -m pip install -r requirements.txt
 From the repository root:
 
 ```bash
-python map_editor/MapEditor.pyw <map_width> <map_height> <sheet_path> <map_path>
+python map_editor/MapEditor.pyw <map_path> [--sheet SHEET] [--size WIDTHxHEIGHT]
 ```
 
-Example using the level tileset:
+Examples:
 
 ```bash
-python map_editor/MapEditor.pyw 100 15 res/sheets/level.png res/maps/level_1.json
+# Create (or open) a level that is 100 tiles wide and 15 tiles high
+python map_editor/MapEditor.pyw res/maps/level_1.json --size 100x15
+
+# Edit the stage selection map with its own tileset
+python map_editor/MapEditor.pyw res/maps/stage_menu.json --sheet res/sheets/choice_menu_stage.png
 ```
 
-- `map_width` and `map_height` are measured in 16x16 tiles.
-- `sheet_path` is the tileset image.
-- `map_path` is loaded when it already exists and is created on export.
-- When loading, the dimensions passed on the command line must match the map.
+- `map_path` is opened with its own size when it exists, and is created on the
+  first save otherwise.
+- `--sheet` is the tileset image (default: `res/sheets/level.png`).
+- `--size` is measured in 16x16 tiles. It defaults to 29x15 (one game screen)
+  for a new map; on an existing map it resizes it (content outside the new
+  size is dropped when saving).
+
+## Tileset metadata
+
+The game finds the name of every placed tile in the YAML metadata of the
+tileset, and cannot load a map that contains an undeclared tile. The editor
+therefore reads the same metadata and color key as the game:
+
+1. the `images` entry of `ressources.yaml` whose `path` is the sheet;
+2. otherwise a `<sheet>.yaml` file next to the image (e.g. `res/sheets/level.yaml`).
+
+Undeclared tiles are darkened in the tileset and cannot be painted. Declare
+them in the metadata file first. If the sheet has no metadata at all, every
+tile can be used.
 
 ## Window layout
 
-Everything is in a single window:
+Everything is in a single resizable window:
 
-- left: the map, with the grid and a preview of the selected tile;
-- top right: the settings panel;
-- bottom right: the tile selector (the tileset is displayed at 2x).
+- left: the map, drawn with pixel-perfect integer zoom;
+- right: the selected tile preview, the tool buttons, the tileset and a
+  reminder of the shortcuts;
+- bottom: a status bar with the hovered cell, its tile name and collision,
+  the map size, the zoom and the mode, plus messages (save result, warnings).
+
+An asterisk in the window title indicates unsaved changes.
 
 ## Controls
 
 ### Map
 
-- Left click or drag: place the selected tile.
-- Right click or drag: erase a tile.
-- Arrow keys: move the camera by one viewport.
-- `R`: rotate the tile by 90 degrees.
-- `Ctrl+S`: save the map.
-- `Esc`: close the editor.
+| Action | Control |
+| --- | --- |
+| Paint the selected tile | Left click or drag |
+| Erase | Right click or drag |
+| Fill / erase a rectangle | `Shift` + left / right drag |
+| Pick the tile under the cursor (eyedropper) | Middle click |
+| Pan | Middle drag, mouse wheel, `Shift` + wheel (horizontal), arrow keys (`Shift` = one screen) |
+| Zoom at the cursor | `Ctrl` + wheel, `+` / `-` |
+| Fit the map height in the view | `Home` |
 
-### Tile selector
+In **Collisions** mode (`C`), left click marks cells as solid and right click
+clears them. Solid cells are always shown with a red overlay that can be
+hidden with `O`.
 
-- Left click: select a tile.
-- Mouse wheel: move the selection.
+### Tools
 
-### Settings
+| Action | Control |
+| --- | --- |
+| Rotate the tile (counter-clockwise, as in the game) | `R` (`Shift+R`: other way) |
+| Horizontal / vertical animation frames | `Frames X` / `Frames Y` buttons |
+| Switch between tiles and collisions | `C`, or the `Tiles` / `Collisions` buttons |
+| Toggle the grid | `G` |
+| Toggle the solid overlay | `O` |
+| Undo / redo | `Ctrl+Z` / `Ctrl+Y` (or `Ctrl+Shift+Z`) |
+| Save | `Ctrl+S` |
+| Quit | `Esc` or close the window (press twice if there are unsaved changes) |
 
-- `ROTATION`: choose 0, 90, 180, or 270 degrees.
-- `FRAMES X/Y`: configure a horizontal or vertical animation. Only one axis
-  can contain multiple frames, and the count is limited by the tileset bounds.
-- `COLLIDABLE`: switch to collision editing mode. Left click adds a collision
-  cell and right click removes it.
-- `EXPORT`: save the map.
+In the tileset, left click selects a tile and the mouse wheel moves the
+selection through the declared tiles. Only one animation axis can have more
+than one frame, and animations cannot go past the tileset bounds.
 
-An asterisk in the window title indicates unsaved changes.
+## Code structure
+
+The editor follows a model / view / controller split:
+
+- `src/outputs/`: the JSON map format (`Map`) and the immutable `Tile` value.
+- `src/models/`: pure data without drawing code: the edited map with its
+  undo/redo history (`MapEditorModel`), the tool settings (`EditorState`) and
+  the tileset with its metadata (`Tileset`).
+- `src/views/`: the camera (zoom and scrolling), the cached tile renderer and
+  the map, sidebar and status bar views.
+- `src/controllers/`: the map interactions, the sidebar clicks and the global
+  shortcuts / event routing.
+- `src/application.py`: builds everything and runs the main loop.
+
+Run the tests from the repository root:
+
+```bash
+python -m unittest discover -s tests
+```
 
 ## Output format
 
