@@ -36,6 +36,10 @@ class ApplicationController:
         # True when the window was closed, False when the user only left the
         # editor with Esc (the launcher is then shown again).
         self.window_closed = False
+        # Testing the map needs the game: only possible when the editor is
+        # opened from it. play_requested tells the game to start the map.
+        self.can_play = False
+        self.play_requested = False
         self._quit_deadline = 0.0
         self.time = 0.0
 
@@ -60,12 +64,12 @@ class ApplicationController:
         elif event.type == pygame.KEYDOWN:
             self._handle_key(event)
 
-    def save(self) -> None:
+    def save(self) -> bool:
         try:
-            self.model.save(self.map_path)
+            self.model.save(self.map_path, self.state.tileset.sheet_path)
         except (OSError, ValueError) as error:
             self.state.notify(f"Save failed: {error}", MessageLevel.ERROR)
-            return
+            return False
         undeclared = self.model.undeclared_tiles(self.state.tileset)
         if undeclared:
             self.state.notify(
@@ -75,6 +79,33 @@ class ApplicationController:
             )
         else:
             self.state.notify(f"Saved to {self.map_path.name}", MessageLevel.SUCCESS)
+        return True
+
+    def request_play(self) -> None:
+        """Saves the map and leaves the editor so that the game plays it."""
+        if not self.can_play:
+            self.state.notify(
+                "Open the editor from the game (MAP EDITOR on the title screen) to test the map",
+                MessageLevel.WARNING,
+            )
+            return
+        if (self.model.dirty or not self.map_path.exists()) and not self.save():
+            return
+        if self.model.undeclared_tiles(self.state.tileset):
+            self.state.notify(
+                f"Cannot play: some tile types are {self.state.tileset.missing_reason}",
+                MessageLevel.ERROR,
+            )
+            return
+        self.play_requested = True
+        self.running = False
+
+    def resume(self) -> None:
+        """Runs the editor again after the game played the map."""
+        self.running = True
+        self.window_closed = False
+        self.play_requested = False
+        self._quit_deadline = 0.0
 
     def undo(self) -> None:
         if not self.model.undo():
@@ -125,6 +156,8 @@ class ApplicationController:
                 self.state.region = None
             else:
                 self.request_quit()
+        elif key == pygame.K_F5:
+            self.request_play()
         elif ctrl and key == pygame.K_s:
             self.save()
         elif ctrl and key == pygame.K_z:
