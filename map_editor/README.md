@@ -16,7 +16,33 @@ python -m pip install -r requirements.txt
 
 ## Run
 
-From the repository root:
+Double-click `map_editor/MapEditor.pyw`, or run it without arguments from the
+repository root:
+
+```bash
+python map_editor/MapEditor.pyw
+```
+
+The launcher opens:
+
+- on the left, the maps of `res/maps` with their size, and `+ New map`;
+- on the right, the map name (for a new map), its size in tiles and the
+  tileset, with a preview. The tileset of an existing map is the one used the
+  last time, otherwise the first tileset that declares every tile of the map.
+  Changing the size of an existing map resizes it.
+
+Double-click a map or press `Enter` to open it; `Create` makes the new map file
+in `res/maps` and opens it. `Tab` moves between the fields, the arrow keys
+move in the map list and `Esc` quits. Leaving the editor with `Esc` goes back
+to the launcher (the clipboard is kept, so blocks can be copied from one map to
+another using the same tileset); closing the window quits.
+
+The launcher remembers its choices in `map_editor/.launcher.json` (not
+versioned).
+
+### Command line
+
+A map can also be opened directly, without the launcher:
 
 ```bash
 python map_editor/MapEditor.pyw <map_path> [--sheet SHEET] [--size WIDTHxHEIGHT]
@@ -82,6 +108,22 @@ In **Collisions** mode (`C`), left click marks cells as solid and right click
 clears them. Solid cells are always shown with a red overlay that can be
 hidden with `O`.
 
+### Selection, copy and paste
+
+| Action | Control |
+| --- | --- |
+| Select mode | `S` or the `Select` button, then drag on the map (right click: deselect) |
+| Select the whole map | `Ctrl+A` |
+| Copy / cut the selection | `Ctrl+C` / `Ctrl+X` (or the `Copy` / `Cut` buttons) |
+| Clear the selection | `Delete` or `Backspace` (or `Clear`) |
+| Paste | `Ctrl+V` (or `Paste`): the block follows the mouse, left click pastes it (as many times as needed) |
+| Rotate the block being pasted | `R` (`Shift+R`: other way) |
+| Stop pasting / deselect | Right click or `Esc` |
+
+Copies keep the tiles (with their animation and rotation) and the collisions.
+Cells that have neither a tile nor a collision are transparent: pasting leaves
+the map unchanged there. Every paste, cut or clear is a single undo step.
+
 ### Tools
 
 | Action | Control |
@@ -93,7 +135,8 @@ hidden with `O`.
 | Toggle the solid overlay | `O` |
 | Undo / redo | `Ctrl+Z` / `Ctrl+Y` (or `Ctrl+Shift+Z`) |
 | Save | `Ctrl+S` |
-| Quit | `Esc` or close the window (press twice if there are unsaved changes) |
+| Close the map (back to the launcher) | `Esc` (press twice if there are unsaved changes; the first `Esc` stops pasting or deselects) |
+| Quit | Close the window |
 
 In the tileset, left click selects a tile and the mouse wheel moves the
 selection through the declared tiles. Only one animation axis can have more
@@ -106,12 +149,14 @@ The editor follows a model / view / controller split:
 - `src/outputs/`: the JSON map format (`Map`) and the immutable `Tile` value.
 - `src/models/`: pure data without drawing code: the edited map with its
   undo/redo history (`MapEditorModel`), the tool settings (`EditorState`) and
-  the tileset with its metadata (`Tileset`).
+  the tileset with its metadata (`Tileset`), the copied cells (`Clipboard`)
+  and the launcher choices (`LauncherModel`).
 - `src/views/`: the camera (zoom and scrolling), the cached tile renderer and
   the map, sidebar and status bar views.
 - `src/controllers/`: the map interactions, the sidebar clicks and the global
   shortcuts / event routing.
-- `src/application.py`: builds everything and runs the main loop.
+- `src/launcher.py` and `src/application.py`: build the launcher and the
+  editor, and run their main loop.
 
 Run the tests from the repository root:
 

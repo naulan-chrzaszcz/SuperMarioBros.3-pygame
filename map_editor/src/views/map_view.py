@@ -9,8 +9,9 @@ from ..constantes import (
     HOVER_COLOR,
     MAP_BACKGROUND_COLOR,
     OUT_OF_MAP_COLOR,
+    REGION_COLOR,
 )
-from ..models import EditorState, MapEditorModel, Mode
+from ..models import EditorState, MapEditorModel, Mode, Region, make_region
 from .camera import Camera, Cell
 from .tile_renderer import TileRenderer
 
@@ -20,6 +21,7 @@ PREVIEW_ALPHA = 150
 COLLISION_ALPHA = 110
 COLLISION_OVERLAY_ALPHA = 55
 MIN_GRID_TILE_SIZE = 8
+REGION_ALPHA = 45
 
 
 class MapView:
@@ -68,11 +70,47 @@ class MapView:
             self._draw_grid(surface, camera, columns, rows, map_rect)
         pygame.draw.rect(surface, BORDER_COLOR, map_rect.inflate(2, 2), 1)
 
-        if rectangle is not None:
+        if state.region is not None:
+            self._draw_region(surface, camera, state.region)
+        if rectangle is not None and state.mode is Mode.SELECT:
+            region = model.clip_region(make_region(rectangle[0], rectangle[1]))
+            if region is not None:
+                self._draw_region(surface, camera, region)
+        elif rectangle is not None:
             self._draw_rectangle(surface, camera, model, state, rectangle)
+        elif hover_cell is not None and state.pasting:
+            self._draw_paste_preview(surface, camera, state, hover_cell, time)
         elif hover_cell is not None and model.contains(hover_cell):
             self._draw_cursor(surface, camera, state, hover_cell, time)
         surface.set_clip(None)
+
+    @staticmethod
+    def _region_rect(camera: Camera, region: Region) -> pygame.Rect:
+        left, top = camera.cell_to_screen(region[:2])
+        right, bottom = camera.cell_to_screen((region[2] + 1, region[3] + 1))
+        return pygame.Rect(left, top, right - left, bottom - top)
+
+    def _draw_region(self, surface, camera, region: Region) -> None:
+        rect = self._region_rect(camera, region)
+        shade = pygame.Surface(rect.size, pygame.SRCALPHA)
+        shade.fill((*REGION_COLOR, REGION_ALPHA))
+        surface.blit(shade, rect)
+        pygame.draw.rect(surface, REGION_COLOR, rect, 2)
+
+    def _draw_paste_preview(self, surface, camera, state, origin: Cell, time) -> None:
+        clipboard = state.clipboard
+        size = camera.tile_size
+        overlay = self._collision_overlay(size, COLLISION_OVERLAY_ALPHA)
+        for (col, row), tile, solid in clipboard.cells():
+            position = camera.cell_to_screen((origin[0] + col, origin[1] + row))
+            # Pasting replaces the cell, so it is previewed as it will look.
+            surface.fill(MAP_BACKGROUND_COLOR, (position, (size, size)))
+            if tile is not None:
+                surface.blit(self.renderer.render(tile, size, time), position)
+            if solid:
+                surface.blit(overlay, position)
+        region = (origin[0], origin[1], origin[0] + clipboard.columns - 1, origin[1] + clipboard.rows - 1)
+        pygame.draw.rect(surface, REGION_COLOR, self._region_rect(camera, region), 2)
 
     def _draw_grid(self, surface, camera, columns, rows, map_rect) -> None:
         for col in range(columns.start, columns.stop + 1):
@@ -89,6 +127,8 @@ class MapView:
             preview.set_alpha(PREVIEW_ALPHA)
             surface.blit(preview, rect)
             pygame.draw.rect(surface, HOVER_COLOR, rect, 1)
+        elif state.mode is Mode.SELECT:
+            pygame.draw.rect(surface, REGION_COLOR, rect, 1)
         else:
             pygame.draw.rect(surface, COLLISION_COLOR, rect, 2)
 

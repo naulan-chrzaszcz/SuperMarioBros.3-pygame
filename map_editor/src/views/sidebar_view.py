@@ -31,10 +31,13 @@ HELP_LINES = (
     "Middle click: pick   Middle drag: pan",
     "Wheel: scroll   Shift + wheel: sideways",
     "Ctrl + wheel, + / -: zoom   Home: fit",
-    "Arrows: move   R: rotate   C: mode",
+    "Arrows: move   R: rotate",
+    "C: tiles / collisions   S: select",
+    "Ctrl+C / X / V: copy / cut / paste",
+    "Ctrl+A: select all   Del: clear",
     "G: grid   O: solid overlay",
     "Ctrl+Z / Ctrl+Y: undo / redo",
-    "Ctrl+S: save   Esc: quit",
+    "Ctrl+S: save   Esc: close the map",
 )
 
 
@@ -167,8 +170,8 @@ class SidebarView:
             (self._frames_text(), MUTED_TEXT_COLOR),
         ]
         if not state.selection_declared:
-            metadata = state.tileset.metadata_path.name
-            lines.append((f"Not declared in {metadata}", WARNING_COLOR))
+            reason = state.tileset.missing_reason
+            lines.append((reason[0].upper() + reason[1:], WARNING_COLOR))
         for text, color in lines:
             surface.blit(font.render(text, True, color), (x, y))
             y += font.get_linesize()
