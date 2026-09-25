@@ -1,21 +1,33 @@
+from __future__ import annotations
+
+from typing import Dict
+
+from .inputs.map import Map
+from .inputs.ressources import Ressources
+
+
 class MapManager:
-    maps = {}
-    current = None
-    _instance = None
+    """Maps of ``ressources.yaml``, built the first time they are used."""
 
-    def __new__(cls, *args, **kwargs):
-        if not cls._instance:
-            cls._instance = super(MapManager, cls).__new__(cls)
-        return cls._instance
+    def __init__(self, ressources: Ressources):
+        self.ressources = ressources
+        self.maps: Dict[str, Map] = {}
+        self.current: Map | None = None
 
-    def register(self, name: str, _map) -> None:
+    def register(self, name: str, _map: Map) -> None:
         self.maps[name] = _map
 
-    def change_map(self, name: str) -> None:
-        self.current = self.maps[name]
+    def get(self, name: str) -> Map:
+        if name not in self.maps:
+            self.maps[name] = self.ressources.load_map(name)
+        return self.maps[name]
+
+    def change_map(self, name: str) -> Map:
+        self.current = self.get(name)
+        return self.current
 
     def update(self, dt: float) -> None:
-        self.current.sprites.update(dt)
+        self.current.update(dt)
 
     def draw(self, surface) -> None:
-        self.current.sprites.draw(surface)
+        self.current.draw(surface)

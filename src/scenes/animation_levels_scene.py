@@ -1,18 +1,15 @@
-from enum import Enum, auto
+from __future__ import annotations
 
 import math
+from enum import Enum, auto
 
-from pygame import Surface, Vector2, Rect, draw
+from pygame import Rect, Surface, Vector2, draw
 
+from ..constants import BLACK, STATS_BACKGROUND, WHITE
 from ..entities.player import Player
-from ..inputs.ressources import Ressources
-from ..inputs.save import Save
-from ..map_manager import MapManager
 from ..sprite_animation import SpriteAnimation
 from ..tile import Tile
-from ..hud import HUD
-from ..font import Font
-from .scene import Scene
+from .scene import GameContext, Scene
 
 
 class AnimationState(Enum):
@@ -23,150 +20,112 @@ class AnimationState(Enum):
 
 
 class AnimationLevelsScene(Scene):
+    """"WORLD 1 / MARIO x 4" card, then stars flying to the start of the map."""
+
     duration = {
-        AnimationState.PAUSE: 3,
+        AnimationState.PAUSE: 3.0,
         AnimationState.HORIZONTAL_SHRINK: 0.1,
-        AnimationState.STARS: 1,
+        AnimationState.STARS: 1.0,
     }
-    state = AnimationState.PAUSE
+    STAR_COUNT = 8
+    STAR_SIZE = 11
+    STARS_MAX_RADIUS = 100
 
-    def __init__(self):
-        super().__init__()
-        font = Font()
-        save = Save()
-        self.map_manager = MapManager()
+    def __init__(self, context: GameContext, map_name: str = "levels", next_scene: str = "levels"):
+        super().__init__(context)
+        self.map_name = map_name
+        self.next_scene = next_scene
 
-        surface_width_center = self.surface.get_width() / 2
-        surface_height_center = self.surface.get_height() / 2
-        
-        self.stats = Surface((surface_width_center, surface_height_center))
-        stats_width_center = self.stats.get_width() / 2
-        stats_height_center = self.stats.get_height() / 2
-        self.stats_pos = Vector2(
-            surface_width_center - stats_width_center,
-            surface_height_center - stats_height_center,
-        )
-        self.stats_background = Rect(
-            16, 16, self.stats.get_width() - 32, self.stats.get_height() - 32
-        )
+        width, height = self.surface.get_size()
+        self.stats = Surface((width // 2, height // 2))
+        stats_width, stats_height = self.stats.get_size()
+        self.stats_pos = Vector2(width // 2 - stats_width // 2, height // 2 - stats_height // 2)
+        self.stats_background = Rect(16, 16, stats_width - 32, stats_height - 32)
         # TODO: Draw the same frame of HUD
-        self.stats_frame = Rect(
-            14, 14, self.stats.get_width() - 28, self.stats.get_height() - 28
+        self.stats_frame = Rect(14, 14, stats_width - 28, stats_height - 28)
+        self.player = Player(
+            (), Vector2(stats_width - 32, stats_height // 2 - Tile.HEIGHT // 2), context.ressources.image("mario")
         )
-        self.stats_shrink_start_pos = Vector2(
-            self.stats.get_width(), self.stats.get_height()
-        )
-        self.stats_shrink_end_pos = Vector2(0, self.stats.get_height())
-        self.stats_shrink_current_pos = self.stats_shrink_start_pos.copy()
-        self.player = Player((), Vector2(
-            self.stats.get_width() - 32,
-            stats_height_center - Tile.HEIGHT / 2,
-        ))
-        self.player.current_animation = self.player.levels_animation
+        self.stars_sheet = context.ressources.image("stars")
+
+    def on_enter(self) -> None:
+        super().on_enter()
+        width, height = self.surface.get_size()
+        font, save, hud = self.context.font, self.context.save, self.context.hud
+        stats_width, stats_height = self.stats.get_size()
+        self.state = AnimationState.PAUSE
+        self.stats_shrink_width = stats_width
+
         self.game_level_name = font.render(save.game.level)
-        self.game_level_name_pos = Vector2(stats_height_center - self.game_level_name.get_width() / 2, 32)
+        self.game_level_name_pos = Vector2(32, 32)
         self.game_life = font.render(f"{save.game.life} X")
         self.game_life_pos = Vector2(
-            self.stats.get_width() - self.game_life.get_width() - 40,
-            stats_height_center - self.game_life.get_height() / 2,
+            stats_width - self.game_life.get_width() - 40, stats_height // 2 - self.game_life.get_height() // 2
         )
-        self.game_player = font.render(save.player.upper())
-        self.game_player_pos = Vector2(32, stats_height_center - self.game_player.get_height() / 2)
+        self.game_player = font.render(save.player)
+        self.game_player_pos = Vector2(32, stats_height // 2 - self.game_player.get_height() // 2)
+        self.player.play(self.player.levels_animation)
+        hud.refresh(save)
+        self.hud_pos = Vector2(width // 2 - hud.get_width() // 2, height - hud.get_height())
 
-        self.hud = HUD()
-        self.hud_pos = Vector2(
-            surface_width_center - self.hud.get_width() / 2,
-            self.surface.get_height() - self.hud.get_height(),
-        )
+        self.world = self.context.maps.change_map(self.map_name)
+        self.levels = Surface((self.world.width, self.world.height))
+        self.levels_pos = Vector2(0, height // 2 - self.levels.get_height() // 2)
 
-    def on_enter(self):
-        self.map_manager.change_map("levels")
-        self.levels = Surface(
-            (self.map_manager.current.width, self.map_manager.current.height)
-        )
-        self.levels_pos = Vector2(
-            0, self.surface.get_height() / 2 - self.levels.get_height() / 2
-        )
-
-        stars_sheet = Ressources()["images"]["stars"]
-        self.stars_start_pos = Vector2(
-            self.levels.get_width() / 2, self.levels.get_height() / 2
-        )
-        self.stars_levels = []
-        for _ in range(8):
-            pos = self.stars_start_pos.copy()
-            tile = Tile((), "", stars_sheet, pos, tile_width=11, tile_height=11)
-            tile.set_animation(SpriteAnimation(tile, stars_sheet, 4, 4))
-            self.stars_levels.append(tile)
-
-        self.stars_max_radius = 100
+        self.stars_start_pos = Vector2(self.levels.get_width() / 2, self.levels.get_height() / 2)
+        start = self.world.find("start")
+        self.stars_end_pos = start.vector.copy() if start is not None else self.stars_start_pos.copy()
+        self.stars = []
+        for _ in range(self.STAR_COUNT):
+            star = Tile((), "star", self.stars_sheet, self.stars_start_pos, self.STAR_SIZE, self.STAR_SIZE)
+            star.set_animation(SpriteAnimation(star, self.stars_sheet, 4, 4))
+            self.stars.append(star)
         self.stars_speed = 2 * math.pi / self.duration[AnimationState.STARS]
-        self.stars_angle = 0
-        self.star_angles = [
-            i * (2 * math.pi / len(self.stars_levels))
-            for i in range(len(self.stars_levels))
-        ]
+        self.stars_angle = 0.0
+        self.star_angles = [i * 2 * math.pi / self.STAR_COUNT for i in range(self.STAR_COUNT)]
 
-        for sprite in self.map_manager.current.sprites:
-            if sprite.id == "start":
-                self.stars_end_pos = sprite.vector
-                break
+    def _next_state(self, state: AnimationState) -> None:
+        self.state = state
+        self.timer = 0.0
 
-    def update(self, dt):
-        self.timer += dt
-        self.map_manager.update(dt)
+    def update(self, dt: float) -> None:
+        super().update(dt)
+        self.world.update(dt)
         self.player.update(dt)
 
-        match self.state:
-            case AnimationState.PAUSE:
-                if self.timer >= self.duration[self.state]:
-                    self.timer = 0
-                    self.state = AnimationState.HORIZONTAL_SHRINK
-            case AnimationState.HORIZONTAL_SHRINK:
-                t = min(self.timer / self.duration[self.state], 1.0)
-                self.stats_shrink_current_pos = self.stats_shrink_start_pos.lerp(
-                    self.stats_shrink_end_pos, t
-                )
-                if self.timer >= self.duration[self.state]:
-                    self.timer = 0
-                    self.state = AnimationState.STARS
-            case AnimationState.STARS:
-                self.stars_angle += self.stars_speed * dt
-                t = min(self.timer / self.duration[self.state], 1.0)
-                self.radius = math.sin(t * math.pi) * self.stars_max_radius
-                for i, star in enumerate(self.stars_levels):
-                    theta = self.stars_angle + self.star_angles[i]
+        if self.state == AnimationState.DONE:
+            self.manager.change_scene(self.next_scene)
+            return
+        t = min(self.timer / self.duration[self.state], 1.0)
+        if self.state == AnimationState.HORIZONTAL_SHRINK:
+            self.stats_shrink_width = round(self.stats.get_width() * (1 - t))
+        elif self.state == AnimationState.STARS:
+            self.stars_angle += self.stars_speed * dt
+            radius = math.sin(t * math.pi) * self.STARS_MAX_RADIUS
+            centre = self.stars_start_pos.lerp(self.stars_end_pos, t)
+            for star, angle in zip(self.stars, self.star_angles):
+                theta = self.stars_angle + angle
+                star.vector.update(centre.x + radius * math.cos(theta), centre.y + radius * math.sin(theta))
+                star.update(dt)
+        if t >= 1.0:
+            self._next_state(list(AnimationState)[list(AnimationState).index(self.state) + 1])
 
-                    base_pos = self.stars_start_pos.lerp(self.stars_end_pos, t)
-                    x = base_pos.x + self.radius * math.cos(theta)
-                    y = base_pos.y + self.radius * math.sin(theta)
-
-                    star.vector.update(x, y)
-                    star.update(dt)
-
-                if self.timer >= self.duration[self.state]:
-                    self.timer = 0
-                    self.state = AnimationState.DONE
-            case AnimationState.DONE:
-                self.manager.change_scene("levels")
-
-    def draw(self):
-        self.surface.fill((0, 0, 0))
-        self.map_manager.draw(self.levels)
-
+    def draw(self) -> None:
+        self.surface.fill(BLACK)
+        self.world.draw(self.levels)
         if self.state == AnimationState.STARS:
-            for star in self.stars_levels:
-                self.levels.blit(star.image, star.vector)
-
+            for star in self.stars:
+                self.levels.blit(star.image, star.rect)
         self.surface.blit(self.levels, self.levels_pos)
-        if self.state != AnimationState.STARS:
-            self.stats.fill((0, 0, 0))
-            draw.rect(self.stats, (255, 255, 255), self.stats_frame)
-            draw.rect(self.stats, (175, 232, 226), self.stats_background)
+
+        if self.state in (AnimationState.PAUSE, AnimationState.HORIZONTAL_SHRINK) and self.stats_shrink_width > 0:
+            self.stats.fill(BLACK)
+            draw.rect(self.stats, WHITE, self.stats_frame)
+            draw.rect(self.stats, STATS_BACKGROUND, self.stats_background)
             self.stats.blit(self.game_level_name, self.game_level_name_pos)
             self.stats.blit(self.game_life, self.game_life_pos)
             self.stats.blit(self.game_player, self.game_player_pos)
-            self.stats.blit(self.player.image, self.player.vector)
-            stats = self.stats.subsurface((0, 0), self.stats_shrink_current_pos)
+            self.stats.blit(self.player.image, self.player.rect)
+            stats = self.stats.subsurface((0, 0), (self.stats_shrink_width, self.stats.get_height()))
             self.surface.blit(stats, self.stats_pos)
-        self.surface.blit(self.hud, self.hud_pos)
+        self.surface.blit(self.context.hud.image, self.hud_pos)
