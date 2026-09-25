@@ -15,18 +15,24 @@ class TileSelectionSurface(pygame.Surface):
         )
 
     def handle_event(self, event) -> None:
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            mouse_x, mouse_y = pygame.mouse.get_pos()
-            self.selection_x = mouse_x // TILE_SIZE
-            self.selection_y = mouse_y // TILE_SIZE
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            mouse_x, mouse_y = event.pos
+            self.selection_x = min(
+                mouse_x // TILE_SIZE,
+                self.sheet_image.get_width() // TILE_SIZE - 1,
+            )
+            self.selection_y = min(
+                mouse_y // TILE_SIZE,
+                self.sheet_image.get_height() // TILE_SIZE - 1,
+            )
         if event.type == pygame.MOUSEWHEEL:
             self.selection_x = min(
                 self.sheet_image.width // TILE_SIZE - 1,
-                self.selection_x + event.precise_x,
+                self.selection_x + event.x,
             )
             self.selection_y = min(
                 self.get_height() // TILE_SIZE - 1,
-                self.selection_y + event.precise_y,
+                self.selection_y + event.y,
             )
             self.selection_x = max(self.selection_x, 0)
             self.selection_y = max(self.selection_y, 0)

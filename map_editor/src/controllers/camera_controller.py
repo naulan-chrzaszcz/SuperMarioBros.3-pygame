@@ -9,15 +9,14 @@ class CameraController(pygame.Rect):
 
     def handle_event(self, event):
         if event.type == pygame.KEYDOWN:
-            match event.key:
-                case pygame.K_UP:
-                    self.update(self.left, self.top - self.height)
-                case pygame.K_DOWN:
-                    self.update(self.left, self.top + self.height)
-                case pygame.K_RIGHT:
-                    self.update(self.left + self.width, self.top)
-                case pygame.K_LEFT:
-                    self.update(self.left - self.width, self.top)
+            if event.key == pygame.K_UP:
+                self.update(self.left, self.top - self.height)
+            elif event.key == pygame.K_DOWN:
+                self.update(self.left, self.top + self.height)
+            elif event.key == pygame.K_RIGHT:
+                self.update(self.left + self.width, self.top)
+            elif event.key == pygame.K_LEFT:
+                self.update(self.left - self.width, self.top)
 
     def update(self, x, y):
         x = min(x, self.width_surface - self.width)

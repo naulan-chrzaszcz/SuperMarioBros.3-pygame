@@ -1,4 +1,4 @@
-from src.constantes import TILE_SIZE
+from ..constantes import TILE_SIZE
 
 import pygame
 
@@ -12,14 +12,14 @@ class MapEditorView(pygame.Surface):
         self.collidable_tile_surface.set_alpha(50)
         self.grid_surface = pygame.Surface(size, pygame.SRCALPHA)
 
-    def draw(self, model, camera) -> None:
+    def draw(self, model, camera, preview_tile, collision_mode: bool) -> None:
         self.tile_surface.fill((0, 0, 0))
-        self.cursor_surface.fill((0, 0, 0))
+        self.cursor_surface.fill((0, 0, 0, 0))
         self.collidable_tile_surface.fill((0, 0, 0, 0))
         self.grid_surface.fill((0, 0, 0, 0))
 
         for pos, tile in model.tiles.items():
-            self.view.tile_surface.blit(tile.surface, pos)
+            self.tile_surface.blit(tile.surface, pos)
         for pos, rect in model.collidables.items():
             pygame.draw.rect(self.collidable_tile_surface, (255, 0, 0), rect)
 
@@ -39,30 +39,26 @@ class MapEditorView(pygame.Surface):
                 (row * TILE_SIZE, self.grid_surface.get_height()),
             )
 
-        if not cmd_surface.collidable_btn.value:
-            # Display tile selection following the cursor
-            self.tile_surface.blit(
-                pygame.transform.rotate(
-                    model.sheet.subsurface(
-                        (
-                            (
-                                self.model.tile_sheet_selection_x * TILE_SIZE,
-                                self.model.tile_sheet_selection_y * TILE_SIZE,
-                            ),
-                            (TILE_SIZE, TILE_SIZE),
-                        )
-                    ),
-                    self.model.tile_rotation,
-                ),
-                (self.model.tile_selection_x, self.model.tile_selection_y),
+        if not collision_mode:
+            preview = preview_tile.surface.copy()
+            preview.set_alpha(160)
+            self.cursor_surface.blit(
+                preview,
+                (model.tile_selection_x, model.tile_selection_y),
             )
         else:
             pygame.draw.rect(
-                map_surface_collidable,
-                (255, 0, 0),
-                pygame.Rect(map_tile_selection_x, map_tile_selection_y, 16, 16),
+                self.cursor_surface,
+                (255, 0, 0, 160),
+                pygame.Rect(
+                    model.tile_selection_x,
+                    model.tile_selection_y,
+                    TILE_SIZE,
+                    TILE_SIZE,
+                ),
             )
 
+        self.fill((0, 0, 0))
         self.blit(
             pygame.transform.scale(
                 self.tile_surface.subsurface(camera), self.get_size()
@@ -87,4 +83,3 @@ class MapEditorView(pygame.Surface):
             ),
             (0, 0),
         )
-

@@ -35,7 +35,9 @@ class Map:
                 if y.count(self.TILE_FRAMES_SEPARATOR) > 0:
                     y, y_frames = y.split(self.TILE_FRAMES_SEPARATOR)
                     if y_frames.count(self.TILE_ROTATION_SEPARATOR) > 0:
-                        y_frames, rotation = y.split(self.TILE_ROTATION_SEPARATOR)
+                        y_frames, rotation = y_frames.split(
+                            self.TILE_ROTATION_SEPARATOR
+                        )
                 elif y.count(self.TILE_ROTATION_SEPARATOR) > 0:
                     y, rotation = y.split(self.TILE_ROTATION_SEPARATOR)
 
@@ -71,6 +73,7 @@ class Map:
                             x_frames if x_frames > 1 else y_frames,
                             1.5,  # TODO: speed animation should be parameterized
                             subsurface_direction="x" if x_frames > 1 else "y",
+                            rotation=int(rotation) * 90,
                         )
                     )
 

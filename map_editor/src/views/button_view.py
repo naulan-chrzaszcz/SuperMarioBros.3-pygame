@@ -17,7 +17,7 @@ class ButtonView:
             ),
         )
 
-        text = self.font.render(self.model.text, False, (255, 255, 255))
+        text = self.font.render(self.model.text or "", False, (255, 255, 255))
         surface.blit(
             text,
             pygame.Vector2(

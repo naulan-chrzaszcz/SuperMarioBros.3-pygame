@@ -6,7 +6,7 @@ import argparse
 
 @dataclass
 class MapEditorCLI:
-    map_width : int
+    map_width: int
     map_height: int
     sheet_path: Path
     map_name: Path
@@ -36,7 +36,10 @@ class MapEditorCLI:
         )
         args = parser.parse_args()
 
+        if args.map_width <= 0:
+            parser.error("Map width must be positive")
+        if args.map_height <= 0:
+            parser.error("Map height must be positive")
         if not args.sheet_path.is_file():
             parser.error(f"Tileset not found: {args.sheet_path}")
         return cls(**vars(args))
-

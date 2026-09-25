@@ -2,7 +2,7 @@ import pygame
 
 from dataclasses import dataclass
 
-from src.constantes import TILE_SIZE
+from ..constantes import TILE_SIZE
 
 
 @dataclass
@@ -13,4 +13,3 @@ class TileSelectionModel:
     selection_rect = pygame.Rect(
         selection_x, selection_y, TILE_SIZE, TILE_SIZE
     )
-
