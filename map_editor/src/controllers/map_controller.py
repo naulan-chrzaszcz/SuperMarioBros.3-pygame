@@ -3,7 +3,7 @@ from typing import Iterator, Optional
 import pygame
 
 from ..constantes import SCROLL_TILES, TILE_SIZE
-from ..models import EditorState, MapEditorModel, MessageLevel, Mode
+from ..models import EditorState, MapEditorModel, MessageLevel, Mode, make_region, region_size
 from ..views.camera import Camera, Cell
 from ..views.map_view import RectangleSelection
 
@@ -93,6 +93,16 @@ class MapController:
         if event.button == 2:
             self._panning = True
             self._pan_distance = 0
+        elif self.state.pasting:
+            if event.button == 1:
+                self.paste_at(cell)
+            elif event.button == 3:
+                self.state.pasting = False
+        elif self.state.mode is Mode.SELECT:
+            if event.button == 1:
+                self._rectangle = (cell, cell, 1)
+            elif event.button == 3:
+                self.state.region = None
         elif event.button in (1, 3):
             if pygame.key.get_mods() & pygame.KMOD_SHIFT:
                 self._rectangle = (cell, cell, event.button)
@@ -113,6 +123,9 @@ class MapController:
         elif self._rectangle is not None and event.button == self._rectangle[2]:
             start, _, button = self._rectangle
             self._rectangle = None
+            if self.state.mode is Mode.SELECT:
+                self.state.region = self.model.clip_region(make_region(start, cell))
+                return
             with self.model.edit():
                 for rectangle_cell in self.model.cells_between(start, cell):
                     self._apply(rectangle_cell, button)
@@ -126,6 +139,53 @@ class MapController:
         name = self.state.selected_name or f"{tile.x},{tile.y}"
         self.state.notify(f"Picked {name}")
 
+    def select_all(self) -> None:
+        self.state.set_mode(Mode.SELECT)
+        self.state.region = (0, 0, self.model.columns - 1, self.model.rows - 1)
+
+    def copy(self) -> bool:
+        region = self.state.region
+        if region is None:
+            self.state.notify("Select an area first (S, then drag on the map)")
+            return False
+        clipboard = self.model.copy(region, self.state.tileset.sheet_path)
+        if clipboard.is_empty:
+            self.state.notify("The selected area is empty")
+            return False
+        self.state.clipboard = clipboard
+        columns, rows = region_size(region)
+        self.state.notify(f"Copied {columns}x{rows} cells (Ctrl+V to paste)", MessageLevel.SUCCESS)
+        return True
+
+    def cut(self) -> None:
+        if self.copy():
+            self.model.clear(self.state.region)
+
+    def delete_selection(self) -> None:
+        if self.state.region is None:
+            self.state.notify("Select an area first (S, then drag on the map)")
+        else:
+            self.model.clear(self.state.region)
+
+    def start_pasting(self) -> None:
+        clipboard = self.state.clipboard
+        if clipboard is None or clipboard.is_empty:
+            self.state.notify("Nothing to paste: copy an area first (Ctrl+C)")
+            return
+        if clipboard.sheet_path != self.state.tileset.sheet_path:
+            self.state.notify("The copied cells use another tileset", MessageLevel.WARNING)
+            return
+        self.state.start_pasting()
+        self.state.notify("Click to paste (R: rotate, right click / Esc: stop)", duration=6.0)
+
+    def paste_at(self, cell: Cell) -> None:
+        skipped = self.model.paste(self.state.clipboard, cell, self.state.tileset)
+        if skipped:
+            self.state.notify(
+                f"{skipped} tile(s) {self.state.tileset.missing_reason} were not pasted",
+                MessageLevel.WARNING,
+            )
+
     def _apply(self, cell: Cell, button: int) -> None:
         if not self.model.contains(cell):
             return
@@ -136,9 +196,8 @@ class MapController:
         elif self.state.selection_declared:
             self.model.set_tile(cell, self.state.selected_tile())
         else:
-            metadata = self.state.tileset.metadata_path.name
             self.state.notify(
-                f"This tile is not declared in {metadata}: the game could not load it",
+                f"This tile is {self.state.tileset.missing_reason}: the game could not load it",
                 MessageLevel.WARNING,
             )
 

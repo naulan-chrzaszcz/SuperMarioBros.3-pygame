@@ -4,12 +4,14 @@ from typing import Optional
 
 from ..constantes import MESSAGE_DURATION
 from ..outputs.tile import Tile
+from .clipboard import Clipboard, Region
 from .tileset import Tileset
 
 
 class Mode(Enum):
     TILES = "Tiles"
     COLLISIONS = "Collisions"
+    SELECT = "Select"
 
 
 class MessageLevel(Enum):
@@ -35,6 +37,9 @@ class EditorState:
     message: str = ""
     message_level: MessageLevel = MessageLevel.INFO
     message_timer: float = 0.0
+    region: Optional[Region] = None
+    clipboard: Optional[Clipboard] = None
+    pasting: bool = False
 
     def __post_init__(self) -> None:
         if not self.tileset.is_declared(self.selection_x, self.selection_y):
@@ -102,10 +107,33 @@ class EditorState:
         self.rotation = tile.rotation
         self.set_frames_x(tile.x_frames)
         self.set_frames_y(tile.y_frames)
-        self.mode = Mode.TILES
+        self.set_mode(Mode.TILES)
+
+    def set_mode(self, mode: Mode) -> None:
+        self.mode = mode
+        self.pasting = False
+        if mode is not Mode.SELECT:
+            self.region = None
 
     def toggle_mode(self) -> None:
-        self.mode = Mode.COLLISIONS if self.mode is Mode.TILES else Mode.TILES
+        self.set_mode(Mode.COLLISIONS if self.mode is Mode.TILES else Mode.TILES)
+
+    def toggle_select_mode(self) -> None:
+        self.set_mode(Mode.TILES if self.mode is Mode.SELECT else Mode.SELECT)
+
+    @property
+    def can_paste(self) -> bool:
+        return self.clipboard is not None and not self.clipboard.is_empty
+
+    def start_pasting(self) -> bool:
+        if not self.can_paste:
+            return False
+        self.pasting = True
+        return True
+
+    def rotate_clipboard(self, direction: int = 1) -> None:
+        if self.clipboard is not None:
+            self.clipboard = self.clipboard.rotated(direction)
 
     def notify(
         self,

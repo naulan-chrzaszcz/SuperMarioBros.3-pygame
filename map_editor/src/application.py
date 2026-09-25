@@ -12,7 +12,7 @@ from .constantes import (
     MIN_WINDOW_SIZE,
 )
 from .controllers import ApplicationController, MapController, SidebarController
-from .models import EditorState, MapEditorModel, MessageLevel, Mode, Tileset
+from .models import Clipboard, EditorState, MapEditorModel, MessageLevel, Mode, Tileset
 from .views import (
     ApplicationView,
     Button,
@@ -35,10 +35,12 @@ class MapEditorApplication:
         sheet_path: Path,
         size: Optional[Tuple[int, int]] = None,
         window_size: Optional[Tuple[int, int]] = None,
+        clipboard: Optional[Clipboard] = None,
     ) -> None:
         self.map_path = Path(map_path)
         self.tileset = Tileset.load(sheet_path)
-        self.state = EditorState(self.tileset)
+        # The clipboard is kept when another map is opened from the launcher.
+        self.state = EditorState(self.tileset, clipboard=clipboard)
 
         if self.map_path.is_file():
             self.model = MapEditorModel.from_file(self.map_path)
@@ -52,8 +54,7 @@ class MapEditorApplication:
         undeclared = self.model.undeclared_tiles(self.tileset)
         if undeclared:
             self.state.notify(
-                f"{len(undeclared)} tile type(s) of this map are not declared in "
-                f"{self.tileset.metadata_path.name}",
+                f"{len(undeclared)} tile type(s) of this map are {self.tileset.missing_reason}",
                 MessageLevel.WARNING,
             )
 
@@ -124,6 +125,7 @@ class MapEditorApplication:
     def _create_buttons(self):
         state = self.state
         controller = self.controller
+        maps = self.map_controller
         return [
             [
                 Button("Rotate  (R)", state.rotate),
@@ -140,10 +142,19 @@ class MapEditorApplication:
                 Button("+", lambda: state.set_frames_y(state.frames_y + 1)),
             ],
             [
-                Button("Tiles", lambda: setattr(state, "mode", Mode.TILES),
+                Button("Tiles", lambda: state.set_mode(Mode.TILES),
                        is_active=lambda: state.mode is Mode.TILES),
-                Button("Collisions", lambda: setattr(state, "mode", Mode.COLLISIONS),
+                Button("Collisions", lambda: state.set_mode(Mode.COLLISIONS),
                        is_active=lambda: state.mode is Mode.COLLISIONS),
+                Button("Select", lambda: state.set_mode(Mode.SELECT),
+                       is_active=lambda: state.mode is Mode.SELECT),
+            ],
+            [
+                Button("Copy", maps.copy, is_enabled=lambda: state.region is not None),
+                Button("Cut", maps.cut, is_enabled=lambda: state.region is not None),
+                Button("Paste", maps.start_pasting,
+                       is_active=lambda: state.pasting, is_enabled=lambda: state.can_paste),
+                Button("Clear", maps.delete_selection, is_enabled=lambda: state.region is not None),
             ],
             [
                 Button("Grid  (G)", lambda: setattr(state, "show_grid", not state.show_grid),

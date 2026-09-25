@@ -21,6 +21,7 @@ class Tileset:
     image: pygame.Surface
     names: Dict[SheetCell, str] = field(default_factory=dict)
     metadata_path: Optional[Path] = None
+    sheet_path: Optional[Path] = None
 
     @property
     def columns(self) -> int:
@@ -33,6 +34,13 @@ class Tileset:
     @property
     def has_metadata(self) -> bool:
         return self.metadata_path is not None
+
+    @property
+    def missing_reason(self) -> str:
+        """Why a tile that is not declared cannot be used, for messages."""
+        if self.metadata_path is not None:
+            return f"not declared in {self.metadata_path.name}"
+        return "outside the tileset image"
 
     def contains(self, x: int, y: int) -> bool:
         return 0 <= x < self.columns and 0 <= y < self.rows
@@ -52,7 +60,19 @@ class Tileset:
 
     @classmethod
     def load(cls, sheet_path: Path, ressources_file: Path = RESSOURCES_FILE) -> "Tileset":
-        """Loads a sheet with the color key and metadata used by the game.
+        """Loads a sheet with the color key and metadata used by the game."""
+        sheet_path = Path(sheet_path).resolve()
+        color_key, metadata_path = cls.settings_of(sheet_path, ressources_file)
+        image = pygame.image.load(sheet_path)
+        if color_key is not None:
+            image.set_colorkey(color_key)
+        return cls(image, cls.read_names(metadata_path) if metadata_path else {}, metadata_path, sheet_path)
+
+    @classmethod
+    def settings_of(
+        cls, sheet_path: Path, ressources_file: Path = RESSOURCES_FILE
+    ) -> Tuple[Optional[Tuple[int, int, int]], Optional[Path]]:
+        """Color key and metadata file of a sheet.
 
         Settings come from the matching ``ressources.yaml`` image entry, and fall
         back to a ``<sheet>.yaml`` file next to the image.
@@ -69,12 +89,7 @@ class Tileset:
                 metadata_path = (Path(ressources_file).parent / entry["metadata"]).resolve()
         if metadata_path is None and sheet_path.with_suffix(".yaml").is_file():
             metadata_path = sheet_path.with_suffix(".yaml")
-
-        image = pygame.image.load(sheet_path)
-        if color_key is not None:
-            image.set_colorkey(color_key)
-        names = cls._read_names(metadata_path) if metadata_path else {}
-        return cls(image, names, metadata_path)
+        return color_key, metadata_path
 
     @staticmethod
     def _find_ressource_entry(sheet_path: Path, ressources_file: Path) -> Optional[dict]:
@@ -88,7 +103,7 @@ class Tileset:
         return None
 
     @staticmethod
-    def _read_names(metadata_path: Path) -> Dict[SheetCell, str]:
+    def read_names(metadata_path: Path) -> Dict[SheetCell, str]:
         with metadata_path.open(encoding="utf-8") as file:
             metadata = yaml.safe_load(file) or {}
         return {
