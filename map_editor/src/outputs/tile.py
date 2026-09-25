@@ -1,16 +1,16 @@
-from dataclasses import dataclass, field
-from typing import Optional
-
-import pygame
+from dataclasses import dataclass
 
 
-@dataclass
+@dataclass(frozen=True)
 class Tile:
+    """A sheet tile placed in a map cell. ``rotation`` is in degrees."""
+
     x: int
     y: int
-    x_frames: int
-    y_frames: int
-    rotation: int
-    surface: Optional[pygame.Surface] = field(
-        repr=False, compare=False, default=None
-    )
+    x_frames: int = 1
+    y_frames: int = 1
+    rotation: int = 0
+
+    @property
+    def frames(self) -> int:
+        return max(self.x_frames, self.y_frames)

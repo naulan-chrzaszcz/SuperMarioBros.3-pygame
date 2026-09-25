@@ -1,11 +1,5 @@
-from .button_controller import ButtonController
-from .camera_controller import CameraController
-from .map_editor_controller import MapEditorController
 from .application_controller import ApplicationController
+from .map_controller import MapController
+from .sidebar_controller import SidebarController
 
-__all__ = [
-    "ApplicationController",
-    "ButtonController",
-    "CameraController",
-    "MapEditorController",
-]
+__all__ = ["ApplicationController", "MapController", "SidebarController"]

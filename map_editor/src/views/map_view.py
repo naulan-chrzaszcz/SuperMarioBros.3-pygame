@@ -1,0 +1,123 @@
+from typing import Dict, Optional, Tuple
+
+import pygame
+
+from ..constantes import (
+    BORDER_COLOR,
+    COLLISION_COLOR,
+    GRID_COLOR,
+    HOVER_COLOR,
+    MAP_BACKGROUND_COLOR,
+    OUT_OF_MAP_COLOR,
+)
+from ..models import EditorState, MapEditorModel, Mode
+from .camera import Camera, Cell
+from .tile_renderer import TileRenderer
+
+RectangleSelection = Tuple[Cell, Cell, int]
+
+PREVIEW_ALPHA = 150
+COLLISION_ALPHA = 110
+COLLISION_OVERLAY_ALPHA = 55
+MIN_GRID_TILE_SIZE = 8
+
+
+class MapView:
+    """Draws the visible part of the map, the grid, collisions and the cursor."""
+
+    def __init__(self, renderer: TileRenderer) -> None:
+        self.renderer = renderer
+        self._collision_cache: Dict[Tuple[int, int], pygame.Surface] = {}
+
+    def draw(
+        self,
+        surface: pygame.Surface,
+        camera: Camera,
+        model: MapEditorModel,
+        state: EditorState,
+        hover_cell: Optional[Cell],
+        rectangle: Optional[RectangleSelection],
+        time: float,
+    ) -> None:
+        viewport = camera.viewport
+        size = camera.tile_size
+        map_rect = camera.map_rect()
+
+        surface.set_clip(viewport)
+        surface.fill(OUT_OF_MAP_COLOR, viewport)
+        surface.fill(MAP_BACKGROUND_COLOR, map_rect.clip(viewport))
+
+        columns, rows = camera.visible_cells()
+        for row in rows:
+            for col in columns:
+                tile = model.tiles.get((col, row))
+                if tile is not None:
+                    surface.blit(
+                        self.renderer.render(tile, size, time),
+                        camera.cell_to_screen((col, row)),
+                    )
+
+        if state.show_collisions or state.mode is Mode.COLLISIONS:
+            alpha = COLLISION_ALPHA if state.mode is Mode.COLLISIONS else COLLISION_OVERLAY_ALPHA
+            overlay = self._collision_overlay(size, alpha)
+            for col, row in model.collidables:
+                if col in columns and row in rows:
+                    surface.blit(overlay, camera.cell_to_screen((col, row)))
+
+        if state.show_grid and size >= MIN_GRID_TILE_SIZE:
+            self._draw_grid(surface, camera, columns, rows, map_rect)
+        pygame.draw.rect(surface, BORDER_COLOR, map_rect.inflate(2, 2), 1)
+
+        if rectangle is not None:
+            self._draw_rectangle(surface, camera, model, state, rectangle)
+        elif hover_cell is not None and model.contains(hover_cell):
+            self._draw_cursor(surface, camera, state, hover_cell, time)
+        surface.set_clip(None)
+
+    def _draw_grid(self, surface, camera, columns, rows, map_rect) -> None:
+        for col in range(columns.start, columns.stop + 1):
+            x = camera.cell_to_screen((col, 0))[0]
+            pygame.draw.line(surface, GRID_COLOR, (x, map_rect.top), (x, map_rect.bottom - 1))
+        for row in range(rows.start, rows.stop + 1):
+            y = camera.cell_to_screen((0, row))[1]
+            pygame.draw.line(surface, GRID_COLOR, (map_rect.left, y), (map_rect.right - 1, y))
+
+    def _draw_cursor(self, surface, camera, state, cell, time) -> None:
+        rect = pygame.Rect(camera.cell_to_screen(cell), (camera.tile_size, camera.tile_size))
+        if state.mode is Mode.TILES:
+            preview = self.renderer.render(state.selected_tile(), camera.tile_size, time).copy()
+            preview.set_alpha(PREVIEW_ALPHA)
+            surface.blit(preview, rect)
+            pygame.draw.rect(surface, HOVER_COLOR, rect, 1)
+        else:
+            pygame.draw.rect(surface, COLLISION_COLOR, rect, 2)
+
+    def _draw_rectangle(self, surface, camera, model, state, rectangle) -> None:
+        start, end, button = rectangle
+        cells = list(model.cells_between(start, end))
+        if not cells:
+            return
+        top_left = camera.cell_to_screen(cells[0])
+        bottom_right = camera.cell_to_screen((cells[-1][0] + 1, cells[-1][1] + 1))
+        rect = pygame.Rect(top_left, (bottom_right[0] - top_left[0], bottom_right[1] - top_left[1]))
+
+        erase = button != 1
+        if state.mode is Mode.TILES and not erase:
+            preview = self.renderer.render(state.selected_tile(), camera.tile_size).copy()
+            preview.set_alpha(PREVIEW_ALPHA)
+            for cell in cells:
+                surface.blit(preview, camera.cell_to_screen(cell))
+        else:
+            shade = pygame.Surface(rect.size, pygame.SRCALPHA)
+            color = COLLISION_COLOR if state.mode is Mode.COLLISIONS and not erase else (0, 0, 0)
+            shade.fill((*color, 120))
+            surface.blit(shade, rect)
+        pygame.draw.rect(surface, COLLISION_COLOR if erase else HOVER_COLOR, rect, 2)
+
+    def _collision_overlay(self, size: int, alpha: int) -> pygame.Surface:
+        key = (size, alpha)
+        if key not in self._collision_cache:
+            overlay = pygame.Surface((size, size), pygame.SRCALPHA)
+            overlay.fill((*COLLISION_COLOR, alpha))
+            self._collision_cache[key] = overlay
+        return self._collision_cache[key]

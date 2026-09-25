@@ -1,110 +1,207 @@
-from pathlib import Path
+from contextlib import contextmanager
 from dataclasses import dataclass, field
-from typing import Dict, Tuple
+from pathlib import Path
+from typing import Dict, Iterable, Iterator, List, Optional, Set, Tuple
 
-import pygame
-
-from ..constantes import TILE_SIZE
-from ..outputs.map import Map
+from ..constantes import HISTORY_LIMIT
+from ..outputs.map import Cell, Map
 from ..outputs.tile import Tile
+from .tileset import SheetCell, Tileset
 
 
 @dataclass
-class MapEditorModel:
-    width: int
-    height: int
-    sheet: pygame.Surface
-    tiles: Dict[Tuple[int, int], Tile] = field(default_factory=dict)
-    collidables: Dict[Tuple[int, int], pygame.Rect] = field(default_factory=dict)
-    tile_selection_x: int = 0
-    tile_selection_y: int = 0
-    dirty: bool = False
+class Edit:
+    """One undoable user action: the previous and new value of every changed cell."""
 
-    def __post_init__(self) -> None:
-        if self.width <= 0 or self.height <= 0:
-            raise ValueError("Map dimensions must be positive")
-        if self.width % TILE_SIZE or self.height % TILE_SIZE:
-            raise ValueError("Map dimensions must be multiples of the tile size")
+    tiles: Dict[Cell, Tuple[Optional[Tile], Optional[Tile]]] = field(default_factory=dict)
+    collisions: Dict[Cell, Tuple[bool, bool]] = field(default_factory=dict)
 
-    def add_tile(self, col: int, row: int, tile: Tile) -> None:
-        self._validate_cell(col, row)
-        self.tiles[(col * TILE_SIZE, row * TILE_SIZE)] = tile
-        self.dirty = True
+    def is_empty(self) -> bool:
+        return not self.tiles and not self.collisions
 
-    def remove_tile(self, col: int, row: int) -> None:
-        if self.tiles.pop((col * TILE_SIZE, row * TILE_SIZE), None) is not None:
-            self.dirty = True
-
-    def set_collidable(self, col: int, row: int, value: bool) -> None:
-        self._validate_cell(col, row)
-        pos = (col * TILE_SIZE, row * TILE_SIZE)
-        if value:
-            if pos in self.collidables:
-                return
-            self.collidables[pos] = pygame.Rect(*pos, TILE_SIZE, TILE_SIZE)
+    def record_tile(self, cell: Cell, old: Optional[Tile], new: Optional[Tile]) -> None:
+        old = self.tiles.get(cell, (old, None))[0]
+        if old == new:
+            self.tiles.pop(cell, None)
         else:
-            if self.collidables.pop(pos, None) is None:
-                return
-        self.dirty = True
+            self.tiles[cell] = (old, new)
 
-    def load(self, path: Path) -> None:
-        data = Map.read(path)
-        rows = len(data["tiles"])
-        columns = len(data["tiles"][0])
-        if columns * TILE_SIZE != self.width or rows * TILE_SIZE != self.height:
-            raise ValueError(
-                f"Map file is {columns}x{rows} tiles, expected "
-                f"{self.width // TILE_SIZE}x{self.height // TILE_SIZE}"
-            )
+    def record_collision(self, cell: Cell, old: bool, new: bool) -> None:
+        old = self.collisions.get(cell, (old, None))[0]
+        if old == new:
+            self.collisions.pop(cell, None)
+        else:
+            self.collisions[cell] = (old, new)
 
-        loaded_tiles = {}
-        loaded_collidables = {}
-        for row, tiles in enumerate(data["tiles"]):
-            for col, tile_data in enumerate(tiles):
-                tile = Map.decode_tile(tile_data)
-                if tile is None:
-                    continue
-                self._validate_sheet_tile(tile)
-                tile.surface = self.create_tile_surface(tile)
-                loaded_tiles[(col * TILE_SIZE, row * TILE_SIZE)] = tile
 
-        for row, collidables in enumerate(data["collidables"]):
-            for col, collidable in enumerate(collidables):
-                if collidable:
-                    loaded_collidables[(col * TILE_SIZE, row * TILE_SIZE)] = (
-                        pygame.Rect(
-                            col * TILE_SIZE,
-                            row * TILE_SIZE,
-                            TILE_SIZE,
-                            TILE_SIZE,
-                        )
-                    )
-        self.tiles = loaded_tiles
-        self.collidables = loaded_collidables
-        self.dirty = False
+class MapEditorModel:
+    """The edited map, in cell coordinates, with an undo/redo history."""
 
-    def create_tile_surface(self, tile: Tile) -> pygame.Surface:
-        self._validate_sheet_tile(tile)
-        return pygame.transform.rotate(
-            self.sheet.subsurface(
-                (tile.x * TILE_SIZE, tile.y * TILE_SIZE),
-                (TILE_SIZE, TILE_SIZE),
-            ).copy(),
-            tile.rotation,
-        )
+    def __init__(
+        self,
+        columns: int,
+        rows: int,
+        tiles: Optional[Dict[Cell, Tile]] = None,
+        collidables: Iterable[Cell] = (),
+    ) -> None:
+        if columns <= 0 or rows <= 0:
+            raise ValueError("Map dimensions must be positive")
+        self.columns = columns
+        self.rows = rows
+        self.tiles: Dict[Cell, Tile] = {}
+        self.collidables: Set[Cell] = set()
+        for cell, tile in (tiles or {}).items():
+            self._check_cell(cell)
+            self.tiles[cell] = tile
+        for cell in collidables:
+            self._check_cell(cell)
+            self.collidables.add(cell)
 
-    def _validate_cell(self, col: int, row: int) -> None:
-        if not 0 <= col < self.width // TILE_SIZE:
-            raise ValueError(f"Column is outside the map: {col}")
-        if not 0 <= row < self.height // TILE_SIZE:
-            raise ValueError(f"Row is outside the map: {row}")
+        self._undo: List[Edit] = []
+        self._redo: List[Edit] = []
+        self._current: Optional[Edit] = None
+        self._saved_edit: Optional[Edit] = None
+        self._resized = False
 
-    def _validate_sheet_tile(self, tile: Tile) -> None:
-        sheet_columns = self.sheet.get_width() // TILE_SIZE
-        sheet_rows = self.sheet.get_height() // TILE_SIZE
-        if not 0 <= tile.x < sheet_columns or not 0 <= tile.y < sheet_rows:
-            raise ValueError(f"Tile coordinates are outside the tileset: {tile.x},{tile.y}")
-        if tile.x + tile.x_frames > sheet_columns:
-            raise ValueError("Horizontal animation frames exceed the tileset")
-        if tile.y + tile.y_frames > sheet_rows:
-            raise ValueError("Vertical animation frames exceed the tileset")
+    @classmethod
+    def from_file(cls, path: Path) -> "MapEditorModel":
+        columns, rows, tiles, collidables = Map.read(path)
+        return cls(columns, rows, tiles, collidables)
+
+    def save(self, path: Path) -> None:
+        self.end_edit()
+        Map.write(path, self.columns, self.rows, self.tiles, self.collidables)
+        self._saved_edit = self._last_edit()
+        self._resized = False
+
+    @property
+    def dirty(self) -> bool:
+        return self._resized or self._last_edit() is not self._saved_edit
+
+    @property
+    def can_undo(self) -> bool:
+        return bool(self._undo) or (self._current is not None and not self._current.is_empty())
+
+    @property
+    def can_redo(self) -> bool:
+        return bool(self._redo)
+
+    def contains(self, cell: Cell) -> bool:
+        return 0 <= cell[0] < self.columns and 0 <= cell[1] < self.rows
+
+    def cells_between(self, start: Cell, end: Cell) -> Iterator[Cell]:
+        """Cells of the rectangle defined by two corners, clipped to the map."""
+        left, right = sorted((start[0], end[0]))
+        top, bottom = sorted((start[1], end[1]))
+        for row in range(max(top, 0), min(bottom, self.rows - 1) + 1):
+            for col in range(max(left, 0), min(right, self.columns - 1) + 1):
+                yield col, row
+
+    def begin_edit(self) -> None:
+        if self._current is None:
+            self._current = Edit()
+
+    def end_edit(self) -> None:
+        edit, self._current = self._current, None
+        if edit is None or edit.is_empty():
+            return
+        self._undo.append(edit)
+        del self._undo[:-HISTORY_LIMIT]
+        self._redo.clear()
+
+    @contextmanager
+    def edit(self) -> Iterator[None]:
+        """Groups every change made inside the block into a single undo step."""
+        owner = self._current is None
+        self.begin_edit()
+        try:
+            yield
+        finally:
+            if owner:
+                self.end_edit()
+
+    def set_tile(self, cell: Cell, tile: Optional[Tile]) -> bool:
+        if not self.contains(cell):
+            return False
+        old = self.tiles.get(cell)
+        if old == tile:
+            return False
+        with self.edit():
+            self._current.record_tile(cell, old, tile)
+            self._apply_tile(cell, tile)
+        return True
+
+    def set_collidable(self, cell: Cell, value: bool) -> bool:
+        if not self.contains(cell):
+            return False
+        old = cell in self.collidables
+        if old == value:
+            return False
+        with self.edit():
+            self._current.record_collision(cell, old, value)
+            self._apply_collision(cell, value)
+        return True
+
+    def undo(self) -> bool:
+        self.end_edit()
+        if not self._undo:
+            return False
+        edit = self._undo.pop()
+        for cell, (old, _) in edit.tiles.items():
+            self._apply_tile(cell, old)
+        for cell, (old, _) in edit.collisions.items():
+            self._apply_collision(cell, old)
+        self._redo.append(edit)
+        return True
+
+    def redo(self) -> bool:
+        self.end_edit()
+        if not self._redo:
+            return False
+        edit = self._redo.pop()
+        for cell, (_, new) in edit.tiles.items():
+            self._apply_tile(cell, new)
+        for cell, (_, new) in edit.collisions.items():
+            self._apply_collision(cell, new)
+        self._undo.append(edit)
+        return True
+
+    def resize(self, columns: int, rows: int) -> None:
+        """Changes the map size, dropping content outside it. Clears the history."""
+        if columns <= 0 or rows <= 0:
+            raise ValueError("Map dimensions must be positive")
+        self.end_edit()
+        self.columns = columns
+        self.rows = rows
+        self.tiles = {cell: tile for cell, tile in self.tiles.items() if self.contains(cell)}
+        self.collidables = {cell for cell in self.collidables if self.contains(cell)}
+        self._undo.clear()
+        self._redo.clear()
+        self._saved_edit = None
+        self._resized = True
+
+    def undeclared_tiles(self, tileset: Tileset) -> Set[SheetCell]:
+        return {
+            (tile.x, tile.y)
+            for tile in self.tiles.values()
+            if not tileset.is_declared(tile.x, tile.y)
+        }
+
+    def _last_edit(self) -> Optional[Edit]:
+        return self._undo[-1] if self._undo else None
+
+    def _apply_tile(self, cell: Cell, tile: Optional[Tile]) -> None:
+        if tile is None:
+            self.tiles.pop(cell, None)
+        else:
+            self.tiles[cell] = tile
+
+    def _apply_collision(self, cell: Cell, value: bool) -> None:
+        if value:
+            self.collidables.add(cell)
+        else:
+            self.collidables.discard(cell)
+
+    def _check_cell(self, cell: Cell) -> None:
+        if not self.contains(cell):
+            raise ValueError(f"Cell is outside the map: {cell}")
