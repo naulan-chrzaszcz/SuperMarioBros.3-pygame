@@ -4,8 +4,8 @@ import pygame
 
 
 class MapEditorView(pygame.Surface):
-    def __init__(self, size: tuple) -> None:
-        super().__init__((1280, 720))
+    def __init__(self, size: tuple, display_size: tuple = (1280, 720)) -> None:
+        super().__init__(display_size)
         self.tile_surface = pygame.Surface(size)
         self.cursor_surface = pygame.Surface(size, pygame.SRCALPHA)
         self.collidable_tile_surface = pygame.Surface(size, pygame.SRCALPHA)
