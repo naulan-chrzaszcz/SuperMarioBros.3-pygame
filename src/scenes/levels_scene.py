@@ -1,183 +1,165 @@
+from __future__ import annotations
+
 from enum import Enum, auto
+from typing import List, Optional, Tuple
 
 import pygame
+from pygame import Rect, Surface, Vector2
 
-from ..tile import Tile
+from ..constants import BLACK, WHITE
 from ..entities.player import Player
-from ..hud import HUD
-from ..map_manager import MapManager
-from .scene import Scene
+from ..inputs.config import Action
+from ..tile import Tile
+from ..world_map import DIRECTIONS, WorldMapWalker, level_scene_of
+from .scene import GameContext, Scene
+
+Segment = Tuple[int, int, int, int]
 
 
 class AnimationState(Enum):
     ENTER_WORLD = auto()
-    DONE = auto()
+
+
+def inverse_spiral_segments(columns: int, rows: int) -> List[Segment]:
+    """Segments ``(x, y, dx, dy)`` covering a grid from its border to its centre."""
+    left, right = 0, columns - 1
+    top, bottom = 0, rows - 1
+    segments = []
+    while left <= right and top <= bottom:
+        segments.append((left, top, right - left, 0))
+        top += 1
+        if top <= bottom:
+            segments.append((right, top, 0, bottom - top))
+            right -= 1
+        if left <= right and top <= bottom:
+            segments.append((right, bottom, left - right, 0))
+            bottom -= 1
+        if top <= bottom and left <= right:
+            segments.append((left, bottom, 0, top - bottom))
+            left += 1
+    return segments
 
 
 class LevelsScene(Scene):
-    duration = {AnimationState.ENTER_WORLD: 1}
-    state = None
+    """World map: walk with the arrows, confirm on a level tile to enter it.
 
-    def __init__(self):
-        super().__init__()
-        self.map_manager = MapManager()
+    A tile named ``levelN`` opens the scene ``level_N``. Levels without a
+    scene yet show a message instead of crashing the game.
+    """
 
-        self.hud = HUD()
-        self.hud_pos = pygame.Vector2(
-            self.surface.get_width() / 2 - self.hud.get_width() / 2,
-            self.surface.get_height() - self.hud.get_height(),
-        )
+    duration = {AnimationState.ENTER_WORLD: 1.0}
+    MESSAGE_DURATION = 2.0
 
-        self.player_move_speed = 0.1
-        self.player_move_timer = 1.0
+    def __init__(self, context: GameContext, map_name: str = "levels"):
+        super().__init__(context)
+        self.map_name = map_name
+        self.player = Player((), (0, 0), context.ressources.image("mario"))
+        self.walker: Optional[WorldMapWalker] = None
+        self.world = None
 
+    def on_enter(self) -> None:
+        super().on_enter()
+        world = self.context.maps.change_map(self.map_name)
+        if world is not self.world:
+            start = world.find("start")
+            if start is None:
+                raise ValueError(f"Map {self.map_name!r} needs a tile named 'start'")
+            self.world = world
+            # Kept between visits: coming back from a level leaves Mario where he was.
+            self.walker = WorldMapWalker(start.cell, world.is_blocked)
+            self.levels = Surface((world.width, world.height))
+
+        width, height = self.surface.get_size()
+        hud = self.context.hud
+        self.levels_pos = Vector2(0, height // 2 - world.height // 2)
+        self.hud_pos = Vector2(width // 2 - hud.get_width() // 2, height - hud.get_height())
+        hud.refresh(self.context.save)
+
+        self.state: Optional[AnimationState] = None
+        self.held: List[Action] = []
+        self.spiral: List[Segment] = []
         self.spiral_index = 0
+        self.target_scene: Optional[str] = None
+        self.message: Optional[Surface] = None
+        self.message_timer = 0.0
+        self.player.play(self.player.levels_animation)
+        self.player.vector = self.walker.position
 
-    def on_enter(self):
-        self.levels = pygame.Surface(
-            (self.map_manager.current.width, self.map_manager.current.height)
-        )
-        self.levels_pos = pygame.Vector2(
-            0, self.surface.get_height() / 2 - self.levels.get_height() / 2
-        )
+    def level_under_player(self) -> Tuple[Optional[Tile], Optional[str]]:
+        if self.walker.moving:
+            return None, None
+        tile = self.world.tile_at(*self.walker.cell)
+        return tile, level_scene_of(tile.id) if tile is not None else None
 
-        for sprite in self.map_manager.current.sprites:
-            # TODO: dirty code to find the start tile and level 1 tile
-            match sprite.id:
-                case "start":
-                    self.player_start_pos = sprite.vector
-                case "level1":
-                    self.level_1_pos = sprite.vector
-                case "level2":
-                    self.level_2_pos = sprite.vector
-                case "level3":
-                    self.level_3_pos = sprite.vector
-                case "level4":
-                    self.level_4_pos = sprite.vector
-                case "level5":
-                    self.level_5_pos = sprite.vector
-                case "level6":
-                    self.level_6_pos = sprite.vector
-        self.player = Player(
-            self.map_manager.current.sprites, self.player_start_pos.copy()
-        )
-        self.player.current_animation = self.player.levels_animation
-        self.player_start_move_pos = self.player.vector.copy()
-        self.player_end_move_pos = self.player.vector.copy()
+    def enter_level(self) -> None:
+        tile, scene = self.level_under_player()
+        if scene is None:
+            return
+        if not self.manager.has_scene(scene):
+            number = scene.rsplit("_", 1)[-1]
+            self.show_message(f"LEVEL {number} COMING SOON")
+            return
+        self.target_scene = scene
+        self.spiral = inverse_spiral_segments(self.world.columns, self.world.rows)
+        self.state = AnimationState.ENTER_WORLD
+        self.timer = 0.0
 
-    def handle_event(self, event):
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_a:
-                if self.player.vector in [
-                    self.level_1_pos,
-                    self.level_2_pos,
-                    self.level_3_pos,
-                    self.level_4_pos,
-                    self.level_5_pos,
-                    self.level_6_pos,
-                ]:
-                    self.spiral_segments = self.generate_inverse_spiral_segments()
-                    self.state = AnimationState.ENTER_WORLD
+    def show_message(self, text: str) -> None:
+        self.message = self.context.font.render(text)
+        self.message_timer = self.MESSAGE_DURATION
 
-            if self.player_move_timer == 1.0:
-                self.timer = 0
-                self.player_start_move_pos = self.player.vector.copy()
-                if event.key == pygame.K_z:
-                    self.player_end_move_pos = pygame.Vector2(
-                        self.player.vector.x, self.player.vector.y - Tile.HEIGHT
-                    )
-                if event.key == pygame.K_q:
-                    self.player_end_move_pos = pygame.Vector2(
-                        self.player.vector.x - Tile.WIDTH, self.player.vector.y
-                    )
-                if event.key == pygame.K_s:
-                    self.player_end_move_pos = pygame.Vector2(
-                        self.player.vector.x, self.player.vector.y + Tile.HEIGHT
-                    )
-                if event.key == pygame.K_d:
-                    self.player_end_move_pos = pygame.Vector2(
-                        self.player.vector.x + Tile.WIDTH, self.player.vector.y
-                    )
+    def on_action(self, action: Action) -> None:
+        if self.state is not None:
+            return
+        if action in DIRECTIONS:
+            self.held.append(action)
+            self.walker.try_move(action)
+        elif action == Action.CONFIRM:
+            self.enter_level()
+        elif action == Action.BACK:
+            self.manager.change_scene("main_menu")
 
-    def update(self, dt):
-        self.timer += dt
+    def on_action_released(self, action: Action) -> None:
+        while action in self.held:
+            self.held.remove(action)
 
-        match self.state:
-            case None:
-                self.map_manager.update(dt)
-                # TODO: dirty, move this code to player ?
-                if any(
-                    self.player.rect.colliderect(tile.rect) and tile.collidable
-                    for tile in self.map_manager.current.sprites
-                    if tile != self.player
-                ):
-                    self.player_end_move_pos = self.player_start_move_pos.copy()
+    def update(self, dt: float) -> None:
+        super().update(dt)
+        self.message_timer = max(0.0, self.message_timer - dt)
+        if self.state is None:
+            self.world.update(dt)
+            was_moving = self.walker.moving
+            self.walker.update(dt)
+            if was_moving and not self.walker.moving and self.level_under_player()[1]:
+                # Like in SMB3, walking stops on each level: press again to go on.
+                self.held.clear()
+            if not self.walker.moving and self.held:
+                self.walker.try_move(self.held[-1])
+            self.player.vector = self.walker.position
+            self.player.update(dt)
+        elif self.state == AnimationState.ENTER_WORLD:
+            t = min(self.timer / self.duration[self.state], 1.0)
+            self.spiral_index = round(len(self.spiral) * t)
+            if t >= 1.0:
+                self.manager.change_scene(self.target_scene)
 
-                self.player_move_timer = min(self.timer / self.player_move_speed, 1.0)
-                self.player.vector = self.player_start_move_pos.lerp(
-                    self.player_end_move_pos, self.player_move_timer
-                )
-            case AnimationState.ENTER_WORLD:
-                if self.spiral_index < len(self.spiral_segments):
-                    self.spiral_index += (
-                        len(self.spiral_segments)
-                        / self.duration[AnimationState.ENTER_WORLD]
-                        + 1
-                    ) * dt
-                if self.timer >= self.duration[self.state]:
-                    self.timer = 0
-                    self.state = AnimationState.DONE
-            case AnimationState.DONE:
-                match self.player.vector:
-                    case self.level_1_pos:
-                        self.manager.change_scene("level_1")
-                    case self.level_2_pos:
-                        self.manager.change_scene("level_2")
-                    case self.level_3_pos:
-                        self.manager.change_scene("level_3")
-                    case self.level_4_pos:
-                        self.manager.change_scene("level_4")
-                    case self.level_5_pos:
-                        self.manager.change_scene("level_5")
-                    case self.level_6_pos:
-                        self.manager.change_scene("level_6")
-
-    def draw(self):
-        self.surface.fill((0, 0, 0))
-        self.map_manager.draw(self.levels)
-
-        if self.state == AnimationState.ENTER_WORLD:
-            # source: ChatGPT
-            for x, y, dx, dy in self.spiral_segments[: int(self.spiral_index)]:
-                rect = pygame.Rect(
-                    min(x, x + dx) * Tile.WIDTH,
-                    min(y, y + dy) * Tile.HEIGHT,
-                    (abs(dx) + 1) * Tile.WIDTH,
-                    (abs(dy) + 1) * Tile.HEIGHT,
-                )
-                pygame.draw.rect(self.levels, (0, 0, 0), rect)
+    def draw(self) -> None:
+        self.surface.fill(BLACK)
+        self.world.draw(self.levels)
+        self.levels.blit(self.player.image, self.player.rect)
+        for x, y, dx, dy in self.spiral[: self.spiral_index]:
+            rect = Rect(
+                min(x, x + dx) * Tile.WIDTH,
+                min(y, y + dy) * Tile.HEIGHT,
+                (abs(dx) + 1) * Tile.WIDTH,
+                (abs(dy) + 1) * Tile.HEIGHT,
+            )
+            pygame.draw.rect(self.levels, BLACK, rect)
         self.surface.blit(self.levels, self.levels_pos)
+        self.surface.blit(self.context.hud.image, self.hud_pos)
 
-        self.surface.blit(self.hud, self.hud_pos)
-
-    def generate_inverse_spiral_segments(self):
-        # source: ChatGPT
-        left, right = 0, self.levels.get_width() // Tile.WIDTH - 1
-        top, bottom = 0, self.levels.get_height() // Tile.HEIGHT - 1
-
-        segments = []
-        while left <= right and top <= bottom:
-            segments.append((left, top, right - left, 0))
-            top += 1
-
-            if top <= bottom:
-                segments.append((right, top, 0, bottom - top))
-                right -= 1
-            if left <= right:
-                segments.append((right, bottom, left - right, 0))
-                bottom -= 1
-            if top <= bottom:
-                segments.append((left, bottom, 0, top - bottom))
-                left += 1
-
-        return segments
+        if self.message is not None and self.message_timer > 0:
+            box = self.message.get_rect(center=(self.surface.get_width() // 2, int(self.levels_pos.y) // 2))
+            pygame.draw.rect(self.surface, BLACK, box.inflate(8, 8))
+            pygame.draw.rect(self.surface, WHITE, box.inflate(8, 8), 1)
+            self.surface.blit(self.message, box)

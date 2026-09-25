@@ -1,54 +1,83 @@
-from enum import Enum, auto
-from pygame import image
+from __future__ import annotations
 
 import json
+from pathlib import Path
+from typing import Dict, Mapping
+
 import yaml
-import os
+from pygame import Surface, image
+
+from ..constants import PROJECT_ROOT, RESSOURCES_FILE
 
 
-class RessourceType(Enum):
-    IMAGES = auto()
-    MAPS = auto()
+class Ressources:
+    """Images, tile names and maps declared in ``ressources.yaml``.
 
+    Images are converted for the screen, so a display mode has to be set before
+    loading them.
+    """
 
-class Ressources(dict):
-    _instance = None
+    def __init__(
+        self,
+        images: Mapping[str, Surface],
+        metadata: Mapping[str, Dict[str, str]],
+        maps: Mapping[str, dict],
+    ):
+        self.images = dict(images)
+        self.metadata = dict(metadata)
+        self.maps = dict(maps)
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def image(self, name: str) -> Surface:
+        try:
+            return self.images[name]
+        except KeyError:
+            raise KeyError(f"Image {name!r} is not declared in ressources.yaml") from None
 
-    def __new__(cls, *args, **kwargs):
-        if not cls._instance:
-            cls._instance = super(Ressources, cls).__new__(cls)
-            for type in list(RessourceType):
-                cls._instance[type.name.lower()] = {}
-                cls._instance["metadata"] = {}
+    def load_map(self, name: str):
+        """Builds the map ``name`` with the tileset declared by its ``sheet`` key."""
+        from .map import Map
 
-            ressources = None
-            with open(os.path.join("ressources.yaml")) as ressources_file:
-                ressources = yaml.safe_load(ressources_file)
+        try:
+            entry = self.maps[name]
+        except KeyError:
+            raise KeyError(f"Map {name!r} is not declared in ressources.yaml") from None
+        sheet = entry["sheet"]
+        if sheet not in self.metadata:
+            raise KeyError(f"Map {name!r}: image {sheet!r} has no metadata file")
+        with Path(entry["path"]).open(encoding="utf-8") as map_file:
+            data = json.load(map_file)
+        return Map(self.image(sheet), self.metadata[sheet], data)
 
-            for map_data in ressources["maps"]:
-                with open(os.path.join(map_data["path"])) as map_file:
-                    cls._instance["maps"][map_data["id"]] = json.load(map_file)
+    @staticmethod
+    def read_metadata(path: Path) -> Dict[str, str]:
+        """Tile names of a sheet, indexed by ``"x,y"`` tile coordinates."""
+        with Path(path).open(encoding="utf-8") as metadata_file:
+            metadata = yaml.safe_load(metadata_file) or {}
+        return {
+            f"{tile['coordinate']['x']},{tile['coordinate']['y']}": str(tile["name"])
+            for tile in metadata.get("tiles", [])
+        }
 
-            for image_data in ressources["images"]:
-                img = image.load(image_data["path"]).convert()
-                if image_data.get("colorKey") is not None:
-                    color_key = image_data["colorKey"]
-                    img.set_colorkey((color_key["r"], color_key["g"], color_key["b"]))
-                cls._instance["images"][image_data["id"]] = img
+    @classmethod
+    def load(cls, path: Path = RESSOURCES_FILE, root: Path = PROJECT_ROOT) -> "Ressources":
+        with Path(path).open(encoding="utf-8") as ressources_file:
+            ressources = yaml.safe_load(ressources_file) or {}
 
-                if image_data.get("metadata") is not None:
-                    metadata = None
-                    with open(
-                        os.path.join(image_data.get("metadata"))
-                    ) as metadata_file:
-                        metadata = yaml.safe_load(metadata_file)
+        images, metadata = {}, {}
+        for entry in ressources.get("images", []):
+            surface = image.load(str(root / entry["path"])).convert()
+            color_key = entry.get("colorKey")
+            if color_key is not None:
+                surface.set_colorkey((color_key["r"], color_key["g"], color_key["b"]))
+            images[entry["id"]] = surface
+            if entry.get("metadata") is not None:
+                metadata[entry["id"]] = cls.read_metadata(root / entry["metadata"])
 
-                    cls._instance["metadata"][image_data["id"]] = {}
-                    for mtdt in metadata["tiles"]:
-                        cls._instance["metadata"][image_data["id"]][
-                            f"{mtdt['coordinate']['x']},{mtdt['coordinate']['y']}"
-                        ] = mtdt["name"]
-        return cls._instance
+        maps = {}
+        for entry in ressources.get("maps", []):
+            maps[entry["id"]] = {
+                "path": root / entry["path"],
+                # The tileset of a map is the image with the same id, unless told.
+                "sheet": entry.get("sheet", entry["id"]),
+            }
+        return cls(images, metadata, maps)
