@@ -21,9 +21,8 @@ class SidebarController:
         if cell is not None:
             self.state.select(*cell)
             if not self.state.selection_declared:
-                metadata = self.state.tileset.metadata_path.name
                 self.state.notify(
-                    f"Tile {cell[0]},{cell[1]} is not declared in {metadata}",
+                    f"Tile {cell[0]},{cell[1]} is {self.state.tileset.missing_reason}",
                     MessageLevel.WARNING,
                 )
 

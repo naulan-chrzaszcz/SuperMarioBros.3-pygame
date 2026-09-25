@@ -6,6 +6,7 @@ from typing import Dict, Iterable, Iterator, List, Optional, Set, Tuple
 from ..constantes import HISTORY_LIMIT
 from ..outputs.map import Cell, Map
 from ..outputs.tile import Tile
+from .clipboard import Clipboard, Region
 from .tileset import SheetCell, Tileset
 
 
@@ -179,6 +180,58 @@ class MapEditorModel:
         self._redo.clear()
         self._saved_edit = None
         self._resized = True
+
+    def clip_region(self, region: Region) -> Optional[Region]:
+        """The part of ``region`` inside the map, or None if it is outside."""
+        left, top = max(region[0], 0), max(region[1], 0)
+        right, bottom = min(region[2], self.columns - 1), min(region[3], self.rows - 1)
+        if left > right or top > bottom:
+            return None
+        return left, top, right, bottom
+
+    def copy(self, region: Region, sheet_path: Optional[Path] = None) -> Clipboard:
+        left, top, right, bottom = region
+        cells = list(self.cells_between((left, top), (right, bottom)))
+        return Clipboard(
+            right - left + 1,
+            bottom - top + 1,
+            {
+                (col - left, row - top): self.tiles[(col, row)]
+                for col, row in cells
+                if (col, row) in self.tiles
+            },
+            frozenset(
+                (col - left, row - top) for col, row in cells if (col, row) in self.collidables
+            ),
+            sheet_path,
+        )
+
+    def clear(self, region: Region) -> bool:
+        """Removes the tiles and collisions of a region in one undo step."""
+        changed = False
+        with self.edit():
+            for cell in self.cells_between(region[:2], region[2:]):
+                changed |= self.set_tile(cell, None)
+                changed |= self.set_collidable(cell, False)
+        return changed
+
+    def paste(self, clipboard: Clipboard, origin: Cell, tileset: Optional[Tileset] = None) -> int:
+        """Pastes a block with its top-left corner on ``origin`` in one undo step.
+
+        Tiles undeclared in ``tileset`` are skipped. Returns their number.
+        """
+        skipped = 0
+        with self.edit():
+            for (col, row), tile, solid in clipboard.cells():
+                cell = (origin[0] + col, origin[1] + row)
+                if not self.contains(cell):
+                    continue
+                if tile is not None and tileset is not None and not tileset.is_declared(tile.x, tile.y):
+                    skipped += 1
+                    continue
+                self.set_tile(cell, tile)
+                self.set_collidable(cell, solid)
+        return skipped
 
     def undeclared_tiles(self, tileset: Tileset) -> Set[SheetCell]:
         return {

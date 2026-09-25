@@ -33,6 +33,9 @@ class ApplicationController:
         self.map_controller = map_controller
         self.sidebar_controller = sidebar_controller
         self.running = True
+        # True when the window was closed, False when the user only left the
+        # editor with Esc (the launcher is then shown again).
+        self.window_closed = False
         self._quit_deadline = 0.0
         self.time = 0.0
 
@@ -41,7 +44,7 @@ class ApplicationController:
 
     def handle_event(self, event: pygame.event.Event) -> None:
         if event.type == pygame.QUIT:
-            self.request_quit()
+            self.request_quit(window=True)
         elif event.type == pygame.VIDEORESIZE:
             self.view.layout(self.view.screen.get_size())
         elif event.type == pygame.WINDOWLEAVE:
@@ -65,10 +68,9 @@ class ApplicationController:
             return
         undeclared = self.model.undeclared_tiles(self.state.tileset)
         if undeclared:
-            metadata = self.state.tileset.metadata_path.name
             self.state.notify(
-                f"Saved, but {len(undeclared)} tile type(s) are not declared in "
-                f"{metadata}: the game will fail to load this map",
+                f"Saved, but {len(undeclared)} tile type(s) are "
+                f"{self.state.tileset.missing_reason}: the game will fail to load this map",
                 MessageLevel.WARNING,
             )
         else:
@@ -87,14 +89,16 @@ class ApplicationController:
         anchor = mouse if self.view.map_rect.collidepoint(mouse) else None
         self.camera.set_zoom(self.camera.zoom + delta, anchor)
 
-    def request_quit(self) -> None:
+    def request_quit(self, window: bool = False) -> None:
         """Quits, asking for a confirmation first when there are unsaved changes."""
         if not self.model.dirty or self.time < self._quit_deadline:
             self.running = False
+            self.window_closed = window
             return
         self._quit_deadline = self.time + QUIT_CONFIRMATION_DELAY
+        again = "close the window" if window else "press Esc"
         self.state.notify(
-            "Unsaved changes! Press Esc again to quit without saving, Ctrl+S to save",
+            f"Unsaved changes! {again.capitalize()} again to quit without saving, Ctrl+S to save",
             MessageLevel.WARNING,
             QUIT_CONFIRMATION_DELAY,
         )
@@ -113,18 +117,38 @@ class ApplicationController:
         ctrl = event.mod & pygame.KMOD_CTRL
         shift = event.mod & pygame.KMOD_SHIFT
         key = event.key
+        maps = self.map_controller
         if key == pygame.K_ESCAPE:
-            self.request_quit()
+            if self.state.pasting:
+                self.state.pasting = False
+            elif self.state.region is not None:
+                self.state.region = None
+            else:
+                self.request_quit()
         elif ctrl and key == pygame.K_s:
             self.save()
         elif ctrl and key == pygame.K_z:
             self.redo() if shift else self.undo()
         elif ctrl and key == pygame.K_y:
             self.redo()
+        elif ctrl and key == pygame.K_c:
+            maps.copy()
+        elif ctrl and key == pygame.K_x:
+            maps.cut()
+        elif ctrl and key == pygame.K_v:
+            maps.start_pasting()
+        elif ctrl and key == pygame.K_a:
+            maps.select_all()
         elif ctrl:
             return
+        elif key in (pygame.K_DELETE, pygame.K_BACKSPACE):
+            maps.delete_selection()
+        elif key == pygame.K_r and self.state.pasting:
+            self.state.rotate_clipboard(-1 if shift else 1)
         elif key == pygame.K_r:
             self.state.rotate(-1 if shift else 1)
+        elif key == pygame.K_s:
+            self.state.toggle_select_mode()
         elif key == pygame.K_c:
             self.state.toggle_mode()
         elif key == pygame.K_g:
