@@ -1,4 +1,11 @@
 # SuperMarioBros3 "like"
+
+[![CI](https://github.com/naulan-chrzaszcz/SuperMarioBros.3-pygame/actions/workflows/ci.yml/badge.svg)](https://github.com/naulan-chrzaszcz/SuperMarioBros.3-pygame/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)
+[![Contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](CONTRIBUTING.md)
+
+A Super Mario Bros. 3 fan game made with Pygame, with its own map editor.
 ![illustration-TitleScreen](https://eapi.pcloud.com/getpubthumb?code=XZzBbJZwEoDuWD0fJJRWCIYAEUjpBhiDCek&linkpassword=undefined&size=1280x345&crop=0&type=auto)
 
 [Map editor documentation](map_editor/README.md)
@@ -149,3 +156,19 @@ display surface, level catalog, `open_editor` and `play_level`) instead of reach
 ```bash
 SDL_VIDEODRIVER=dummy python -m unittest discover -s tests
 ```
+
+## Contributing
+
+Contributions are welcome, from bug reports to new entities and levels: read
+the [contribution guide](CONTRIBUTING.md) and the
+[code of conduct](CODE_OF_CONDUCT.md). Changes are listed in the
+[changelog](CHANGELOG.md); report security issues as explained in
+[SECURITY.md](SECURITY.md).
+
+## License and disclaimer
+
+The source code is released under the [MIT license](LICENSE).
+
+This is a non-commercial fan project, not affiliated with or endorsed by
+Nintendo. Super Mario Bros. 3, its characters, graphics and sounds are
+trademarks and copyrights of Nintendo; they are not covered by the MIT license.
