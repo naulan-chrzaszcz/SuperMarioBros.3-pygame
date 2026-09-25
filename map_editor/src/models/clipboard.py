@@ -24,8 +24,8 @@ def region_size(region: Region) -> Tuple[int, int]:
 class Clipboard:
     """A copied block of cells, in coordinates relative to its top-left corner.
 
-    Cells that have neither a tile nor a collision are transparent: pasting the
-    block leaves the map untouched there.
+    Cells that have no tile, no collision and no entity are transparent:
+    pasting the block leaves the map untouched there.
     """
 
     columns: int
@@ -33,14 +33,16 @@ class Clipboard:
     tiles: Dict[Cell, Tile] = field(default_factory=dict)
     collidables: FrozenSet[Cell] = frozenset()
     sheet_path: Optional[Path] = None
+    entities: Dict[Cell, str] = field(default_factory=dict)
 
     @property
     def is_empty(self) -> bool:
-        return not self.tiles and not self.collidables
+        return not self.tiles and not self.collidables and not self.entities
 
     def cells(self) -> Iterator[Tuple[Cell, Optional[Tile], bool]]:
-        """Non-transparent cells with their tile and collision."""
-        for cell in sorted(set(self.tiles) | self.collidables):
+        """Non-transparent cells with their tile and collision (their entity is
+        in ``entities``)."""
+        for cell in sorted(set(self.tiles) | self.collidables | set(self.entities)):
             yield cell, self.tiles.get(cell), cell in self.collidables
 
     def rotated(self, direction: int = 1) -> "Clipboard":
@@ -64,4 +66,5 @@ class Clipboard:
                 for cell, tile in self.tiles.items()
             },
             collidables=frozenset(turn(cell) for cell in self.collidables),
+            entities={turn(cell): kind for cell, kind in self.entities.items()},
         )

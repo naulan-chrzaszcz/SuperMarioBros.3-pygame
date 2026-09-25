@@ -17,6 +17,7 @@ from .views import (
     ApplicationView,
     Button,
     Camera,
+    EntityRenderer,
     MapView,
     SidebarView,
     StatusBarView,
@@ -61,8 +62,9 @@ class MapEditorApplication:
 
         self.camera = Camera(self.model.columns, self.model.rows)
         renderer = TileRenderer(self.tileset)
-        self.map_view = MapView(renderer)
-        self.sidebar_view = SidebarView(self.state, renderer)
+        entity_renderer = EntityRenderer()
+        self.map_view = MapView(renderer, entity_renderer)
+        self.sidebar_view = SidebarView(self.state, renderer, entity_renderer)
         self.status_bar_view = StatusBarView()
         self.view = ApplicationView(
             self.sidebar_view, self.camera, window_size or self._default_window_size()
@@ -151,8 +153,10 @@ class MapEditorApplication:
             [
                 Button("Tiles", lambda: state.set_mode(Mode.TILES),
                        is_active=lambda: state.mode is Mode.TILES),
-                Button("Collisions", lambda: state.set_mode(Mode.COLLISIONS),
+                Button("Solid", lambda: state.set_mode(Mode.COLLISIONS),
                        is_active=lambda: state.mode is Mode.COLLISIONS),
+                Button("Entities", lambda: state.set_mode(Mode.ENTITIES),
+                       is_active=lambda: state.mode is Mode.ENTITIES),
                 Button("Select", lambda: state.set_mode(Mode.SELECT),
                        is_active=lambda: state.mode is Mode.SELECT),
             ],

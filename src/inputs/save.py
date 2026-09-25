@@ -18,6 +18,7 @@ class Position:
 
 class PlayerState(Enum):
     LITTLE = auto()
+    BIG = auto()
 
 
 INVENTORY_SIZE = 3

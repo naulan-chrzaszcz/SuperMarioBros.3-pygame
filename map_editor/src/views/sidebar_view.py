@@ -19,11 +19,14 @@ from ..constantes import (
     UNDECLARED_TILE_SHADE,
     WARNING_COLOR,
 )
-from ..models import EditorState
+from ..models import EditorState, Mode
+from .entity_renderer import EntityRenderer
 from .tile_renderer import TileRenderer
 from .widgets import Button
 
 MAX_TILESET_SCALE = 4
+ENTITY_ROW_HEIGHT = 36
+ENTITY_ICON_SIZE = 32
 HELP_SEPARATOR = "   "
 HELP_LINES = (
     "Left: paint   Right: erase",
@@ -32,7 +35,7 @@ HELP_LINES = (
     "Wheel: scroll   Shift + wheel: sideways",
     "Ctrl + wheel, + / -: zoom   Home: fit",
     "Arrows: move   R: rotate",
-    "C: tiles / collisions   S: select",
+    "C: tiles / collisions   E: entities   S: select",
     "Ctrl+C / X / V: copy / cut / paste",
     "Ctrl+A: select all   Del: clear",
     "G: grid   O: solid overlay",
@@ -43,17 +46,24 @@ HELP_LINES = (
 
 
 class SidebarView:
-    """Selected tile preview, tool buttons, tileset picker and shortcuts help."""
+    """Selected tile (or entity) preview, tool buttons, tileset picker (or
+    entity palette) and shortcuts help."""
 
-    def __init__(self, state: EditorState, renderer: TileRenderer) -> None:
+    def __init__(
+        self,
+        state: EditorState,
+        renderer: TileRenderer,
+        entity_renderer: Optional[EntityRenderer] = None,
+    ) -> None:
         self.state = state
         self.renderer = renderer
+        self.entity_renderer = entity_renderer or EntityRenderer()
+        self.palette_rect = pygame.Rect(0, 0, 0, 0)
         self.rows: List[List[Button]] = []
         self.rect = pygame.Rect(0, 0, 0, 0)
         self.preview_rect = pygame.Rect(0, 0, PREVIEW_SIZE, PREVIEW_SIZE)
         self.tileset_rect = pygame.Rect(0, 0, 0, 0)
         self.tileset_scale = 1
-        self.help_top = 0
         self._scaled_tileset: Optional[pygame.Surface] = None
         self._undeclared_shade: Optional[pygame.Surface] = None
 
@@ -103,12 +113,30 @@ class SidebarView:
             min(image.get_width() * self.tileset_scale, inner_width),
             image.get_height() * self.tileset_scale,
         )
-        self.help_top = self.tileset_rect.bottom + PANEL_PADDING
+        self.palette_rect = pygame.Rect(
+            left, y, inner_width, len(self.state.entity_types) * ENTITY_ROW_HEIGHT
+        )
         self._scaled_tileset = None
         self._undeclared_shade = None
 
+    @property
+    def showing_entities(self) -> bool:
+        return self.state.mode is Mode.ENTITIES
+
+    @property
+    def help_top(self) -> int:
+        panel = self.palette_rect if self.showing_entities else self.tileset_rect
+        return panel.bottom + PANEL_PADDING
+
+    def entity_at(self, position: Tuple[int, int]) -> Optional[int]:
+        """Index of the entity type under ``position`` in the palette."""
+        if not self.showing_entities or not self.palette_rect.collidepoint(position):
+            return None
+        index = (position[1] - self.palette_rect.y) // ENTITY_ROW_HEIGHT
+        return index if index < len(self.state.entity_types) else None
+
     def tileset_cell_at(self, position: Tuple[int, int]) -> Optional[Tuple[int, int]]:
-        if not self.tileset_rect.collidepoint(position):
+        if self.showing_entities or not self.tileset_rect.collidepoint(position):
             return None
         cell_size = TILE_SIZE * self.tileset_scale
         x = (position[0] - self.tileset_rect.x) // cell_size
@@ -126,10 +154,16 @@ class SidebarView:
         pygame.draw.line(surface, BORDER_COLOR, self.rect.topleft, self.rect.bottomleft)
         surface.set_clip(self.rect)
 
-        self._draw_selected_tile(surface, font, time)
+        if self.showing_entities:
+            self._draw_selected_entity(surface, font)
+        else:
+            self._draw_selected_tile(surface, font, time)
         for button in self.buttons:
             button.draw(surface, font, mouse)
-        self._draw_tileset(surface, font, mouse)
+        if self.showing_entities:
+            self._draw_palette(surface, font, mouse)
+        else:
+            self._draw_tileset(surface, font, mouse)
 
         y = self.help_top
         for line in self._help_lines(font):
@@ -176,6 +210,67 @@ class SidebarView:
         for text, color in lines:
             surface.blit(font.render(text, True, color), (x, y))
             y += font.get_linesize()
+
+    def _draw_selected_entity(self, surface, font) -> None:
+        entity = self.state.selected_entity
+        surface.fill((0, 0, 0), self.preview_rect)
+        pygame.draw.rect(surface, BORDER_COLOR, self.preview_rect.inflate(2, 2), 1)
+        x = self.preview_rect.right + PANEL_PADDING
+        y = self.preview_rect.y
+        if entity is None:
+            surface.blit(font.render("No entity declared", True, WARNING_COLOR), (x, y))
+            return
+        self._blit_icon(surface, entity, self.preview_rect, PREVIEW_SIZE - 8)
+        surface.blit(font.render(entity.name, True, TEXT_COLOR), (x, y))
+        y += font.get_linesize()
+        width = self.rect.right - PANEL_PADDING - x
+        for line in self._wrap(font, entity.description, width)[:3]:
+            surface.blit(font.render(line, True, MUTED_TEXT_COLOR), (x, y))
+            y += font.get_linesize()
+
+    def _draw_palette(self, surface, font, mouse) -> None:
+        surface.blit(
+            font.render("Entities  (click, wheel to browse)", True, TEXT_COLOR),
+            (self.palette_rect.x, self.palette_rect.y - BUTTON_HEIGHT + 4),
+        )
+        hovered = self.entity_at(mouse)
+        for index, entity in enumerate(self.state.entity_types):
+            row = pygame.Rect(
+                self.palette_rect.x, self.palette_rect.y + index * ENTITY_ROW_HEIGHT,
+                self.palette_rect.width, ENTITY_ROW_HEIGHT - 2,
+            )
+            icon = pygame.Rect(row.x + 2, row.y + 1, ENTITY_ICON_SIZE, ENTITY_ICON_SIZE)
+            surface.fill((0, 0, 0), icon)
+            self._blit_icon(surface, entity, icon, ENTITY_ICON_SIZE - 2)
+            label = entity.name + ("  (one per map)" if entity.unique else "")
+            text = font.render(label, True, TEXT_COLOR)
+            surface.blit(text, text.get_rect(midleft=(icon.right + PANEL_PADDING, row.centery)))
+            if index == self.state.entity_index:
+                pygame.draw.rect(surface, SELECTION_COLOR, row, 2)
+            elif index == hovered:
+                pygame.draw.rect(surface, HOVER_COLOR, row, 1)
+
+    def _blit_icon(self, surface, entity, rect: pygame.Rect, size: int) -> None:
+        """The entity picture as big as possible in a ``size`` square."""
+        width, height = entity.frame[2], entity.frame[3]
+        tile_size = max(1, TILE_SIZE * size // max(width, height, 1))
+        image = self.entity_renderer.render(entity, tile_size)
+        surface.blit(image, image.get_rect(center=rect.center))
+
+    @staticmethod
+    def _wrap(font, text: str, width: int) -> List[str]:
+        lines: List[str] = []
+        current = ""
+        for word in text.split():
+            candidate = f"{current} {word}" if current else word
+            if current and font.size(candidate)[0] > width:
+                lines.append(current)
+                current = word
+            else:
+                current = candidate
+        if current:
+            lines.append(current)
+        return lines
 
     def _frames_text(self) -> str:
         if self.state.frames_x > 1:

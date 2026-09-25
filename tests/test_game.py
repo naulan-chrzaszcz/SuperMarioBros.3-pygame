@@ -11,10 +11,13 @@ import pygame
 
 from src.constants import PROJECT_ROOT
 from src.editor_bridge import EditorResult, EditorSession
+from src.entities.catalog import entity_types
+from src.entities.koopa import Koopa, Shell
+from src.entities.spawner import known_types
 from src.font import Font
 from src.game import Game, fit
 from src.inputs.config import Action, Config
-from src.inputs.map import Map, TileCode
+from src.inputs.map import EntitySpawn, Map, TileCode
 from src.inputs.ressources import Ressources
 from src.inputs.save import PlayerState, Save
 from src.levels import LevelCatalog
@@ -234,8 +237,10 @@ class SceneManagerTest(unittest.TestCase):
         self.assertFalse(manager.running)
 
 
-def write_level(path, columns=20, rows=8, extra=None, sheet=True):
-    """A level of the level tileset: a floor with a pit, a coin and a ? block."""
+def write_level(path, columns=20, rows=8, extra=None, sheet=True, entities=None):
+    """A level of the level tileset: a floor with a pit, a coin and a ? block.
+
+    ``entities`` maps cells to entity types."""
     tiles = [["-1,-1"] * columns for _ in range(rows)]
     solid = [[False] * columns for _ in range(rows)]
     for column in range(columns):
@@ -248,6 +253,8 @@ def write_level(path, columns=20, rows=8, extra=None, sheet=True):
     for (column, row), code in (extra or {}).items():
         tiles[row][column] = code
     data = {"tiles": tiles, "collidables": solid}
+    if entities:
+        data["entities"] = [{"type": kind, "x": x, "y": y} for (x, y), kind in entities.items()]
     if sheet:
         data["sheet"] = "res/sheets/level.png"
     Path(path).write_text(json.dumps(data), encoding="utf-8")
@@ -354,7 +361,7 @@ class BodyTest(unittest.TestCase):
         self.assertEqual(bumped, [(1, 2)])
 
 
-class PlatformLevelTest(unittest.TestCase):
+class LevelTestCase(unittest.TestCase):
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
         self.maps = Path(self.directory.name)
@@ -379,6 +386,8 @@ class PlatformLevelTest(unittest.TestCase):
         for _ in range(int(seconds * 60)):
             self.game.step([], 1 / 60)
 
+
+class PlatformLevelTest(LevelTestCase):
     def test_coin_block_and_course_clear(self):
         level = self.play(write_level(self.maps / "level.json"))
         self.assertEqual(self.game.scenes.current_name, "platform_level")
@@ -427,6 +436,154 @@ class PlatformLevelTest(unittest.TestCase):
         self.run_frames(0.1)
         self.run_frames(0.1, [key_event(pygame.K_a)])
         self.assertEqual(self.finished, [False])
+
+
+class EntityMapTest(unittest.TestCase):
+    sheet = pygame.Surface((16, 16))
+
+    def make(self, entities):
+        return Map(self.sheet, {"0,0": "grass"}, {
+            "tiles": [["-1,-1"] * 3] * 2, "collidables": [[False] * 3] * 2, "entities": entities,
+        })
+
+    def test_entities_are_read_in_reading_order(self):
+        world = self.make([{"type": "koopa", "x": 2, "y": 1}, {"type": "goomba", "x": 0, "y": 1},
+                           {"type": "start", "x": 1, "y": 0}])
+        self.assertEqual(world.entities, [
+            EntitySpawn("start", 1, 0), EntitySpawn("goomba", 0, 1), EntitySpawn("koopa", 2, 1),
+        ])
+        self.assertEqual(self.make(None).entities, [])
+
+    def test_invalid_entities(self):
+        for entities, message in (
+            ({}, "must be a list"),
+            ([{"x": 0, "y": 0}], "no type"),
+            ([{"type": "goomba", "x": 3, "y": 0}], "outside"),
+            ([{"type": "goomba", "x": "0", "y": 0}], "invalid coordinates"),
+            ([{"type": "goomba", "x": 0, "y": 0}, {"type": "koopa", "x": 0, "y": 0}], "Two entities"),
+        ):
+            with self.subTest(message=message), self.assertRaisesRegex(ValueError, message):
+                self.make(entities)
+
+    def test_every_entity_of_the_editor_has_a_behaviour(self):
+        self.assertEqual(set(entity_types()), set(known_types()))
+
+    def test_unknown_entity_types_make_a_level_unplayable(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = write_level(Path(directory) / "level.json", entities={(3, 6): "bowser"})
+            info = LevelCatalog(maps_directory=Path(directory)).info(path)
+        self.assertIn("bowser", info.error)
+
+
+class EntityTest(LevelTestCase):
+    def entity(self, level, kind):
+        return next(entity for entity in level.entities if entity.TYPE == kind)
+
+    def drop_mario_on(self, level, entity):
+        level.body.x = entity.body.x
+        level.body.y = entity.rect.top - level.body.height - 1
+        level.body.vy = 60.0
+
+    def test_start_marker(self):
+        level = self.play(write_level(self.maps / "level.json", entities={(12, 3): "start"}))
+        self.assertEqual(level.body.rect.midbottom, (12 * 16 + 8, 4 * 16))
+        self.assertEqual(level.entities, [])
+
+    def test_stomping_a_goomba(self):
+        level = self.play(write_level(self.maps / "level.json", entities={(14, 6): "goomba"}))
+        goomba = self.entity(level, "goomba")
+        self.run_frames(0)
+        self.assertTrue(goomba.active, "the whole level is in view")
+        self.run_frames(0.5)
+        self.assertLess(goomba.body.x, 14 * 16, "it walks towards Mario")
+        score = self.game.context.save.game.score
+        self.drop_mario_on(level, goomba)
+        self.run_frames(0.05)
+        self.assertTrue(goomba.squashed)
+        self.assertLess(level.body.vy, 0, "Mario bounces")
+        self.assertEqual(self.game.context.save.game.score, score + 100)
+        self.run_frames(0.6)
+        self.assertNotIn(goomba, level.entities)
+        self.assertEqual(level.state.name, "PLAYING")
+
+    def test_touching_a_goomba_hurts(self):
+        level = self.play(write_level(self.maps / "level.json", entities={(3, 6): "goomba"}))
+        level.body.x = self.entity(level, "goomba").body.x
+        self.run_frames(0.1)
+        self.assertEqual(level.state.name, "DYING")
+
+    def test_big_mario_shrinks_instead_of_dying(self):
+        level = self.play(write_level(self.maps / "level.json", entities={(12, 6): "goomba"}))
+        level.grow_mario(0, 0)
+        self.assertTrue(level.big)
+        self.assertEqual(level.body.height, Body.BIG_HEIGHT)
+        self.assertEqual(self.game.context.save.game.state, PlayerState.BIG)
+        self.run_frames(1)
+        level.body.x = self.entity(level, "goomba").body.x
+        self.run_frames(0.1)
+        self.assertEqual(level.state.name, "PLAYING")
+        self.assertFalse(level.big)
+        self.assertEqual(self.game.context.save.game.state, PlayerState.LITTLE)
+        self.assertGreater(level.invincible, 0)
+
+    def test_koopa_shell(self):
+        level = self.play(write_level(self.maps / "level.json", entities={(2, 6): "koopa", (6, 6): "goomba"}))
+        koopa, goomba = self.entity(level, "koopa"), self.entity(level, "goomba")
+        self.drop_mario_on(level, koopa)
+        self.run_frames(0.2)
+        self.assertEqual(koopa.shell, Shell.STILL)
+        self.assertEqual(koopa.body.height, Koopa.SHELL_HEIGHT)
+        # Mario lands and walks into the shell from the left: he kicks it.
+        level.body.x, level.body.y, level.body.vy = koopa.body.x - 14, koopa.body.bottom - level.body.height, 0
+        self.run_frames(0.3, [key_event(pygame.K_d)])
+        self.run_frames(0, [key_event(pygame.K_d, released=True)])
+        self.assertEqual(koopa.shell, Shell.SLIDING)
+        self.assertEqual(koopa.direction, 1)
+        self.assertEqual(level.state.name, "PLAYING", "kicking does not hurt")
+        self.run_frames(1)
+        self.assertTrue(goomba.knocked, "the shell knocks the goomba out")
+
+    def test_mushroom_hidden_in_a_block(self):
+        level = self.play(write_level(self.maps / "level.json", entities={(6, 4): "mushroom"}))
+        mushroom = self.entity(level, "mushroom")
+        self.assertTrue(mushroom.hidden)
+        self.assertFalse(mushroom.active)
+        coins = self.game.context.save.game.coins
+        level.bump(6, 4)
+        self.assertEqual(level.map.tile_at(6, 4).id, "block")
+        self.assertEqual(self.game.context.save.game.coins, coins, "no coin: the block held the mushroom")
+        self.run_frames(0.3)
+        self.assertTrue(mushroom.behind_tiles)
+        self.run_frames(0.5)
+        self.assertLess(mushroom.body.bottom, 4 * 16 + 1, "out of the block")
+        self.assertGreater(mushroom.body.x, 6 * 16, "slides to the right")
+        level.body.x, level.body.y = mushroom.body.x, mushroom.body.y
+        self.run_frames(1)
+        self.assertTrue(level.big)
+        self.assertNotIn(mushroom, level.entities)
+
+    def test_big_mario_breaks_bricks(self):
+        path = write_level(self.maps / "level.json", extra={(3, 4): "4+4,4"})
+        with path.open() as file:
+            data = json.load(file)
+        data["collidables"][4][3] = True
+        path.write_text(json.dumps(data))
+        level = self.play(path)
+        level.bump(3, 4)
+        self.assertIsNotNone(level.map.tile_at(3, 4), "small Mario only bumps it")
+        level.grow_mario(0, 0)
+        level.bump(3, 4)
+        self.assertIsNone(level.map.tile_at(3, 4))
+        self.assertFalse(level.is_solid(3, 4))
+        self.assertEqual(len(level.debris), 4)
+
+    def test_restart_brings_the_entities_back(self):
+        level = self.play(write_level(self.maps / "level.json", entities={(14, 6): "goomba"}))
+        self.entity(level, "goomba").removed = True
+        self.run_frames(0.1)
+        self.assertEqual(level.entities, [])
+        level.restart()
+        self.assertEqual(len(level.entities), 1)
 
 
 class EditorSessionTest(unittest.TestCase):

@@ -131,7 +131,13 @@ class MapController:
                     self._apply(rectangle_cell, button)
 
     def pick(self, cell: Cell) -> None:
-        """Eyedropper: selects the tile (and its settings) found in ``cell``."""
+        """Eyedropper: selects the tile (and its settings) found in ``cell``, or
+        its entity in the entities mode."""
+        kind = self.model.entities.get(cell)
+        if self.state.mode is Mode.ENTITIES and kind is not None:
+            if self.state.pick_entity(kind):
+                self.state.notify(f"Picked {self.state.selected_entity.name}")
+            return
         tile = self.model.tiles.get(cell)
         if tile is None:
             return
@@ -179,7 +185,9 @@ class MapController:
         self.state.notify("Click to paste (R: rotate, right click / Esc: stop)", duration=6.0)
 
     def paste_at(self, cell: Cell) -> None:
-        skipped = self.model.paste(self.state.clipboard, cell, self.state.tileset)
+        skipped = self.model.paste(
+            self.state.clipboard, cell, self.state.tileset, self.state.unique_entities
+        )
         if skipped:
             self.state.notify(
                 f"{skipped} tile(s) {self.state.tileset.missing_reason} were not pasted",
@@ -191,6 +199,12 @@ class MapController:
             return
         if self.state.mode is Mode.COLLISIONS:
             self.model.set_collidable(cell, button == 1)
+        elif self.state.mode is Mode.ENTITIES:
+            entity = self.state.selected_entity
+            if button != 1:
+                self.model.set_entity(cell, None)
+            elif entity is not None:
+                self.model.set_entity(cell, entity.id, entity.unique)
         elif button != 1:
             self.model.set_tile(cell, None)
         elif self.state.selection_declared:
