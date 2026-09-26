@@ -1,3 +1,5 @@
+"""Controller for launcher form events and map opening requests."""
+
 from typing import Optional
 
 import pygame

@@ -31,6 +31,8 @@ KEYS = {
 
 @dataclass(frozen=True)
 class EntityType:
+    """One entry of ``res/entities.yaml`` (its header explains every key)."""
+
     id: str
     name: str
     image: str
@@ -50,12 +52,14 @@ class EntityType:
 
     @property
     def editor_frame(self) -> Tuple[int, int, int, int]:
+        """Picture of the editor palette: ``frame``, else the first frame of the first animation."""
         if self.frame is not None:
             return self.frame
         return next(iter(self.animations.values())).frames[0]
 
 
 def parse_entity_type(entry: Any) -> EntityType:
+    """Checks one entry of ``entities.yaml``; raises ValueError with its id."""
     if not isinstance(entry, Mapping) or not isinstance(entry.get("id"), str):
         raise ValueError(f"an entity needs an id: {entry!r}")
     kind = entry["id"]
@@ -89,6 +93,7 @@ def parse_entity_type(entry: Any) -> EntityType:
 
 
 def load_entity_types(path: Path = ENTITIES_FILE) -> Dict[str, EntityType]:
+    """Reads every entity type of the file, by id."""
     try:
         data = read_yaml(path)
         types: Dict[str, EntityType] = {}

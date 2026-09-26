@@ -60,7 +60,8 @@ without a screen.
 
 - Follow [PEP 8](https://peps.python.org/pep-0008/), 4 spaces, lines up to
   about 110 characters (see [.editorconfig](.editorconfig)).
-- Add type hints to new functions and a docstring when the purpose is not
+- Start every module with a docstring that says its role (a test checks it).
+  Add type hints to new functions and a docstring when the purpose is not
   obvious. Comment *why*, not *what*.
 - Code, comments and identifiers are in English.
 - Keep the logic testable: game rules (movement, collisions, entities) do not
@@ -93,7 +94,8 @@ virtual environments).
 
 ## Project tour
 
-The [README](README.md#code-structure) describes the code structure. The main
+The [README](README.md#code-structure) describes the code structure and
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) how it works at run time. The main
 extension points:
 
 ### Adding a level

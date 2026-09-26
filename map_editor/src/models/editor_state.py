@@ -1,3 +1,5 @@
+"""Transient editor tool state shared by controllers and views."""
+
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional, Set, Tuple
@@ -10,6 +12,8 @@ from .tileset import Tileset
 
 
 class Mode(Enum):
+    """Editing modes that decide what map clicks change."""
+
     TILES = "Tiles"
     COLLISIONS = "Collisions"
     ENTITIES = "Entities"
@@ -17,6 +21,8 @@ class Mode(Enum):
 
 
 class MessageLevel(Enum):
+    """Severity levels used to color transient editor messages."""
+
     INFO = "info"
     SUCCESS = "success"
     WARNING = "warning"
@@ -69,6 +75,7 @@ class EditorState:
         return self.tileset.is_declared(self.selection_x, self.selection_y)
 
     def selected_tile(self) -> Tile:
+        """Builds the tile value currently selected in the tileset palette."""
         return Tile(
             self.selection_x,
             self.selection_y,
@@ -78,6 +85,7 @@ class EditorState:
         )
 
     def select(self, x: int, y: int) -> None:
+        """Selects a sheet cell and clamps frame spans to fit the tileset."""
         self.selection_x = min(max(x, 0), self.tileset.columns - 1)
         self.selection_y = min(max(y, 0), self.tileset.rows - 1)
         self.frames_x = min(self.frames_x, self.max_frames_x)
@@ -103,9 +111,11 @@ class EditorState:
         return {entity.id for entity in self.entity_types if entity.unique}
 
     def entity_type(self, kind: str) -> Optional[EntityType]:
+        """Returns the loaded entity metadata for ``kind``, if any."""
         return next((entity for entity in self.entity_types if entity.id == kind), None)
 
     def select_entity(self, index: int) -> None:
+        """Selects an entity type by index, wrapping around the entity list."""
         if self.entity_types:
             self.entity_index = index % len(self.entity_types)
 
@@ -135,6 +145,7 @@ class EditorState:
             self.frames_x = 1
 
     def pick(self, tile: Tile) -> None:
+        """Copies a placed tile's sheet cell, frame span and rotation to the tools."""
         self.frames_x = self.frames_y = 1
         self.select(tile.x, tile.y)
         self.rotation = tile.rotation
@@ -143,6 +154,7 @@ class EditorState:
         self.set_mode(Mode.TILES)
 
     def set_mode(self, mode: Mode) -> None:
+        """Switches mode and cancels paste or selection state that no longer applies."""
         self.mode = mode
         self.pasting = False
         if mode is not Mode.SELECT:
@@ -162,12 +174,14 @@ class EditorState:
         return self.clipboard is not None and not self.clipboard.is_empty
 
     def start_pasting(self) -> bool:
+        """Enters paste preview mode when the clipboard has content."""
         if not self.can_paste:
             return False
         self.pasting = True
         return True
 
     def rotate_clipboard(self, direction: int = 1) -> None:
+        """Rotates the copied region clockwise, or counter-clockwise for -1."""
         if self.clipboard is not None:
             self.clipboard = self.clipboard.rotated(direction)
 
@@ -177,11 +191,13 @@ class EditorState:
         level: MessageLevel = MessageLevel.INFO,
         duration: float = MESSAGE_DURATION,
     ) -> None:
+        """Shows a transient message in the status bar."""
         self.message = message
         self.message_level = level
         self.message_timer = duration
 
     def update(self, dt: float) -> None:
+        """Advances timers and clears expired status messages."""
         if self.message_timer > 0:
             self.message_timer -= dt
             if self.message_timer <= 0:

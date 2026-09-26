@@ -1,3 +1,5 @@
+"""Mario on the world map and on the world card (not in the platform levels)."""
+
 from __future__ import annotations
 
 from pygame import Vector2

@@ -1,3 +1,9 @@
+"""Base class of the scenes and the ``GameContext`` they share.
+
+A scene gets ``on_enter`` / ``on_exit`` when it becomes (or stops being) the
+current one, then ``update``, ``draw`` and ``on_action`` every frame.
+"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -52,6 +58,14 @@ class GameContext:
 
 
 class Scene:
+    """A screen of the game (title, world map, level...).
+
+    Lifecycle: ``on_enter`` when it becomes the current scene, then every frame
+    ``handle_event`` (which calls ``on_action`` / ``on_action_released``),
+    ``update(dt)`` and ``draw()``; ``on_exit`` when another scene replaces it.
+    Switch scene with ``self.manager.change_scene(name)``.
+    """
+
     def __init__(self, context: GameContext):
         self.context = context
         self.surface = context.display
@@ -71,20 +85,21 @@ class Scene:
             self.on_action_released(action)
 
     def on_action(self, action: Action) -> None:
-        pass
+        """An action of ``config.yaml`` was pressed."""
 
     def on_action_released(self, action: Action) -> None:
-        pass
+        """An action of ``config.yaml`` was released."""
 
     def update(self, dt: float) -> None:
+        """Moves the scene on by ``dt`` seconds; ``self.timer`` counts from ``on_enter``."""
         self.timer += dt
 
     def draw(self) -> None:
-        pass
+        """Draws the scene on ``self.surface`` (the game image, scaled to the window)."""
 
     def on_enter(self) -> None:
         """Called each time the scene starts: reset its state here."""
         self.timer = 0.0
 
     def on_exit(self) -> None:
-        pass
+        """Called when another scene replaces this one."""

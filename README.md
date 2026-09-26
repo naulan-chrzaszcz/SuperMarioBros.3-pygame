@@ -177,7 +177,11 @@ src/
   entities/                entities.yaml catalog, Entity base class, goomba,
                            koopa, mushrooms, spawner; player.py (world map)
 tests/                     python -m unittest discover -s tests
+docs/ARCHITECTURE.md       how it all works at run time, with diagrams
 ```
+
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) explains how the pieces work
+together at run time (main loop, scenes, entities, editor), with diagrams.
 
 Scenes receive a `GameContext` (config, ressources, save, font, HUD, maps,
 display surface, level catalog, rules, sprite bank, audio, `open_editor` and

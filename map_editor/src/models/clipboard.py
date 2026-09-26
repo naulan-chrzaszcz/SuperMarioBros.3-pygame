@@ -1,3 +1,5 @@
+"""Clipboard model for copied map regions and their rotation helpers."""
+
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Dict, FrozenSet, Iterator, Optional, Tuple
@@ -17,6 +19,7 @@ def make_region(start: Cell, end: Cell) -> Region:
 
 
 def region_size(region: Region) -> Tuple[int, int]:
+    """Width and height of an inclusive cell region."""
     return region[2] - region[0] + 1, region[3] - region[1] + 1
 
 

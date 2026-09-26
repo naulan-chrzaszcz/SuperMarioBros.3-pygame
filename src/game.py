@@ -1,3 +1,7 @@
+"""Composition root: creates the window, loads and validates every data file,
+builds the scenes and runs the main loop (and the map editor in the same window).
+"""
+
 from __future__ import annotations
 
 from typing import Iterable, Optional, Tuple

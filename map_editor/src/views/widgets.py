@@ -1,3 +1,5 @@
+"""Small reusable Pygame widgets used by launcher and editor views."""
+
 from typing import Callable, List, Optional, Tuple, Union
 
 import pygame
@@ -39,6 +41,7 @@ class Button:
         return self.label() if callable(self.label) else self.label
 
     def click(self, position: Tuple[int, int]) -> bool:
+        """Runs the button action when ``position`` is inside it."""
         if self.on_click is None or not self.rect.collidepoint(position):
             return False
         if self.is_enabled():
@@ -140,22 +143,26 @@ class ListBox:
         return max(self.rect.height // self.item_height, 1)
 
     def item_at(self, position: Tuple[int, int]) -> Optional[int]:
+        """Returns the visible item index under ``position``, if any."""
         if not self.rect.collidepoint(position):
             return None
         index = self.scroll + (position[1] - self.rect.y) // self.item_height
         return index if index < len(self.items()) else None
 
     def click(self, position: Tuple[int, int]) -> Optional[int]:
+        """Selects and returns the clicked item index, if any."""
         index = self.item_at(position)
         if index is not None:
             self.on_select(index)
         return index
 
     def scroll_by(self, delta: int) -> None:
+        """Scrolls by item rows while keeping the list within bounds."""
         maximum = max(len(self.items()) - self.visible_count, 0)
         self.scroll = min(max(self.scroll + delta, 0), maximum)
 
     def ensure_visible(self, index: int) -> None:
+        """Scrolls just enough to show ``index``."""
         if index < self.scroll:
             self.scroll = index
         elif index >= self.scroll + self.visible_count:

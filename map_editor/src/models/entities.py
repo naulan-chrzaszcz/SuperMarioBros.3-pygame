@@ -17,6 +17,8 @@ Color = Tuple[int, int, int]
 
 @dataclass(frozen=True)
 class EntityType:
+    """Entity metadata from YAML used by palettes, rendering and placement rules."""
+
     id: str
     name: str
     # Image of the entity in the palette: a frame of a sheet.

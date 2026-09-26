@@ -33,6 +33,13 @@ class Controls:
 
 
 class Body:
+    """A moving box that collides with the solid cells of a level.
+
+    Mario (``update`` with the controls) and the entities (``fall`` + ``move``)
+    use it. The UPPER_CASE constants are set by ``res/rules.yaml`` (``player``)
+    or by the ``settings`` of an entity; see ``Body.tuned``.
+    """
+
     WIDTH = 12
     HEIGHT = 15
     BIG_HEIGHT = 26

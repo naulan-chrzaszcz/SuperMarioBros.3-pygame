@@ -1,3 +1,5 @@
+"""Tile strip animation, used by the animated tiles of the maps."""
+
 from __future__ import annotations
 
 from typing import List
