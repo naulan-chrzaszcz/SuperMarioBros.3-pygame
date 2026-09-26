@@ -178,7 +178,8 @@ flowchart LR
 
 - **Models** hold the data and have no drawing code: the map and its undo
   history (`MapEditorModel`), the tool settings (`EditorState`), the tileset,
-  the clipboard, the entity types, the level settings and the launcher.
+  the clipboard, the entity types, the selected entity's settings panel
+  (`EntityPanel`), the level settings and the launcher.
 - **Views** only draw the models: camera, map, sidebar, status bar.
 - **Controllers** turn events into model changes.
 - `src/editor_bridge.py` (`EditorSession`) is the link with the game.
@@ -189,6 +190,15 @@ flowchart LR
 The editor reads the same data as the game (`ressources.yaml`,
 `res/entities.yaml`, `res/sheets/*.yaml`), so a new entity or tile behaviour
 shows up in both.
+
+An entity on the map is a `Placement` (type id plus optional per-instance
+`settings`). `Alt` + click selects one for the in-window panel; each change
+is an undoable map edit. Only scalar settings declared on its type are listed.
+Saving writes the overrides into that entity's JSON entry; copying or rotating
+a block keeps them. `LevelCatalog` validates the overrides (including effects
+and required animations) before marking the map playable, and
+`spawn_entities` merges them with that type's settings without changing the
+shared type.
 
 ## Tests
 

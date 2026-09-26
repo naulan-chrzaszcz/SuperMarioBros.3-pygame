@@ -4,7 +4,7 @@ behaviour of its tiles (``res/sheets/*.yaml``) and its ``level`` settings.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Dict, Iterator, List, Mapping, Optional, Tuple
 
 from pygame import Surface, Vector2, transform
@@ -67,18 +67,24 @@ class TileCode:
 
 @dataclass(frozen=True)
 class EntitySpawn:
-    """An entity placed on a map with the editor, e.g. a goomba."""
+    """An entity placed on a map with the editor, e.g. a goomba.
+
+    ``settings`` overrides, for this entity only, the settings its type gives
+    in ``res/entities.yaml`` (the editor writes them when you tune a placed
+    entity); it is empty when the entity keeps the settings of its type.
+    """
 
     type: str
     column: int
     row: int
+    settings: Mapping[str, Any] = field(default_factory=dict)
 
 
 def parse_entities(entries, columns: int, rows: int) -> List[EntitySpawn]:
     """The ``"entities"`` list of a map file, in reading order.
 
-    Every entry is ``{"type": str, "x": column, "y": row}``. Maps made before
-    entities existed have no such list.
+    Every entry is ``{"type": str, "x": column, "y": row}``, with an optional
+    ``"settings"`` mapping. Maps made before entities existed have no such list.
     """
     if entries is None:
         return []
@@ -97,7 +103,10 @@ def parse_entities(entries, columns: int, rows: int) -> List[EntitySpawn]:
             raise ValueError(f"Entity {kind!r} at {column},{row} is outside the map")
         if (column, row) in spawns:
             raise ValueError(f"Two entities are on the cell {column},{row}")
-        spawns[(column, row)] = EntitySpawn(kind, column, row)
+        settings = entry.get("settings", {})
+        if not isinstance(settings, dict) or not all(isinstance(key, str) for key in settings):
+            raise ValueError(f"The settings of the entity {kind!r} must be a mapping")
+        spawns[(column, row)] = EntitySpawn(kind, column, row, settings)
     return sorted(spawns.values(), key=lambda spawn: (spawn.row, spawn.column))
 
 

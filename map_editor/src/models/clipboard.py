@@ -6,6 +6,7 @@ from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Dict, FrozenSet, Iterator, Optional, Tuple
 
+from ..outputs.entity import Placement
 from ..outputs.map import Cell
 from ..outputs.tile import Tile
 
@@ -38,7 +39,7 @@ class Clipboard:
     tiles: Dict[Cell, Tile] = field(default_factory=dict)
     collidables: FrozenSet[Cell] = frozenset()
     sheet_path: Optional[Path] = None
-    entities: Dict[Cell, str] = field(default_factory=dict)
+    entities: Dict[Cell, Placement] = field(default_factory=dict)
 
     @property
     def is_empty(self) -> bool:
@@ -71,5 +72,5 @@ class Clipboard:
                 for cell, tile in self.tiles.items()
             },
             collidables=frozenset(turn(cell) for cell in self.collidables),
-            entities={turn(cell): kind for cell, kind in self.entities.items()},
+            entities={turn(cell): placement for cell, placement in self.entities.items()},
         )

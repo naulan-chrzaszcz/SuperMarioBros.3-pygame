@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Dict, Iterable, Optional, Set, Tuple
 
 from ..constants import PROJECT_ROOT
+from .entity import Placement
 from .tile import Tile
 
 Cell = Tuple[int, int]
@@ -112,8 +113,8 @@ class Map:
         return columns, len(tile_rows), tiles, collidables
 
     @classmethod
-    def read_entities(cls, path: Path) -> Dict[Cell, str]:
-        """The entities placed on the map: ``{(col, row): type}``."""
+    def read_entities(cls, path: Path) -> Dict[Cell, Placement]:
+        """The entities placed on the map: ``{(col, row): placement}``."""
         with Path(path).open(encoding="utf-8") as file:
             map_data = json.load(file)
         tile_rows = map_data.get("tiles") if isinstance(map_data, dict) else None
@@ -122,13 +123,13 @@ class Map:
         return cls.decode_entities(map_data.get("entities"), len(tile_rows[0]), len(tile_rows))
 
     @classmethod
-    def decode_entities(cls, entries, columns: int, rows: int) -> Dict[Cell, str]:
+    def decode_entities(cls, entries, columns: int, rows: int) -> Dict[Cell, Placement]:
         """Validates entity JSON entries and returns them by cell."""
         if entries is None:
             return {}
         if not isinstance(entries, list):
             raise ValueError("Map 'entities' must be a list")
-        entities: Dict[Cell, str] = {}
+        entities: Dict[Cell, Placement] = {}
         for entry in entries:
             if not isinstance(entry, dict) or not isinstance(entry.get("type"), str) or not entry["type"]:
                 raise ValueError(f"Invalid entity: {entry!r}")
@@ -138,7 +139,10 @@ class Map:
             cls._check_cell(col, row, columns, rows)
             if (col, row) in entities:
                 raise ValueError(f"Two entities are on the cell {(col, row)}")
-            entities[(col, row)] = entry["type"]
+            settings = entry.get("settings", {})
+            if not isinstance(settings, dict) or not all(isinstance(key, str) for key in settings):
+                raise ValueError(f"Entity {entry['type']!r} has invalid settings")
+            entities[(col, row)] = Placement(entry["type"], settings)
         return entities
 
     @classmethod
@@ -150,7 +154,7 @@ class Map:
         tiles: Dict[Cell, Tile],
         collidables: Iterable[Cell],
         sheet: Optional[Path] = None,
-        entities: Optional[Dict[Cell, str]] = None,
+        entities: Optional[Dict[Cell, Placement]] = None,
         level: Optional[Dict] = None,
     ) -> None:
         """Writes the map. ``sheet`` is the tileset the map is drawn with: the game
@@ -176,8 +180,10 @@ class Map:
             for col, row in entities:
                 cls._check_cell(col, row, columns, rows)
             map_data["entities"] = [
-                {"type": kind, "x": col, "y": row}
-                for (col, row), kind in sorted(entities.items(), key=lambda item: (item[0][1], item[0][0]))
+                cls.encode_entity(placement, col, row)
+                for (col, row), placement in sorted(
+                    entities.items(), key=lambda item: (item[0][1], item[0][0])
+                )
             ]
         if level:
             map_data["level"] = dict(level)
@@ -188,6 +194,15 @@ class Map:
         with temporary_path.open("w", encoding="utf-8") as file:
             json.dump(map_data, file, separators=(",", ":"))
         temporary_path.replace(path)
+
+    @classmethod
+    def encode_entity(cls, placement: Placement, col: int, row: int) -> Dict:
+        """One entry of the ``"entities"`` list; its settings are written only
+        when this entity does not behave like the others of its type."""
+        entry = {"type": placement.kind, "x": col, "y": row}
+        if placement.settings:
+            entry["settings"] = dict(placement.settings)
+        return entry
 
     @classmethod
     def read_level(cls, path: Path) -> Dict:

@@ -125,11 +125,22 @@ entity palette (click or mouse wheel to choose): Mario start, Goomba, Koopa
 Troopa, Red Koopa Troopa, Super Mushroom, 1-Up Mushroom. Left click places the chosen entity,
 right click removes the entity of the cell and middle click picks it. There is
 one entity per cell; `Mario start` is unique, so placing it again moves it.
+`Alt` + left click on a placed entity opens its settings panel **in the same
+window**. Select a row with the mouse or the up/down arrows, change it with the
+`<` / `>` buttons or left/right arrows, and use `Default` (`Backspace`) to
+restore the value of its type. `Reset all` restores all values; `Esc` closes
+the panel. A `*` marks a value overridden on this entity only. Numeric values
+change by steps, booleans toggle, and text values cycle through those declared
+for the same key in `res/entities.yaml`. Only scalar settings declared on the
+type are offered here. Undo/redo and copy/paste include these overrides;
+repainting the same type does not erase them.
 Entities are drawn in every mode, standing on the bottom of their cell like in
 the game. Put a mushroom on a solid `?` block to hide it inside.
 
 The types come from `res/entities.yaml` (shared with the game); an unknown type
-found in a map is shown as a magenta cross.
+found in a map is shown as a magenta cross. A map with an invalid override
+(unknown setting, effect or missing animation) is marked unplayable by the
+game, with an error naming the entity and its coordinates.
 
 ### Level settings
 
@@ -217,7 +228,7 @@ The editor writes the same JSON structure consumed by the game:
     [false, true, true]
   ],
   "entities": [
-    {"type": "goomba", "x": 0, "y": 0}
+    {"type": "goomba", "x": 0, "y": 0, "settings": {"speed": 64}}
   ],
   "sheet": "res/sheets/level.png",
   "level": {"timeLimit": 200, "sky": [16, 24, 64], "music": "overworld"}
@@ -225,6 +236,7 @@ The editor writes the same JSON structure consumed by the game:
 ```
 
 `entities` is only written when the map has some; `x` / `y` are cells.
+An entity's `settings` is written only when it differs from its type.
 `level` is only written when a setting differs from the defaults.
 
 `sheet` is the tileset the map was drawn with, relative to the repository

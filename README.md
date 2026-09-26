@@ -88,6 +88,13 @@ machine, like the shell of the koopa, has a class. The header of
 `res/entities.yaml` lists every effect, and an unknown one is reported with the
 known names when the game starts.
 
+To tune a **single placed entity**, `Alt` + click it in the editor's `Entities`
+mode. The panel changes only that entity, not the type in `res/entities.yaml`;
+`Default` restores the type's value. The map stores only overrides, for example
+`{"type": "goomba", "x": 3, "y": 6, "settings": {"speed": 64}}`.
+The game validates these overrides when it lists the levels. See the
+[editor controls](map_editor/README.md#entities).
+
 A mushroom placed on a solid block (a `?` block) is hidden inside it and comes
 out when the block is hit from below. Enemies are only woken up when they get
 near the screen. Stomping several enemies without landing gives more and more

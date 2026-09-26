@@ -7,6 +7,9 @@ Notable changes of the project. The format follows
 
 ### Added
 
+- Per-entity settings in the map editor (`Alt` + click a placed entity):
+  undoable overrides in map JSON, preserved by copy/paste and validated by
+  the game before offering a map for play.
 - `SETTINGS` on the title screen: audio and volumes, sharp pixels, skip intro,
   mouse cursor, framerate and the keys of every action, applied right away and
   written back to `config.yaml`.

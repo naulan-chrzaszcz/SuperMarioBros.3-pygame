@@ -49,6 +49,14 @@ class EntityType:
     animations: Mapping[str, AnimationSpec] = field(default_factory=dict)
     # Constants of the behaviour class (camelCase keys: speed, wakeUpTime...).
     settings: Mapping[str, Any] = field(default_factory=dict)
+    # Where the settings come from, named in the error messages; a map gives
+    # its own settings to a single entity (src/entities/spawner.py, tuned()).
+    source: str = ""
+
+    @property
+    def where(self) -> str:
+        """Name of the file the settings come from, for the error messages."""
+        return self.source or f"entities.yaml: {self.id}"
 
     @property
     def editor_frame(self) -> Tuple[int, int, int, int]:

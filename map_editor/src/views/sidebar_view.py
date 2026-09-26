@@ -34,6 +34,7 @@ ENTITY_ICON_SIZE = 32
 HELP_SEPARATOR = "   "
 HELP_LINES = (
     "Left: paint   Right: erase",
+    "Alt + click an entity: edit its settings",
     "Shift + drag: fill a rectangle",
     "Middle click: pick   Middle drag: pan",
     "Wheel: scroll   Shift + wheel: sideways",
