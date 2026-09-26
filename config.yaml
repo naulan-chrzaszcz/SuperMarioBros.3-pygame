@@ -5,6 +5,11 @@ mixer:
   size: -16
   channels: 2
   buffer: 512
+audio:
+  enabled: true
+  # From 0 (silent) to 1.
+  musicVolume: 0.5
+  soundVolume: 0.8
 # Size of the game image; it is scaled to the window without distortion.
 display:
   width: 464

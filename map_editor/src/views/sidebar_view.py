@@ -199,6 +199,9 @@ class SidebarView:
         x = self.preview_rect.right + PANEL_PADDING
         y = self.preview_rect.y
         name = state.selected_name or ("Undeclared tile" if state.tileset.has_metadata else "Tile")
+        behaviour = state.tileset.behaviour_of(state.selection_x, state.selection_y)
+        if behaviour:
+            name = f"{name} ({behaviour})"
         lines = [
             (name, TEXT_COLOR),
             (f"Sheet {state.selection_x},{state.selection_y}   Rotation {state.rotation}", MUTED_TEXT_COLOR),

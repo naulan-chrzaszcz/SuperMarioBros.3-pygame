@@ -17,7 +17,7 @@ from pygame import Surface, image
 
 from .constants import PROJECT_ROOT, RESSOURCES_FILE
 from .entities.spawner import known_types
-from .inputs.map import Map, TileCode, parse_entities
+from .inputs.map import LevelSettings, Map, TileBehaviour, TileCode, parse_entities
 from .inputs.ressources import Ressources
 
 MAPS_DIRECTORY = PROJECT_ROOT / "res" / "maps"
@@ -35,6 +35,8 @@ class LevelInfo:
     size: Optional[Tuple[int, int]] = None
     # Why the level cannot be played, None when it can.
     error: Optional[str] = None
+    # The name given in the map editor (level settings), else the file name.
+    title: str = ""
 
     @property
     def playable(self) -> bool:
@@ -46,6 +48,7 @@ class SheetInfo:
     path: Path
     color_key: Optional[Tuple[int, int, int]]
     metadata: Optional[Dict[str, str]]
+    behaviours: Optional[Dict[str, TileBehaviour]] = None
 
 
 class LevelCatalog:
@@ -101,8 +104,14 @@ class LevelCatalog:
             unknown = {spawn.type for spawn in parse_entities(data.get("entities"), *size)} - set(known_types())
             if unknown:
                 raise ValueError(f"unknown entity type(s): {', '.join(sorted(unknown))}")
+            settings = LevelSettings.parse(data.get("level"))
         except (OSError, ValueError, TypeError, IndexError) as error:
-            return LevelInfo(name, path, error=f"Cannot read the map: {error}")
+            return LevelInfo(name, path, error=f"Cannot read the map: {error}", title=name)
+        title = settings.name or name
+        result = self._check_sheet(data, name, path, size, cells, sheet_path)
+        return LevelInfo(result.name, result.path, result.sheet_path, result.size, result.error, title)
+
+    def _check_sheet(self, data, name, path, size, cells, sheet_path) -> LevelInfo:
 
         if sheet_path is None and isinstance(data.get("sheet"), str):
             sheet_path = self.root / data["sheet"]
@@ -134,7 +143,7 @@ class LevelCatalog:
         sheet = self.sheet(level.sheet_path)
         with level.path.open(encoding="utf-8") as file:
             data = json.load(file)
-        return Map(self._image(sheet), sheet.metadata, data)
+        return Map(self._image(sheet), sheet.metadata, data, sheet.behaviours)
 
     def sheet(self, path: Path) -> SheetInfo:
         path = Path(path).resolve()
@@ -169,13 +178,14 @@ class LevelCatalog:
                 break
         if metadata_path is None and path.with_suffix(".yaml").is_file():
             metadata_path = path.with_suffix(".yaml")
-        metadata = None
+        metadata = behaviours = None
         if metadata_path is not None:
             try:
                 metadata = Ressources.read_metadata(metadata_path)
-            except (OSError, yaml.YAMLError, KeyError, TypeError):
-                metadata = None
-        return SheetInfo(path, color_key, metadata)
+                behaviours = Ressources.read_behaviours(metadata_path)
+            except (OSError, yaml.YAMLError, KeyError, TypeError, ValueError):
+                metadata = behaviours = None
+        return SheetInfo(path, color_key, metadata, behaviours)
 
     def _ressource_images(self) -> List[dict]:
         try:

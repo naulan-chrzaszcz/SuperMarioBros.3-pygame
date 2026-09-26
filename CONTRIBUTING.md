@@ -104,18 +104,43 @@ extension points:
 3. Save it as `res/maps/level_N.json`: the `levelN` tile of the world map plays
    it. Any other map of `res/maps` is listed in `CUSTOM LEVELS`.
 
+### Changing a value
+
+Look in the data files first (see "A data-driven game" in the README): speeds,
+scores, durations, sprites and sounds are there, not in the code. To make a
+new constant configurable, add it UPPER_CASE on its class: `rules.yaml` (or the
+`settings` of an entity) can then set it in camelCase. List the constants that
+must not change in the `NOT_TUNABLE` tuple of the class, and add the new value,
+with its default, to `res/rules.yaml` (a test checks that the file matches the
+code).
+
 ### Adding an entity
 
-1. Declare it in `res/entities.yaml` (`id`, `name`, `image` = an image id of
-   `ressources.yaml`, the `frame` shown in the editor, `description`...). The
-   editor lists it right away.
-2. Write its class in `src/entities/`, as a subclass of `Entity`
-   (`src/entities/entity.py`): override `update`, `touch_mario` (stomp or side
-   touch), `knock` and `image`. It talks to the level only through the `Level`
-   protocol (`hurt_mario`, `stomped`, `score`...).
-3. Register the class in `ENTITY_CLASSES` (`src/entities/spawner.py`).
-4. Test it in `tests/test_game.py` (see `EntityTest`), and document it in the
-   entity table of the README.
+An entity that behaves like an existing one is only data: add it to
+`res/entities.yaml` with the `behaviour` of the existing one and its own
+`animations`, `palette` or `settings` (see `red_koopa`). For a new behaviour:
+
+1. Write its class in `src/entities/`, as a subclass of `Entity`
+   (`src/entities/entity.py`): list the animation names it needs in
+   `ANIMATIONS`, put its tunable values in UPPER_CASE constants, and override
+   `behave` (what it does each frame), `touch_mario` (stomp or side touch),
+   `knock` and `image` (pick a frame in `self.animations`). `CAN_HIDE` hides
+   it in a `?` block, `TURN_AT_LEDGES` makes `walk` turn back at ledges. It
+   talks to the level only through the `Level` protocol (`hurt_mario`,
+   `stomped`, `score`, `play_sound`...).
+2. Register the class in `ENTITY_CLASSES` (`src/entities/spawner.py`).
+3. Declare it in `res/entities.yaml`. The editor lists it right away; the game
+   checks its behaviour, animations and settings when it starts.
+4. Test it in `tests/test_game.py` (see `EntityTest`) or `tests/test_data.py`,
+   and document it in the entity table of the README.
+
+### Adding a sprite or a sound
+
+- Sprites: add an animation to `res/sprites.yaml` (or to the entity) and ask
+  for it by name with `context.sprites.animation(sprite, name)`.
+- Sounds: add the file to `res/sounds/`, map an event id to it in the `sounds`
+  list of `ressources.yaml` and play it with `context.audio.play("event")`.
+  Musics work the same with `musics` and `context.audio.play_music("id")`.
 
 ### Adding a scene
 
@@ -125,8 +150,10 @@ the scene manager. A scene named `level_N` replaces the map of the level `N`.
 ### Adding a tile type to the editor
 
 Name the tiles in the tileset metadata (`res/sheets/*.yaml` or the `metadata`
-of the image in `ressources.yaml`); the game gives a behaviour to some names
-(`coin*`, `mystery_block*`, `brick*`...).
+of the image in `ressources.yaml`) and give them a `behaviour` (`coin`,
+`question_block` with `becomes`, `brick`, `hurt`, `goal`) to make them do
+something in a level. A tileset without any behaviour falls back on the names
+`coin*`, `mystery_block*` and `brick*`.
 
 ## Assets and copyright
 

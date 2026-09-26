@@ -7,6 +7,15 @@ Notable changes of the project. The format follows
 
 ### Added
 
+- A data-driven engine: `res/rules.yaml` (Mario's physics, scores, durations,
+  time limit, sky, musics), `res/sprites.yaml` (animations of Mario, the HUD
+  and the title screen), entity `behaviour`, `animations` and `settings` in
+  `res/entities.yaml`, tile `behaviour` in the tileset metadata (`coin`,
+  `question_block`, `brick`, `hurt`, `goal`). Typos are reported at start-up.
+- Red Koopa Troopa, made only of data (turns back at ledges).
+- Sound effects and musics, as named events mapped in `ressources.yaml`;
+  `audio` section in `config.yaml`.
+- Level settings in the map editor (time limit, sky, music), saved in the map.
 - Entities, placed with the map editor (`Entities` mode, `E`) and playable in
   the game: Mario start, Goomba, Koopa Troopa (shell to kick), Super Mushroom
   and 1-Up Mushroom, declared in `res/entities.yaml`. Mushrooms can be hidden

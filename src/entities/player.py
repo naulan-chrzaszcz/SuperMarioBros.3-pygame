@@ -1,29 +1,24 @@
 from __future__ import annotations
 
-from pygame import Surface, Vector2
+from pygame import Vector2
 from pygame.sprite import Sprite
 
-from ..sprite_animation import SpriteAnimation
-from ..tile import Tile
+from ..animation import Animation, Animator
 
 
 class Player(Sprite):
-    def __init__(self, group, vector, sheet: Surface):
+    """Mario on the world map and on the world card: the ``world_mario``
+    animations of ``res/sprites.yaml``."""
+
+    def __init__(self, group, vector, animation: Animation):
         super().__init__(group)
-        self.image = sheet.subsurface((0, 0), (Tile.WIDTH, Tile.HEIGHT))
+        self.image = animation.frame(0)
         self.vector = Vector2(vector)
         self.rect = self.image.get_rect(topleft=self.vector)
+        self.levels_animation = Animator(self, animation)
+        self.current_animation: Animator | None = None
 
-        self.levels_animation = SpriteAnimation(
-            self,
-            sheet.subsurface((Tile.WIDTH * 3, Tile.HEIGHT * 2), (Tile.WIDTH, Tile.HEIGHT * 2)),
-            2,
-            1.5,
-            "y",
-        )
-        self.current_animation: SpriteAnimation | None = None
-
-    def play(self, animation: SpriteAnimation | None) -> None:
+    def play(self, animation: Animator | None) -> None:
         self.current_animation = animation
         if animation is not None:
             animation.reset()

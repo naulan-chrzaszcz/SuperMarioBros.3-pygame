@@ -28,6 +28,7 @@ class MainMenuScene(Scene):
     MENU = ("START GAME", "CUSTOM LEVELS", "MAP EDITOR", "QUIT")
     MENU_TOP = 150
     MENU_SPACING = 12
+    MUSIC = "title"
 
     duration = {
         AnimationState.PAUSE: 1.0,
@@ -41,16 +42,21 @@ class MainMenuScene(Scene):
     def __init__(self, context: GameContext, play_opening: bool = True):
         super().__init__(context)
         self.play_opening = play_opening
-        sheet = context.ressources.image("mainMenu")
-        self.curtain = self._repeat(sheet.subsurface((0, 0), (256, 187)))
-        self.floor = self._repeat(sheet.subsurface((0, 188), (256, 37)))
-        self.small_cloud = sheet.subsurface((180, 285), (16, 8))
-        self.cloud = sheet.subsurface((180, 268), (32, 16))
-        self.small_cactus = sheet.subsurface((257, 188), (64, 64))
-        self.cactus = sheet.subsurface((322, 188), (63, 93))
-        self.title = Surface((179, 113), SRCALPHA)
-        self.title.blit(sheet.subsurface((0, 226), (179, 72)), (0, 0))
-        self.title.blit(sheet.subsurface((180, 226), (42, 41)), (self.title.get_width() // 2 - 20, 72))
+        # The pictures are the "title" sprite of res/sprites.yaml.
+        def picture(name: str) -> Surface:
+            return context.sprites.image("title", name)
+
+        self.curtain = self._repeat(picture("curtain"))
+        self.floor = self._repeat(picture("floor"))
+        self.small_cloud = picture("small_cloud")
+        self.cloud = picture("cloud")
+        self.small_cactus = picture("small_cactus")
+        self.cactus = picture("cactus")
+        logo, three = picture("logo"), picture("logo_three")
+        size = max(logo.get_width(), three.get_width()), logo.get_height() + three.get_height()
+        self.title = Surface(size, SRCALPHA)
+        self.title.blit(logo, (0, 0))
+        self.title.blit(three, (self.title.get_width() // 2 - three.get_width() // 2 + 1, logo.get_height()))
         self.menu = [context.font.render(item) for item in self.MENU]
         self.selected = 0
 
@@ -69,6 +75,7 @@ class MainMenuScene(Scene):
 
     def on_enter(self) -> None:
         super().on_enter()
+        self.context.audio.play_music(self.MUSIC)
         self.clock = 0.0
         if self.play_opening:
             # Only the first time: coming back from the world map shows the menu.
@@ -92,6 +99,7 @@ class MainMenuScene(Scene):
     def on_action(self, action: Action) -> None:
         if action == Action.CONFIRM:
             if self.ready:
+                self.context.audio.play("menu_confirm")
                 self.choose(self.MENU[self.selected])
             else:
                 self.skip_opening()
@@ -100,6 +108,7 @@ class MainMenuScene(Scene):
         elif self.ready and action in (Action.UP, Action.DOWN):
             step = -1 if action == Action.UP else 1
             self.selected = (self.selected + step) % len(self.MENU)
+            self.context.audio.play("menu_select")
 
     def choose(self, item: str) -> None:
         if item == "START GAME":

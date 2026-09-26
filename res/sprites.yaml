@@ -1,0 +1,69 @@
+# Named animations cut in the images of ressources.yaml.
+#
+# sprite:
+#   image: id of the image in ressources.yaml
+#   facing: where the frames look in the sheet (left or right); the game flips them
+#   palette: [[from r, g, b], [to r, g, b]] color swaps (optional)
+#   positions: named [x, y] points (optional, e.g. the HUD layout)
+#   animations:
+#     name: [x, y, width, height]                   one frame
+#     name: [[x, y, w, h], [x, y, w, h]]            frames shown in turn
+#     name: {frames: [...], period: 0.1, mirror: true}
+#       period: seconds per frame; mirror: plays the frames again flipped
+#
+# The entities (goomba, koopa...) have their animations in res/entities.yaml.
+
+# Mario in the platform levels.
+mario:
+  image: mario
+  facing: left
+  animations:
+    small_stand: [0, 0, 16, 16]
+    small_walk: {frames: [[0, 0, 16, 16], [16, 0, 16, 16]], period: 0.12}
+    small_run: {frames: [[16, 0, 16, 16], [32, 0, 16, 16]], period: 0.06}
+    small_skid: [48, 0, 16, 16]
+    small_jump: [0, 64, 16, 16]
+    big_stand: [0, 80, 16, 28]
+    big_walk: {frames: [[0, 80, 16, 28], [16, 80, 16, 28]], period: 0.12}
+    big_run: {frames: [[0, 137, 16, 27], [16, 137, 16, 27]], period: 0.06}
+    big_skid: [0, 109, 16, 27]
+    big_jump: [32, 80, 16, 28]
+    dead: [16, 16, 16, 16]
+
+# Mario on the world map and on the world card.
+world_mario:
+  image: mario
+  animations:
+    idle: [0, 0, 16, 16]
+    on_map: {frames: [[48, 32, 16, 16], [48, 48, 16, 16]], period: 0.667}
+
+# Status bar at the bottom of the screen.
+hud:
+  image: hud
+  animations:
+    frame: [0, 0, 154, 30]
+    inventory: [155, 0, 74, 30]
+    player_icon: [0, 31, 18, 9]
+    speed_arrow: [46, 31, 8, 9]
+    speed_power: [46, 31, 26, 9]
+  positions:
+    world: [36, 8]
+    coins: [141, 8]
+    player_icon: [4, 15]
+    lives: [36, 16]
+    score: [50, 16]
+    time: [125, 16]
+    speed: [50, 7]
+
+# Title screen.
+title:
+  image: mainMenu
+  animations:
+    curtain: [0, 0, 256, 187]
+    floor: [0, 188, 256, 37]
+    small_cloud: [180, 285, 16, 8]
+    cloud: [180, 268, 32, 16]
+    small_cactus: [257, 188, 64, 64]
+    cactus: [322, 188, 63, 93]
+    logo: [0, 226, 179, 72]
+    logo_three: [180, 226, 42, 41]

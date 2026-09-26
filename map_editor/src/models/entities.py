@@ -49,7 +49,7 @@ def load_entity_types(
             id=str(entry["id"]),
             name=str(entry.get("name", entry["id"])),
             sheet_path=(root / image["path"]) if image.get("path") else None,
-            frame=tuple(entry.get("frame", (0, 0, 16, 16))),
+            frame=editor_frame(entry),
             color_key=(key["r"], key["g"], key["b"]) if key else None,
             flip=bool(entry.get("flip", False)),
             palette=tuple((tuple(a), tuple(b)) for a, b in entry.get("palette", [])),
@@ -57,6 +57,20 @@ def load_entity_types(
             description=str(entry.get("description", "")),
         ))
     return tuple(types)
+
+
+def editor_frame(entry: dict) -> Tuple[int, int, int, int]:
+    """The ``frame`` of the entry, else the first frame of its first
+    animation (see the header of res/entities.yaml)."""
+    if entry.get("frame"):
+        return tuple(entry["frame"])
+    for animation in (entry.get("animations") or {}).values():
+        frames = animation.get("frames") if isinstance(animation, dict) else animation
+        if frames and isinstance(frames[0], (list, tuple)):
+            frames = frames[0]
+        if frames and len(frames) == 4:
+            return tuple(frames)
+    return (0, 0, 16, 16)
 
 
 def _ressource_images(path: Path) -> Dict[str, dict]:
