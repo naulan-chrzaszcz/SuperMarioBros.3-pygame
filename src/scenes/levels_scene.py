@@ -9,6 +9,7 @@ from pygame import Rect, Surface, Vector2
 from ..constants import BLACK, WHITE
 from ..entities.player import Player
 from ..inputs.config import Action
+from ..inputs.tuning import tune
 from ..tile import Tile
 from ..world_map import DIRECTIONS, WorldMapWalker, level_scene_of
 from .scene import GameContext, Scene
@@ -48,13 +49,17 @@ class LevelsScene(Scene):
     Levels without either show a message instead of crashing the game.
     """
 
-    duration = {AnimationState.ENTER_WORLD: 1.0}
+    # Can be changed in the "worldMap" section of res/rules.yaml.
+    ENTER_DURATION = 1.0
     MESSAGE_DURATION = 2.0
+    STEP_DURATION = 0.1  # seconds to walk from a tile to the next one
+    MUSIC = "world_map"
 
     def __init__(self, context: GameContext, map_name: str = "levels"):
         super().__init__(context)
+        tune(self, context.rules.world_map, "rules.yaml: worldMap")
         self.map_name = map_name
-        self.player = Player((), (0, 0), context.ressources.image("mario"))
+        self.player = Player((), (0, 0), context.sprites.animation("world_mario", "on_map"))
         self.walker: Optional[WorldMapWalker] = None
         self.world = None
 
@@ -67,7 +72,7 @@ class LevelsScene(Scene):
                 raise ValueError(f"Map {self.map_name!r} needs a tile named 'start'")
             self.world = world
             # Kept between visits: coming back from a level leaves Mario where he was.
-            self.walker = WorldMapWalker(start.cell, world.is_blocked)
+            self.walker = WorldMapWalker(start.cell, world.is_blocked, self.STEP_DURATION)
             self.levels = Surface((world.width, world.height))
 
         width, height = self.surface.get_size()
@@ -86,6 +91,11 @@ class LevelsScene(Scene):
         self.message_timer = 0.0
         self.player.play(self.player.levels_animation)
         self.player.vector = self.walker.position
+        self.context.audio.play_music(self.MUSIC)
+
+    def walk(self, direction: Action) -> None:
+        if self.walker.try_move(direction):
+            self.context.audio.play("map_move")
 
     def level_under_player(self) -> Tuple[Optional[Tile], Optional[str]]:
         if self.walker.moving:
@@ -113,6 +123,8 @@ class LevelsScene(Scene):
         self.spiral = inverse_spiral_segments(self.world.columns, self.world.rows)
         self.state = AnimationState.ENTER_WORLD
         self.timer = 0.0
+        self.context.audio.stop_music()
+        self.context.audio.play("enter_level")
 
     def show_message(self, text: str) -> None:
         self.message = self.context.font.render(text)
@@ -123,7 +135,7 @@ class LevelsScene(Scene):
             return
         if action in DIRECTIONS:
             self.held.append(action)
-            self.walker.try_move(action)
+            self.walk(action)
         elif action == Action.CONFIRM:
             self.enter_level()
         elif action == Action.BACK:
@@ -144,11 +156,11 @@ class LevelsScene(Scene):
                 # Like in SMB3, walking stops on each level: press again to go on.
                 self.held.clear()
             if not self.walker.moving and self.held:
-                self.walker.try_move(self.held[-1])
+                self.walk(self.held[-1])
             self.player.vector = self.walker.position
             self.player.update(dt)
         elif self.state == AnimationState.ENTER_WORLD:
-            t = min(self.timer / self.duration[self.state], 1.0)
+            t = min(self.timer / self.ENTER_DURATION, 1.0)
             self.spiral_index = round(len(self.spiral) * t)
             if t >= 1.0:
                 if self.target_level is not None:

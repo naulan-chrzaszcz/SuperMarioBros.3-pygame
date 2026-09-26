@@ -44,7 +44,9 @@ class AnimationLevelsScene(Scene):
         # TODO: Draw the same frame of HUD
         self.stats_frame = Rect(14, 14, stats_width - 28, stats_height - 28)
         self.player = Player(
-            (), Vector2(stats_width - 32, stats_height // 2 - Tile.HEIGHT // 2), context.ressources.image("mario")
+            (),
+            Vector2(stats_width - 32, stats_height // 2 - Tile.HEIGHT // 2),
+            context.sprites.animation("world_mario", "on_map"),
         )
         self.stars_sheet = context.ressources.image("stars")
 

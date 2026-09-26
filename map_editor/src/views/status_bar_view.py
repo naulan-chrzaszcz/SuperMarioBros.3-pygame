@@ -51,7 +51,8 @@ class StatusBarView:
             tile = model.tiles.get(hover_cell)
             if tile is not None:
                 name = state.tileset.name_of(tile.x, tile.y) or f"{tile.x},{tile.y}"
-                parts.insert(1, f"Tile: {name}")
+                behaviour = state.tileset.behaviour_of(tile.x, tile.y)
+                parts.insert(1, f"Tile: {name} ({behaviour})" if behaviour else f"Tile: {name}")
             if hover_cell in model.collidables:
                 parts.insert(1, "Solid")
             kind = model.entities.get(hover_cell)

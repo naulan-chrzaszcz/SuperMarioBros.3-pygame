@@ -80,6 +80,10 @@ therefore reads the same metadata and color key as the game:
 1. the `images` entry of `ressources.yaml` whose `path` is the sheet;
 2. otherwise a `<sheet>.yaml` file next to the image (e.g. `res/sheets/level.yaml`).
 
+The `behaviour` of a tile (`coin`, `question_block`, `brick`, `hurt`, `goal`,
+see the header of `res/sheets/level.yaml`) is shown next to its name in the
+preview and in the status bar.
+
 Undeclared tiles are darkened in the tileset and cannot be painted. Declare
 them in the metadata file first. If the sheet has no metadata at all, every
 tile can be used.
@@ -118,7 +122,7 @@ hidden with `O`.
 
 In **Entities** mode (`E` or the `Entities` button) the sidebar shows the
 entity palette (click or mouse wheel to choose): Mario start, Goomba, Koopa
-Troopa, Super Mushroom, 1-Up Mushroom. Left click places the chosen entity,
+Troopa, Red Koopa Troopa, Super Mushroom, 1-Up Mushroom. Left click places the chosen entity,
 right click removes the entity of the cell and middle click picks it. There is
 one entity per cell; `Mario start` is unique, so placing it again moves it.
 Entities are drawn in every mode, standing on the bottom of their cell like in
@@ -126,6 +130,21 @@ the game. Put a mushroom on a solid `?` block to hide it inside.
 
 The types come from `res/entities.yaml` (shared with the game); an unknown type
 found in a map is shown as a magenta cross.
+
+### Level settings
+
+Below the undo buttons, the sidebar sets the settings of the level, saved in
+the `level` block of the map. They are not part of the undo history: change
+them back with the same buttons.
+
+- `Time`: `-` / `+` by 50 seconds; under 50 goes back to the default of
+  `res/rules.yaml` (300);
+- `Sky`: click to go through Default, Day, Sunset, Night and Cave;
+- `Music`: click to go through the musics of `ressources.yaml` (Default is the
+  one of `res/rules.yaml`).
+
+A `name` written by hand in the `level` block is kept and shown in the
+`CUSTOM LEVELS` list of the game.
 
 ### Selection, copy and paste
 
@@ -200,11 +219,13 @@ The editor writes the same JSON structure consumed by the game:
   "entities": [
     {"type": "goomba", "x": 0, "y": 0}
   ],
-  "sheet": "res/sheets/level.png"
+  "sheet": "res/sheets/level.png",
+  "level": {"timeLimit": 200, "sky": [16, 24, 64], "music": "overworld"}
 }
 ```
 
 `entities` is only written when the map has some; `x` / `y` are cells.
+`level` is only written when a setting differs from the defaults.
 
 `sheet` is the tileset the map was drawn with, relative to the repository
 root: the game uses it to know which image the coordinates refer to. Maps

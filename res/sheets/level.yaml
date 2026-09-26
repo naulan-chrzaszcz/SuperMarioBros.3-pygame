@@ -1,3 +1,11 @@
+# Tiles of level.png: their name, and for some of them what they do in a level.
+#
+#   behaviour: coin            collected when Mario touches it
+#              question_block  gives a coin (or the item placed on it) when hit from below
+#              brick           big Mario breaks it from below
+#              hurt            hurts Mario (spikes, lava...)
+#              goal            clears the course
+#   becomes:   the tile drawn once a question_block is used
 tiles:
   - name: floor_top_left
     coordinate:
@@ -183,22 +191,27 @@ tiles:
     coordinate:
       x: 4
       y: 3
+    behaviour: coin
   - name: coin_frame_1
     coordinate:
       x: 5
       y: 3
+    behaviour: coin
   - name: coin_frame_2
     coordinate:
       x: 6
       y: 3
+    behaviour: coin
   - name: coin_frame_3
     coordinate:
       x: 7
       y: 3
+    behaviour: coin
   - name: coin_frame_4
     coordinate:
       x: 8
       y: 3
+    behaviour: coin
   - name: pipe_top_left
     coordinate:
       x: 9
@@ -223,18 +236,22 @@ tiles:
     coordinate:
       x: 4
       y: 4
+    behaviour: brick
   - name: brick_frame_1
     coordinate:
       x: 5
       y: 4
+    behaviour: brick
   - name: brick_frame_2
     coordinate:
       x: 6
       y: 4
+    behaviour: brick
   - name: brick_frame_3
     coordinate:
       x: 7
       y: 4
+    behaviour: brick
   - name: pipe_left
     coordinate:
       x: 9
@@ -247,18 +264,26 @@ tiles:
     coordinate:
       x: 4
       y: 5
+    behaviour: question_block
+    becomes: block
   - name: mystery_block_frame_1
     coordinate:
       x: 5
       y: 5
+    behaviour: question_block
+    becomes: block
   - name: mystery_block_frame_2
     coordinate:
       x: 6
       y: 5
+    behaviour: question_block
+    becomes: block
   - name: mystery_block_frame_3
     coordinate:
       x: 7
       y: 5
+    behaviour: question_block
+    becomes: block
   - name: block
     coordinate:
       x: 8

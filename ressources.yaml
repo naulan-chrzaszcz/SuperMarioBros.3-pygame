@@ -60,3 +60,47 @@ maps:
   - id: levels
     path: res/maps/stage_menu.json
     sheet: levels
+# Sound effects, played by event name (see README.md, "Sounds").
+sounds:
+  - id: jump
+    path: res/sounds/jump.wav
+  - id: coin
+    path: res/sounds/coin.wav
+  - id: bump
+    path: res/sounds/bump.wav
+  - id: brick
+    path: res/sounds/bump.wav
+  - id: item
+    path: res/sounds/loot_appears.wav
+  - id: power_up
+    path: res/sounds/power_up.wav
+  - id: power_down
+    path: res/sounds/pipe.wav
+  - id: one_up
+    path: res/sounds/1up.wav
+  - id: stomp
+    path: res/sounds/stomp.wav
+  - id: kick
+    path: res/sounds/kick.wav
+  - id: die
+    path: res/sounds/player_down.wav
+  - id: pause
+    path: res/sounds/pause.wav
+  - id: hurry
+    path: res/sounds/close_to_end_of_time.wav
+  - id: map_move
+    path: res/sounds/map_travel.wav
+  - id: enter_level
+    path: res/sounds/enter_level.wav
+  - id: menu_select
+    path: res/sounds/map_travel.wav
+  - id: menu_confirm
+    path: res/sounds/enter_level.wav
+# Musics, looped; a level can choose its own in the map editor.
+musics:
+  - id: title
+    path: res/sounds/titleScreen.ogg
+  - id: world_map
+    path: res/sounds/Stage_Menu_msc.ogg
+  - id: overworld
+    path: res/sounds/Stage_1_msc.ogg

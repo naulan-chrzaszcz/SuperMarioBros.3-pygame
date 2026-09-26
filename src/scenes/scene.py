@@ -5,10 +5,13 @@ from typing import TYPE_CHECKING, Callable, Optional
 
 from pygame import KEYDOWN, KEYUP, Surface, key
 
+from ..animation import SpriteBank
+from ..audio import Audio
 from ..font import Font
 from ..hud import HUD
 from ..inputs.config import Action, Config
 from ..inputs.ressources import Ressources
+from ..inputs.rules import Rules
 from ..inputs.save import Save
 from ..map_manager import MapManager
 
@@ -34,10 +37,18 @@ class GameContext:
     maps: MapManager
     display: Surface
     levels: Optional["LevelCatalog"] = None
+    # res/rules.yaml, res/sprites.yaml and the sounds of ressources.yaml.
+    rules: Rules = field(default_factory=Rules)
+    sprites: Optional[SpriteBank] = None
+    audio: Audio = field(default_factory=lambda: Audio({}, {}))
     # Opens the map editor in the game window (after the current frame).
     open_editor: Callable[[], None] = field(default=_unavailable)
     # play_level(level, on_finish): plays a map, then calls on_finish(cleared).
     play_level: PlayLevel = field(default=_unavailable)
+
+    def __post_init__(self) -> None:
+        if self.sprites is None:
+            self.sprites = SpriteBank(self.ressources)
 
 
 class Scene:
