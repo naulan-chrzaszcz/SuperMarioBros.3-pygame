@@ -1,5 +1,7 @@
 """Controller for launcher form events and map opening requests."""
 
+from __future__ import annotations
+
 from typing import Optional
 
 import pygame

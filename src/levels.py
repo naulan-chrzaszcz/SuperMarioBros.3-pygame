@@ -112,7 +112,8 @@ class LevelCatalog:
                 raise ValueError("this file is not a map")
             size = (len(data["tiles"][0]), len(data["tiles"]))
             cells = self._cells_of(data)
-            unknown = {spawn.type for spawn in parse_entities(data.get("entities"), *size)} - set(known_types())
+            spawns = parse_entities(data.get("entities"), *size)
+            unknown = {spawn.type for spawn in spawns} - set(known_types())
             if unknown:
                 raise ValueError(f"unknown entity type(s): {', '.join(sorted(unknown))}")
             settings = LevelSettings.parse(data.get("level"))

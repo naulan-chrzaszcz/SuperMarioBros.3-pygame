@@ -85,7 +85,8 @@ class Ressources:
                     tile["behaviour"], tile.get("becomes"), f"{Path(path).name}: tile {tile['name']!r}"
                 )
             elif tile.get("becomes") is not None:
-                raise ValueError(f"{Path(path).name}: tile {tile['name']!r} has 'becomes' without 'behaviour'")
+                raise ValueError(
+                    f"{Path(path).name}: tile {tile['name']!r} has 'becomes' without 'behaviour'")
         return behaviours
 
     @classmethod
@@ -121,6 +122,7 @@ class Ressources:
         for entry in ressources.get(section) or []:
             path = root / entry["path"]
             if not path.is_file():
-                raise ValueError(f"ressources.yaml: {section} {entry['id']!r}: file {entry['path']} not found")
+                raise ValueError(
+                    f"ressources.yaml: {section} {entry['id']!r}: file {entry['path']} not found")
             files[str(entry["id"])] = path
         return files

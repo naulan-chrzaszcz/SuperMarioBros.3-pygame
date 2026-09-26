@@ -1,10 +1,12 @@
 """Status bar view for editor messages and cursor details."""
 
+from __future__ import annotations
+
 from typing import Optional
 
 import pygame
 
-from ..constantes import (
+from ..constants import (
     BORDER_COLOR,
     ERROR_COLOR,
     INFO_COLOR,
@@ -47,7 +49,8 @@ class StatusBarView:
         if state.pasting:
             parts.append(f"Pasting {state.clipboard.columns}x{state.clipboard.rows}")
         elif state.region is not None:
-            parts.append("Selection {}x{}".format(*region_size(state.region)))
+            columns, rows = region_size(state.region)
+            parts.append(f"Selection {columns}x{rows}")
         if hover_cell is not None and model.contains(hover_cell):
             parts.insert(0, f"Cell {hover_cell[0]},{hover_cell[1]}")
             tile = model.tiles.get(hover_cell)

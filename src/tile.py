@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import Optional, Tuple
 
 from pygame import Surface, Vector2
 from pygame.sprite import Sprite
@@ -36,7 +36,7 @@ class Tile(Sprite):
         self.animation: Optional[SpriteAnimation] = None
 
     @property
-    def cell(self) -> tuple[int, int]:
+    def cell(self) -> Tuple[int, int]:
         """Column and row of the tile in its map."""
         return int(self.vector.x) // self.WIDTH, int(self.vector.y) // self.HEIGHT
 

@@ -1,14 +1,16 @@
 """Small reusable Pygame widgets used by launcher and editor views."""
 
+from __future__ import annotations
+
 from typing import Callable, List, Optional, Tuple, Union
 
 import pygame
 
-from ..constantes import (
+from ..constants import (
+    BORDER_COLOR,
     BUTTON_ACTIVE_COLOR,
     BUTTON_COLOR,
     BUTTON_HOVER_COLOR,
-    BORDER_COLOR,
     FIELD_COLOR,
     MUTED_TEXT_COLOR,
     PANEL_COLOR,

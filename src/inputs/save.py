@@ -52,7 +52,7 @@ class Save:
     game: Game = field(default_factory=Game)
 
     @classmethod
-    def from_dict(cls, data: dict | None) -> "Save":
+    def from_dict(cls, data: Optional[dict]) -> "Save":
         data = data or {}
         game = dict(data.get("game") or {})
         state = game.pop("state", PlayerState.LITTLE.name)

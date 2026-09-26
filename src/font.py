@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 from pygame import SRCALPHA, Surface
 
@@ -53,7 +53,7 @@ class Font:
     def has_glyph(self, char: str) -> bool:
         return char.upper() in self.glyphs
 
-    def size(self, message) -> tuple[int, int]:
+    def size(self, message) -> Tuple[int, int]:
         return len(str(message)) * self.WIDTH_FONT, self.HEIGHT_FONT
 
     def render(self, message) -> Surface:

@@ -79,7 +79,8 @@ class Body:
         self.jumped = False
 
     @classmethod
-    def tuned(cls, x: float, y: float, settings: Mapping[str, Any], where: str = "rules.yaml: player") -> "Body":
+    def tuned(cls, x: float, y: float, settings: Mapping[str, Any],
+              where: str = "rules.yaml: player") -> "Body":
         """A body whose constants are overridden by ``settings`` (camelCase
         keys, see res/rules.yaml)."""
         body = cls(x, y)
@@ -168,10 +169,12 @@ class Body:
         self.vy = min(self.vy + gravity * dt, self.MAX_FALL_SPEED)
 
     def _columns(self) -> range:
-        return range(math.floor(self.x / TILE_WIDTH), math.floor((self.x + self.width - 1e-6) / TILE_WIDTH) + 1)
+        last = math.floor((self.x + self.width - 1e-6) / TILE_WIDTH)
+        return range(math.floor(self.x / TILE_WIDTH), last + 1)
 
     def _rows(self) -> range:
-        return range(math.floor(self.y / TILE_HEIGHT), math.floor((self.y + self.height - 1e-6) / TILE_HEIGHT) + 1)
+        last = math.floor((self.y + self.height - 1e-6) / TILE_HEIGHT)
+        return range(math.floor(self.y / TILE_HEIGHT), last + 1)
 
     def _move_x(self, dx: float, is_solid: IsSolid) -> None:
         if not dx:

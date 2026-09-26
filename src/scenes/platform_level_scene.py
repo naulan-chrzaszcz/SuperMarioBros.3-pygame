@@ -14,14 +14,14 @@ from typing import Callable, Dict, List, Optional, Set, Tuple
 import pygame
 from pygame import Rect, Surface
 
-from ..constants import BLACK, TILE_HEIGHT, TILE_WIDTH, WHITE
 from ..animation import Animation, SpriteBank
+from ..constants import BLACK, TILE_HEIGHT, TILE_WIDTH, WHITE
 from ..entities.entity import Entity
 from ..entities.spawner import spawn_entities
 from ..inputs.config import Action
 from ..inputs.map import Map
-from ..inputs.tuning import tune
 from ..inputs.save import Game, PlayerState
+from ..inputs.tuning import tune
 from ..levels import LevelInfo
 from ..platformer import Body, Controls
 from ..tile import Tile
@@ -545,7 +545,8 @@ class PlatformLevelScene(Scene):
         cell = Rect(column * TILE_WIDTH, row * TILE_HEIGHT, TILE_WIDTH, TILE_HEIGHT)
         for entity in self.entities:
             rect = entity.rect
-            if entity.alive and abs(rect.bottom - cell.top) <= 2 and cell.left < rect.right and rect.left < cell.right:
+            over_cell = cell.left < rect.right and rect.left < cell.right
+            if entity.alive and abs(rect.bottom - cell.top) <= 2 and over_cell:
                 entity.knock(self, 1 if rect.centerx >= cell.centerx else -1)
 
     def _break(self, tile: Tile, column: int, row: int) -> None:
@@ -605,14 +606,16 @@ class PlatformLevelScene(Scene):
         surface = self.surface
         surface.fill(BLACK)
         if self.state == State.ERROR:
-            self._draw_lines(["THIS LEVEL CANNOT BE PLAYED", "", *self.context.font.wrap(self.error or "", 54),
+            self._draw_lines(["THIS LEVEL CANNOT BE PLAYED", "",
+                              *self.context.font.wrap(self.error or "", 54),
                               "", "PRESS A TO GO BACK"], surface.get_height() // 2)
             return
 
         view_width, view_height = self.view_size
         view = Rect(0, 0, view_width, view_height)
         surface.set_clip(view)
-        surface.fill(self.sky, Rect(-self.camera.x, -self.camera.y, self.map.width, self.map.height).clip(view))
+        sky = Rect(-self.camera.x, -self.camera.y, self.map.width, self.map.height)
+        surface.fill(self.sky, sky.clip(view))
         self._draw_entities(behind_tiles=True)
         self._draw_tiles(view)
         self._draw_coin_pops()

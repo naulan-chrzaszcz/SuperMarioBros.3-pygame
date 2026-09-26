@@ -1,10 +1,12 @@
 """Renderer for entity sprites and fallback labels in the map view."""
 
+from __future__ import annotations
+
 from typing import Dict, Optional, Tuple
 
 import pygame
 
-from ..constantes import TILE_SIZE
+from ..constants import TILE_SIZE
 from ..models.entities import EntityType
 
 PLACEHOLDER_COLOR = (255, 0, 255)

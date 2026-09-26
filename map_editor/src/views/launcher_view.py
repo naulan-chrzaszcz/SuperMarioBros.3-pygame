@@ -1,11 +1,13 @@
 """Pygame launcher view with fields and lists for map selection."""
 
+from __future__ import annotations
+
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Tuple
 
 import pygame
 
-from ..constantes import (
+from ..constants import (
     BACKGROUND_COLOR,
     BORDER_COLOR,
     BUTTON_HEIGHT,
@@ -96,7 +98,8 @@ class LauncherView:
         bottom = height - FOOTER_HEIGHT
         left_width = int((width - 3 * MARGIN) * 0.4)
         self.left_rect = pygame.Rect(MARGIN, top, left_width, bottom - top)
-        self.right_rect = pygame.Rect(self.left_rect.right + MARGIN, top, width - left_width - 3 * MARGIN, bottom - top)
+        self.right_rect = pygame.Rect(self.left_rect.right + MARGIN, top,
+                                      width - left_width - 3 * MARGIN, bottom - top)
 
         self.labels = [("Maps  (res/maps)", (self.left_rect.x, top))]
         self.map_list.rect = pygame.Rect(
@@ -112,7 +115,8 @@ class LauncherView:
         y += LABEL_HEIGHT
         self.width_field.rect = pygame.Rect(x, y, SIZE_FIELD_WIDTH, FIELD_HEIGHT)
         self.labels.append(("x", (self.width_field.rect.right + 8, y + 6)))
-        self.height_field.rect = pygame.Rect(self.width_field.rect.right + 24, y, SIZE_FIELD_WIDTH, FIELD_HEIGHT)
+        self.height_field.rect = pygame.Rect(self.width_field.rect.right + 24, y,
+                                             SIZE_FIELD_WIDTH, FIELD_HEIGHT)
         self.screen_button.rect = pygame.Rect(self.height_field.rect.right + 12, y, 100, FIELD_HEIGHT)
         self.size_hint_position = (x, self.width_field.rect.bottom + 6)
         y = self.width_field.rect.bottom + 12 + LABEL_HEIGHT
@@ -125,7 +129,8 @@ class LauncherView:
 
         button_y = bottom + (FOOTER_HEIGHT - BUTTON_HEIGHT - 4) // 2
         self.submit_button.rect = pygame.Rect(width - MARGIN - 170, button_y, 170, BUTTON_HEIGHT + 4)
-        self.quit_button.rect = pygame.Rect(self.submit_button.rect.x - 12 - 120, button_y, 120, BUTTON_HEIGHT + 4)
+        self.quit_button.rect = pygame.Rect(self.submit_button.rect.x - 12 - 120, button_y,
+                                            120, BUTTON_HEIGHT + 4)
         self.message_rect = pygame.Rect(MARGIN, bottom, self.quit_button.rect.x - 2 * MARGIN, FOOTER_HEIGHT)
 
         if self.model.selected is not None:
@@ -153,7 +158,8 @@ class LauncherView:
         surface.blit(self.font.render(hint, True, color), self.size_hint_position)
         self._draw_preview(surface)
 
-        pygame.draw.line(surface, BORDER_COLOR, (0, self.message_rect.y), (surface.get_width(), self.message_rect.y))
+        pygame.draw.line(surface, BORDER_COLOR, (0, self.message_rect.y),
+                         (surface.get_width(), self.message_rect.y))
         if self.model.message:
             message = self.font.render(self.model.message, True, MESSAGE_COLORS[self.model.message_level])
             surface.set_clip(self.message_rect)
@@ -207,7 +213,7 @@ class LauncherView:
     def _map_items(self) -> List[Tuple[str, str]]:
         items = [(NEW_MAP_LABEL, "")]
         for entry in self.model.maps:
-            detail = "unreadable" if entry.error else "{}x{}".format(*entry.size)
+            detail = "unreadable" if entry.error else f"{entry.size[0]}x{entry.size[1]}"
             items.append((entry.path.stem, detail))
         return items
 

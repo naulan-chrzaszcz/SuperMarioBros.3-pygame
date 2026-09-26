@@ -1,10 +1,12 @@
 """Application-level controller for global shortcuts, saving and quitting."""
 
+from __future__ import annotations
+
 from pathlib import Path
 
 import pygame
 
-from ..constantes import QUIT_CONFIRMATION_DELAY
+from ..constants import QUIT_CONFIRMATION_DELAY
 from ..models import EditorState, MapEditorModel, MessageLevel
 from ..views import ApplicationView, Camera
 from .map_controller import MapController

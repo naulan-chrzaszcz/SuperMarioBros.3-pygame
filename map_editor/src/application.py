@@ -1,12 +1,14 @@
 """Top-level editor application wiring models, controllers and views together."""
 
+from __future__ import annotations
+
 import sys
 from pathlib import Path
 from typing import Optional, Tuple
 
 import pygame
 
-from .constantes import (
+from .constants import (
     BACKGROUND_COLOR,
     DEFAULT_MAP_SIZE,
     DEFAULT_WINDOW_SIZE,

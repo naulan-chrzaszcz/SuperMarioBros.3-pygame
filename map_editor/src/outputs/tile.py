@@ -1,5 +1,7 @@
 """Tile value object serialized into map JSON files."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 
 

@@ -11,7 +11,7 @@ import pygame
 
 from map_editor.map_editor_cli import MapEditorCLI
 from map_editor.src.application import MapEditorApplication
-from map_editor.src.constantes import PROJECT_ROOT
+from map_editor.src.constants import PROJECT_ROOT
 from map_editor.src.controllers import MapController
 from map_editor.src.launcher import MapEditorLauncher
 from map_editor.src.models import Clipboard, EditorState, LauncherModel, MapEditorModel, Mode, Tileset
@@ -373,7 +373,8 @@ class ClipboardTest(unittest.TestCase):
         self.assertEqual(model.collidables, {(2, 2)})
 
     def test_rotation_turns_the_block_and_its_tiles_counter_clockwise(self):
-        clipboard = Clipboard(3, 2, {(2, 0): Tile(0, 0), (0, 1): Tile(1, 0, rotation=270)}, frozenset({(0, 0)}))
+        clipboard = Clipboard(3, 2, {(2, 0): Tile(0, 0), (0, 1): Tile(1, 0, rotation=270)},
+                              frozenset({(0, 0)}))
         rotated = clipboard.rotated()
         self.assertEqual((rotated.columns, rotated.rows), (2, 3))
         self.assertEqual(rotated.tiles, {(0, 0): Tile(0, 0, rotation=90), (1, 2): Tile(1, 0)})
@@ -448,7 +449,8 @@ class LauncherTest(unittest.TestCase):
 
     def test_maps_are_listed_with_their_size_and_tileset(self):
         model = self.model()
-        self.assertEqual([entry.path.name for entry in model.maps], ["broken.json", "menu.json", "world.json"])
+        self.assertEqual([entry.path.name for entry in model.maps],
+                         ["broken.json", "menu.json", "world.json"])
         self.assertIsNotNone(model.maps[0].error)
         self.assertTrue(model.sheets[0].has_metadata)
         model.select_map(1)
@@ -474,7 +476,8 @@ class LauncherTest(unittest.TestCase):
     def test_opening_remembers_the_tileset_and_can_resize(self):
         model = self.model()
         model.select_map(2)
-        model.select_sheet(next(i for i, s in enumerate(model.sheets) if s.path.name == "choice_menu_stage.png"))
+        model.select_sheet(next(i for i, s in enumerate(model.sheets)
+                                if s.path.name == "choice_menu_stage.png"))
         model.width = "40"
         request = model.request()
         self.assertEqual(request.size, (40, 15))
@@ -500,7 +503,8 @@ class LauncherTest(unittest.TestCase):
     def test_create_a_map_with_the_mouse_and_keyboard(self):
         launcher = MapEditorLauncher(self.model(), (1000, 640))
         view = launcher.view
-        launcher.step([Event(pygame.MOUSEBUTTONDOWN, pos=view.map_list.rect.move(5, 5).topleft, button=1)], 0.1)
+        launcher.step([Event(pygame.MOUSEBUTTONDOWN, pos=view.map_list.rect.move(5, 5).topleft,
+                             button=1)], 0.1)
         self.assertTrue(launcher.model.is_new)
         self.assertTrue(view.name_field.focused)
         launcher.step([

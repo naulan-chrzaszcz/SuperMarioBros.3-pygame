@@ -5,12 +5,14 @@ the default of ``res/rules.yaml``. Keys the editor does not change (``name``)
 are kept as they are.
 """
 
+from __future__ import annotations
+
 from pathlib import Path
 from typing import Any, Dict, Mapping, Optional, Tuple
 
 import yaml
 
-from ..constantes import RESSOURCES_FILE
+from ..constants import RESSOURCES_FILE
 
 Color = Tuple[int, int, int]
 

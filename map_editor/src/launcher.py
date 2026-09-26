@@ -1,10 +1,12 @@
 """Launcher window loop that chooses a map and starts the editor application."""
 
+from __future__ import annotations
+
 from typing import Optional, Tuple
 
 import pygame
 
-from .constantes import FRAMERATE_LIMIT, LAUNCHER_WINDOW_SIZE
+from .constants import FRAMERATE_LIMIT, LAUNCHER_WINDOW_SIZE
 from .controllers.launcher_controller import LauncherController
 from .models import MessageLevel
 from .models.launcher_model import LauncherModel, LaunchRequest

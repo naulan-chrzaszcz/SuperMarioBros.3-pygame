@@ -221,7 +221,8 @@ class Map:
             self.behaviours = {name: guess for name, guess in guesses.items() if guess is not None}
         for name, behaviour in self.behaviours.items():
             if behaviour.becomes is not None and behaviour.becomes not in self._coordinates:
-                raise ValueError(f"Tile {name!r} becomes {behaviour.becomes!r}, which the tileset does not declare")
+                raise ValueError(
+                    f"Tile {name!r} becomes {behaviour.becomes!r}, which the tileset does not declare")
 
         sheet_columns = sheet.get_width() // Tile.WIDTH
         sheet_rows = sheet.get_height() // Tile.HEIGHT
@@ -288,7 +289,8 @@ class Map:
     def names_with(self, kind: str) -> List[str]:
         """Tile names of the tileset with the behaviour ``kind``, in the order
         of the metadata."""
-        return [name for name in self._coordinates if getattr(self.behaviours.get(name), "kind", None) == kind]
+        return [name for name in self._coordinates
+                if getattr(self.behaviours.get(name), "kind", None) == kind]
 
     def has_tile_named(self, name: str) -> bool:
         """True when the tileset declares a tile called ``name``."""

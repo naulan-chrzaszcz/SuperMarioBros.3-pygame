@@ -36,6 +36,11 @@ Notable changes of the project. The format follows
 
 - Game engine refactor: scenes receive a `GameContext`, actions instead of raw
   keys, paths from the project root, validated settings, saves and maps.
+- Uniform code style, now checked by `pycodestyle` and `isort` (`setup.cfg`)
+  in the continuous integration: line length, import order, `from __future__
+  import annotations` in every module, `Optional[X]` and f-strings everywhere.
+- `map_editor/src/constantes.py` renamed to `constants.py` (English, like the
+  rest of the code).
 
 ### Removed
 

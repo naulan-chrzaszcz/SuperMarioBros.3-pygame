@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, Sequence, Tuple
 
-from .src.constantes import DEFAULT_MAP_SIZE, DEFAULT_SHEET
+from .src.constants import DEFAULT_MAP_SIZE, DEFAULT_SHEET
 from .src.outputs.map import Map
 
 SIZE_PATTERN = re.compile(r"^(\d+)[xX](\d+)$")

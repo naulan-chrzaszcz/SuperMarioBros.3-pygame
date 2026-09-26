@@ -1,10 +1,12 @@
 """Transient editor tool state shared by controllers and views."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional, Set, Tuple
 
-from ..constantes import MESSAGE_DURATION
+from ..constants import MESSAGE_DURATION
 from ..outputs.tile import Tile
 from .clipboard import Clipboard, Region
 from .entities import EntityType, load_entity_types

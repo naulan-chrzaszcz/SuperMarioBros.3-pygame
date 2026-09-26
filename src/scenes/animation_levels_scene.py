@@ -64,7 +64,8 @@ class AnimationLevelsScene(Scene):
         self.game_level_name_pos = Vector2(32, 32)
         self.game_life = font.render(f"{save.game.life} X")
         self.game_life_pos = Vector2(
-            stats_width - self.game_life.get_width() - 40, stats_height // 2 - self.game_life.get_height() // 2
+            stats_width - self.game_life.get_width() - 40,
+            stats_height // 2 - self.game_life.get_height() // 2,
         )
         self.game_player = font.render(save.player)
         self.game_player_pos = Vector2(32, stats_height // 2 - self.game_player.get_height() // 2)
@@ -122,7 +123,8 @@ class AnimationLevelsScene(Scene):
                 self.levels.blit(star.image, star.rect)
         self.surface.blit(self.levels, self.levels_pos)
 
-        if self.state in (AnimationState.PAUSE, AnimationState.HORIZONTAL_SHRINK) and self.stats_shrink_width > 0:
+        shrinking = (AnimationState.PAUSE, AnimationState.HORIZONTAL_SHRINK)
+        if self.state in shrinking and self.stats_shrink_width > 0:
             self.stats.fill(BLACK)
             draw.rect(self.stats, WHITE, self.stats_frame)
             draw.rect(self.stats, STATS_BACKGROUND, self.stats_background)
