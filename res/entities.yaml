@@ -1,12 +1,21 @@
 # Entities that the map editor places on a map and that the game brings to life.
 #
 # A map stores them in its "entities" list: {"type": <id>, "x": <column>, "y": <row>}.
-# The behaviour of each id is written in src/entities/ (see CONTRIBUTING.md).
 #
+#   behaviour:   Python class that moves it (src/entities/spawner.py,
+#                ENTITY_CLASSES), default is the id. Several ids can share a
+#                behaviour with other pictures and settings (see red_koopa).
 #   image:       id of the sheet in ressources.yaml
-#   frame:       [x, y, width, height] of the picture shown in the editor
-#   flip:        the frame faces left, draw it facing right
+#   animations:  named pictures. Each one is a [x, y, width, height] frame, a
+#                list of frames, or {frames: [...], period: <seconds per frame>,
+#                mirror: <also play the frames flipped>}. Each behaviour needs
+#                some names (the ANIMATIONS of its class).
+#   facing:      left (default) or right: where the sheet makes it look
+#   frame:       picture shown in the editor, default is the first frame of
+#                the first animation
+#   flip:        draw the editor picture flipped
 #   palette:     [[from r, g, b], [to r, g, b]] color swaps applied to the sheet
+#   settings:    constants of the behaviour, in camelCase (speed: 40 sets SPEED)
 #   unique:      a map holds at most one of them
 #   description: help shown in the editor
 entities:
@@ -21,25 +30,54 @@ entities:
   - id: goomba
     name: Goomba
     image: goomba
-    frame: [0, 0, 16, 16]
+    animations:
+      walk: {frames: [[0, 0, 16, 16]], period: 0.15, mirror: true}
+      squashed: [16, 0, 16, 16]
+    settings:
+      speed: 32
+      squashedDuration: 0.5
     description: Walks and falls off ledges. Stomp it!
 
   - id: koopa
     name: Koopa Troopa
     image: koopa
-    frame: [0, 0, 16, 27]
+    animations: &koopa
+      walk: {frames: [[0, 0, 16, 27], [16, 0, 16, 27]], period: 0.15}
+      shell: [32, 0, 16, 16]
+      # The last shell of the sheet is one pixel narrower.
+      spin: {frames: [[32, 0, 16, 16], [64, 0, 16, 16], [80, 0, 16, 16], [96, 0, 15, 16]], period: 0.05}
+      shake: {frames: [[32, 0, 16, 16], [48, 0, 16, 16]], period: 0.15}
+    settings:
+      speed: 32
+      shellSpeed: 180
+      wakeUpTime: 7
     description: Stomp it to get its shell, then kick the shell into enemies.
+
+  - id: red_koopa
+    name: Red Koopa Troopa
+    behaviour: koopa
+    image: koopa
+    animations: *koopa
+    palette:
+      - [[98, 226, 64], [228, 52, 20]]
+    settings:
+      turnAtLedges: true
+    description: A koopa that turns back at the edge of a floor.
 
   - id: mushroom
     name: Super Mushroom
     image: mushroom
-    frame: [0, 0, 16, 16]
+    animations:
+      idle: [0, 0, 16, 16]
+    settings:
+      speed: 60
     description: Makes Mario big. Put it on a solid block to hide it inside.
 
   - id: one_up
     name: 1-Up Mushroom
     image: mushroom
-    frame: [0, 0, 16, 16]
+    animations:
+      idle: [0, 0, 16, 16]
     palette:
       - [[248, 24, 16], [0, 168, 0]]
       - [[192, 0, 16], [0, 104, 0]]

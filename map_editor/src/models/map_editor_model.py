@@ -7,6 +7,7 @@ from ..constantes import HISTORY_LIMIT
 from ..outputs.map import Cell, Map
 from ..outputs.tile import Tile
 from .clipboard import Clipboard, Region
+from .level_settings import LevelSettings
 from .tileset import SheetCell, Tileset
 
 
@@ -57,6 +58,7 @@ class MapEditorModel:
         tiles: Optional[Dict[Cell, Tile]] = None,
         collidables: Iterable[Cell] = (),
         entities: Optional[Dict[Cell, str]] = None,
+        level: Optional[LevelSettings] = None,
     ) -> None:
         if columns <= 0 or rows <= 0:
             raise ValueError("Map dimensions must be positive")
@@ -75,6 +77,8 @@ class MapEditorModel:
             self._check_cell(cell)
             self.entities[cell] = kind
 
+        self.level = level or LevelSettings()
+
         self._undo: List[Edit] = []
         self._redo: List[Edit] = []
         self._current: Optional[Edit] = None
@@ -84,17 +88,21 @@ class MapEditorModel:
     @classmethod
     def from_file(cls, path: Path) -> "MapEditorModel":
         columns, rows, tiles, collidables = Map.read(path)
-        return cls(columns, rows, tiles, collidables, Map.read_entities(path))
+        level = LevelSettings(Map.read_level(path))
+        return cls(columns, rows, tiles, collidables, Map.read_entities(path), level)
 
     def save(self, path: Path, sheet: Optional[Path] = None) -> None:
         self.end_edit()
-        Map.write(path, self.columns, self.rows, self.tiles, self.collidables, sheet, self.entities)
+        Map.write(
+            path, self.columns, self.rows, self.tiles, self.collidables, sheet, self.entities, self.level.data
+        )
         self._saved_edit = self._last_edit()
         self._resized = False
+        self.level.mark_saved()
 
     @property
     def dirty(self) -> bool:
-        return self._resized or self._last_edit() is not self._saved_edit
+        return self._resized or self.level.changed or self._last_edit() is not self._saved_edit
 
     @property
     def can_undo(self) -> bool:

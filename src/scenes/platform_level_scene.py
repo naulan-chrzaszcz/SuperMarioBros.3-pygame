@@ -6,21 +6,21 @@ from itertools import combinations
 from typing import Callable, Dict, List, Optional, Set, Tuple
 
 import pygame
-from pygame import Rect, Surface, transform
+from pygame import Rect, Surface
 
 from ..constants import BLACK, TILE_HEIGHT, TILE_WIDTH, WHITE
-from ..entities.entity import Entity, Sprites
-from ..entities.mushroom import Mushroom
+from ..animation import Animation, SpriteBank
+from ..entities.entity import Entity
 from ..entities.spawner import spawn_entities
 from ..inputs.config import Action
 from ..inputs.map import Map
+from ..inputs.tuning import tune
 from ..inputs.save import Game, PlayerState
 from ..levels import LevelInfo
 from ..platformer import Body, Controls
 from ..tile import Tile
 from .scene import GameContext, Scene
 
-SKY = (160, 220, 252)
 FinishCallback = Callable[[bool], None]
 Cell = Tuple[int, int]
 
@@ -35,43 +35,35 @@ class State(Enum):
 
 
 class MarioSprites:
-    """Frames of small and big Mario; the sheet draws him facing left."""
+    """The ``mario`` animations of ``res/sprites.yaml``: ``small_`` and
+    ``big_`` stand, walk, run, skid and jump, and ``dead``."""
 
-    def __init__(self, sheet: Surface):
-        def frame(x: int, y: int, height: int = TILE_HEIGHT) -> Dict[int, Surface]:
-            left = sheet.subsurface((x, y), (TILE_WIDTH, height))
-            return {-1: left, 1: transform.flip(left, True, False)}
+    POSES = ("stand", "walk", "run", "skid", "jump")
 
-        self.small = {
-            "stand": frame(0, 0),
-            "walk": [frame(0, 0), frame(16, 0)],
-            "run": [frame(16, 0), frame(32, 0)],
-            "skid": frame(48, 0),
-            "jump": frame(0, 64),
-        }
-        self.big = {
-            "stand": frame(0, 80, 28),
-            "walk": [frame(0, 80, 28), frame(16, 80, 28)],
-            "run": [frame(0, 137, 27), frame(16, 137, 27)],
-            "skid": frame(0, 109, 27),
-            "jump": frame(32, 80, 28),
-        }
-        self.dead = frame(16, 16)[1]
+    def __init__(self, sprites: SpriteBank):
+        animations = sprites.animations("mario")
+
+        def pick(name: str) -> Animation:
+            if name not in animations:
+                raise KeyError(f"sprites.yaml: mario needs the animation {name!r}")
+            return animations[name]
+
+        self.small = {pose: pick(f"small_{pose}") for pose in self.POSES}
+        self.big = {pose: pick(f"big_{pose}") for pose in self.POSES}
+        self.dead = pick("dead").frame(0, 1)
 
     def image_of(self, body: Body, time: float, big: bool = False) -> Surface:
-        frames = self.big if big else self.small
+        animations = self.big if big else self.small
         facing = body.facing
         if body.jumping:
-            return frames["jump"][facing]
-        if body.skidding:
-            return frames["skid"][facing]
-        speed = abs(body.vx)
-        if speed < 1:
-            return frames["stand"][facing]
-        running = speed > Body.WALK_SPEED + 5
-        steps = frames["run"] if running else frames["walk"]
-        period = 0.06 if running else 0.12
-        return steps[int(time / period) % len(steps)][facing]
+            pose = "jump"
+        elif body.skidding:
+            pose = "skid"
+        elif abs(body.vx) < 1:
+            pose = "stand"
+        else:
+            pose = "run" if abs(body.vx) > body.WALK_SPEED + 5 else "walk"
+        return animations[pose].image(time, facing)
 
 
 class PlatformLevelScene(Scene):
@@ -86,8 +78,16 @@ class PlatformLevelScene(Scene):
     The scene is the :class:`~src.entities.entity.Level` of its entities.
     """
 
+    # Every UPPER_CASE constant below can be changed in the "level" section of
+    # res/rules.yaml (camelCase: timeLimit, coinScore...).
     NAME = "platform_level"
+    NOT_TUNABLE = ("NAME",)
     TIME_LIMIT = 300
+    # Played when this much time is left.
+    HURRY_TIME = 100
+    SKY_COLOR = (160, 220, 252)
+    # Music id of ressources.yaml; a level can choose another one.
+    MUSIC = "overworld"
     COIN_SCORE = 50
     BLOCK_SCORE = 100
     BRICK_SCORE = 10
@@ -115,8 +115,8 @@ class PlatformLevelScene(Scene):
 
     def __init__(self, context: GameContext):
         super().__init__(context)
-        self.sprites = MarioSprites(context.ressources.image("mario"))
-        self.entity_sprites = Sprites(context.ressources)
+        tune(self, context.rules.level, "rules.yaml: level")
+        self.sprites = MarioSprites(context.sprites)
         self.level: Optional[LevelInfo] = None
         self.on_finish: FinishCallback = lambda cleared: None
         self.practice = False
@@ -155,8 +155,10 @@ class PlatformLevelScene(Scene):
         self.popups: List[list] = []
         self.debris: List[list] = []
         self.entities: List[Entity] = []
-        self.hidden_items: Dict[Cell, Mushroom] = {}
+        self.hidden_items: Dict[Cell, Entity] = {}
         self.time_left = float(self.TIME_LIMIT)
+        self.sky = self.SKY_COLOR
+        self.hurried = False
         self.message: Optional[str] = None
         self.finished = False
         self.big = False
@@ -167,20 +169,27 @@ class PlatformLevelScene(Scene):
             if self.level is None:
                 raise ValueError("No level to play")
             self.map = self.context.levels.load(self.level)
-            self.entities, start = spawn_entities(self.map.entities, self.entity_sprites, self.is_solid)
+            music = self.map.settings.music
+            if music is not None and music not in self.context.audio.musics:
+                raise ValueError(f"Unknown music {music!r} in the level settings")
+            self.entities, start = spawn_entities(self.map.entities, self.context.sprites, self.is_solid)
         except (OSError, ValueError, KeyError) as error:
             self.map = None
             self.error = str(error)
             self.state = State.ERROR
+            self.context.audio.stop_music()
             return
         self.hidden_items = {
-            (entity.column, entity.row): entity
-            for entity in self.entities
-            if isinstance(entity, Mushroom) and entity.hidden
+            (entity.column, entity.row): entity for entity in self.entities if entity.hidden
         }
+        # The map editor can give a level its own time, sky and music.
+        settings = self.map.settings
+        self.time_left = float(settings.time_limit or self.TIME_LIMIT)
+        self.sky = settings.sky or self.SKY_COLOR
+        self.context.audio.play_music(settings.music or self.MUSIC)
         self.error = None
         self.state = State.PLAYING
-        self.body = Body(0, 0)
+        self.body = Body.tuned(0, 0, self.context.rules.player)
         self.body.x, self.body.y = self.spawn_point(start)
         if self.start_big:
             self._set_big(True)
@@ -189,8 +198,10 @@ class PlatformLevelScene(Scene):
 
     def spawn_point(self, start=None) -> Tuple[float, float]:
         """On the start marker of the map, else on the first ground from the left."""
+        width, height = self.body.width, self.body.height
+
         def standing_on(column: int, row: int) -> Tuple[float, float]:
-            return column * TILE_WIDTH + (TILE_WIDTH - Body.WIDTH) / 2, row * TILE_HEIGHT - Body.HEIGHT
+            return column * TILE_WIDTH + (TILE_WIDTH - width) / 2, row * TILE_HEIGHT - height
 
         if start is not None:
             return standing_on(start.column, start.row + 1)
@@ -198,7 +209,7 @@ class PlatformLevelScene(Scene):
             for row in range(1, self.map.rows):
                 if self.is_solid(column, row) and not self.is_solid(column, row - 1):
                     return standing_on(column, row)
-        return (TILE_WIDTH - Body.WIDTH) / 2, 0
+        return (TILE_WIDTH - width) / 2, 0
 
     def is_solid(self, column: int, row: int) -> bool:
         """The sides of the map are walls, its top and bottom are open."""
@@ -226,6 +237,7 @@ class PlatformLevelScene(Scene):
         if self.finished:
             return
         self.finished = True
+        self.context.audio.stop_music()
         self.on_finish(cleared)
 
     # ------------------------------------------------------------------ input
@@ -240,6 +252,7 @@ class PlatformLevelScene(Scene):
         if self.state == State.PAUSED:
             if action == Action.CONFIRM:
                 self.state = State.PLAYING
+                self.play_sound("pause")
             elif action == Action.BACK:
                 self.finish(False)
             return
@@ -248,6 +261,7 @@ class PlatformLevelScene(Scene):
             self.jump_pressed = True
         elif action == Action.BACK and self.state == State.PLAYING:
             self.state = State.PAUSED
+            self.play_sound("pause")
             self.held.clear()
 
     def on_action_released(self, action: Action) -> None:
@@ -294,20 +308,32 @@ class PlatformLevelScene(Scene):
         previous_bottom = body.bottom
         for cell in body.update(dt, self.controls(), self.is_solid):
             self.bump(*cell)
+        if body.jumped:
+            self.play_sound("jump")
         if body.on_ground:
             self.combo = 0
         self.invincible = max(0.0, self.invincible - dt)
-        self._collect_coins()
-        self._update_entities(dt, previous_bottom)
+        self._touch_tiles()
+        if self.state == State.PLAYING:
+            self._update_entities(dt, previous_bottom)
         if self.state != State.PLAYING:
+            self._move_camera()
             return
         self.time_left = max(0.0, self.time_left - dt)
+        if not self.hurried and 0 < self.time_left <= self.HURRY_TIME:
+            self.hurried = True
+            self.play_sound("hurry")
         if body.y > self.map.height + TILE_HEIGHT or self.time_left <= 0:
             self.die()
         elif body.x + body.width >= self.map.width - 0.01:
-            self._set_state(State.CLEAR)
-            self.message = "COURSE CLEAR"
+            self.clear()
         self._move_camera()
+
+    def clear(self) -> None:
+        """Mario reached the end of the course."""
+        self._set_state(State.CLEAR)
+        self.message = "COURSE CLEAR"
+        self.context.audio.stop_music()
 
     def _update_entities(self, dt: float, mario_previous_bottom: float) -> None:
         view_width, _ = self.view_size
@@ -359,7 +385,7 @@ class PlatformLevelScene(Scene):
 
     def _update_dying(self, dt: float) -> None:
         if self.state_timer >= self.DEATH_PAUSE:
-            self.body.vy = min(self.body.vy + Body.GRAVITY * 0.7 * dt, Body.MAX_FALL_SPEED)
+            self.body.vy = min(self.body.vy + self.body.GRAVITY * 0.7 * dt, self.body.MAX_FALL_SPEED)
             self.body.y += self.body.vy * dt
         if self.state_timer < self.DEATH_DURATION:
             return
@@ -384,6 +410,8 @@ class PlatformLevelScene(Scene):
             self.finish(True)
 
     def die(self) -> None:
+        self.context.audio.stop_music()
+        self.play_sound("die")
         self._set_big(False)
         self.start_big = False
         self._set_state(State.DYING)
@@ -397,7 +425,7 @@ class PlatformLevelScene(Scene):
 
     def _set_big(self, big: bool) -> None:
         if big != self.big:
-            self.body.resize(Body.BIG_HEIGHT if big else Body.HEIGHT)
+            self.body.resize(self.body.BIG_HEIGHT if big else self.body.HEIGHT)
         self.big = big
         if not self.practice:
             self.context.save.game.state = PlayerState.BIG if big else PlayerState.LITTLE
@@ -410,6 +438,7 @@ class PlatformLevelScene(Scene):
         if not self.big:
             self.die()
             return
+        self.play_sound("power_down")
         self._set_big(False)
         self.transition = self.TRANSITION_DURATION
         self.invincible = self.INVINCIBLE_DURATION
@@ -418,6 +447,7 @@ class PlatformLevelScene(Scene):
         entity.ignore_mario = self.STOMP_IGNORE
         self.body.vy = -(self.STOMP_BOUNCE_HELD if Action.CONFIRM in self.held else self.STOMP_BOUNCE)
         self.body.on_ground = False
+        self.play_sound("stomp")
         x, y = entity.body.center_x, entity.body.y
         if self.combo < len(self.STOMP_SCORES):
             self.score(self.STOMP_SCORES[self.combo], x, y)
@@ -431,6 +461,7 @@ class PlatformLevelScene(Scene):
 
     def grow_mario(self, x: float, y: float) -> None:
         self.score(self.MUSHROOM_SCORE, x, y)
+        self.play_sound("power_up")
         if not self.big:
             self._set_big(True)
             self.transition = self.TRANSITION_DURATION
@@ -438,25 +469,43 @@ class PlatformLevelScene(Scene):
     def add_life(self, x: float, y: float) -> None:
         self.context.save.game.life += 1
         self.popups.append(["1UP", x, y, 0.0])
+        self.play_sound("one_up")
 
     # ------------------------------------------------------ coins and blocks
 
-    def _collect_coins(self) -> None:
+    def play_sound(self, name: str) -> None:
+        self.context.audio.play(name)
+
+    def _touch_tiles(self) -> None:
+        """The tiles Mario overlaps: coins are collected, ``hurt`` tiles hurt
+        him and ``goal`` tiles clear the course (see the ``behaviour`` of the
+        tiles in the tileset metadata)."""
         rect = self.body.rect
         for column in range(rect.left // TILE_WIDTH, (rect.right - 1) // TILE_WIDTH + 1):
             for row in range(rect.top // TILE_HEIGHT, (rect.bottom - 1) // TILE_HEIGHT + 1):
                 tile = self.map.tile_at(column, row)
-                if tile is not None and tile.id.startswith("coin") and rect.colliderect(tile.rect):
+                behaviour = self.map.behaviour_of(tile)
+                if behaviour is None or not rect.colliderect(tile.rect):
+                    continue
+                if behaviour.kind == "coin":
                     self.map.remove(tile)
                     self.add_coin(self.COIN_SCORE)
+                elif behaviour.kind == "hurt":
+                    self.hurt_mario()
+                elif behaviour.kind == "goal" and self.state == State.PLAYING:
+                    self.clear()
+                if self.state != State.PLAYING:
+                    return
 
     def add_coin(self, score: int) -> None:
         game = self.context.save.game
         game.score += score
         game.coins += 1
+        self.play_sound("coin")
         if game.coins >= self.COINS_PER_LIFE:
             game.coins -= self.COINS_PER_LIFE
             game.life += 1
+            self.play_sound("one_up")
 
     def bump(self, column: int, row: int) -> None:
         """Mario's head hit a solid cell from below."""
@@ -467,16 +516,22 @@ class PlatformLevelScene(Scene):
         self._knock_entities_on(column, row)
         if tile is not None:
             self.bumps[tile] = self.BUMP_DURATION
+        behaviour = self.map.behaviour_of(tile)
+        kind = behaviour.kind if behaviour is not None else None
         if item is not None:
             item.emerge()
-            if tile is not None and self.map.has_tile_named("block"):
-                self.map.replace(tile, "block")
-        elif tile.id.startswith("mystery_block") and self.map.has_tile_named("block"):
-            self.map.replace(tile, "block")
+            self.play_sound("item")
+            if kind == "question_block" and behaviour.becomes:
+                self.map.replace(tile, behaviour.becomes)
+        elif kind == "question_block":
+            if behaviour.becomes:
+                self.map.replace(tile, behaviour.becomes)
             self.add_coin(self.BLOCK_SCORE)
             self.coin_pops.append([tile.rect.x, tile.rect.y - TILE_HEIGHT, 0.0])
-        elif tile.id.startswith("brick") and self.big:
+        elif kind == "brick" and self.big:
             self._break(tile, column, row)
+        else:
+            self.play_sound("bump")
 
     def _knock_entities_on(self, column: int, row: int) -> None:
         """What stands on a bumped block is knocked out (enemies) or hops (items)."""
@@ -492,6 +547,7 @@ class PlatformLevelScene(Scene):
         self.map.remove(tile)
         self.map.set_collidable(column, row, False)
         self.context.save.game.score += self.BRICK_SCORE
+        self.play_sound("brick")
         half_width, half_height = TILE_WIDTH // 2, TILE_HEIGHT // 2
         for dx in (0, 1):
             for dy in (0, 1):
@@ -516,7 +572,7 @@ class PlatformLevelScene(Scene):
             popup[3] += dt
         self.popups = [popup for popup in self.popups if popup[3] < self.POPUP_DURATION]
         for piece in self.debris:
-            piece[4] = min(piece[4] + Body.GRAVITY * dt, Body.MAX_FALL_SPEED * 2)
+            piece[4] = min(piece[4] + self.body.GRAVITY * dt, self.body.MAX_FALL_SPEED * 2)
             piece[1] += piece[3] * dt
             piece[2] += piece[4] * dt
         self.debris = [piece for piece in self.debris if piece[2] < self.map.height + TILE_HEIGHT]
@@ -549,7 +605,7 @@ class PlatformLevelScene(Scene):
         view_width, view_height = self.view_size
         view = Rect(0, 0, view_width, view_height)
         surface.set_clip(view)
-        surface.fill(SKY, Rect(-self.camera.x, -self.camera.y, self.map.width, self.map.height).clip(view))
+        surface.fill(self.sky, Rect(-self.camera.x, -self.camera.y, self.map.width, self.map.height).clip(view))
         self._draw_entities(behind_tiles=True)
         self._draw_tiles(view)
         self._draw_coin_pops()
@@ -591,9 +647,10 @@ class PlatformLevelScene(Scene):
                 entity.draw(self.surface, self.camera.x, self.camera.y)
 
     def _draw_coin_pops(self) -> None:
-        if not self.coin_pops or not self.map.has_tile_named("coin_frame_0"):
+        coins = self.map.names_with("coin")
+        if not self.coin_pops or not coins:
             return
-        coin = self.map.image_of("coin_frame_0")
+        coin = self.map.image_of(coins[0])
         for x, y, age in self.coin_pops:
             t = age / self.COIN_POP_DURATION
             height = 24 * math.sin(math.pi * t)

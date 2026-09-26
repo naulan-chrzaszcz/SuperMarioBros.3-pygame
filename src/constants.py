@@ -6,6 +6,8 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 CONFIG_FILE = PROJECT_ROOT / "config.yaml"
 RESSOURCES_FILE = PROJECT_ROOT / "ressources.yaml"
 SAVE_FILE = PROJECT_ROOT / "save.yaml"
+RULES_FILE = PROJECT_ROOT / "res" / "rules.yaml"
+SPRITES_FILE = PROJECT_ROOT / "res" / "sprites.yaml"
 
 TITLE = "Super Mario Bros. 3"
 

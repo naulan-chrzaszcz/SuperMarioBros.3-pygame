@@ -19,6 +19,14 @@ class Mixer:
 
 
 @dataclass(frozen=True)
+class Audio:
+    enabled: bool = True
+    # From 0 (silent) to 1.
+    music_volume: float = 0.5
+    sound_volume: float = 0.8
+
+
+@dataclass(frozen=True)
 class Display:
     """Size of the surface the game is drawn on, in game pixels."""
 
@@ -115,6 +123,7 @@ class Config:
     framerate_limit: int = 120
     skip_intro: bool = False
     mixer: Mixer = Mixer()
+    audio: Audio = Audio()
     display: Display = Display()
     screen: Screen = Screen()
     mouse: Mouse = Mouse()
@@ -127,6 +136,7 @@ class Config:
             framerate_limit=int(data.pop("framerateLimit", cls.framerate_limit)),
             skip_intro=bool(data.pop("skipIntro", cls.skip_intro)),
             mixer=_section(Mixer, data.pop("mixer", None)),
+            audio=_section(Audio, data.pop("audio", None)),
             display=_section(Display, data.pop("display", None)),
             screen=_section(Screen, data.pop("screen", None)),
             mouse=_section(Mouse, data.pop("mouse", None)),
@@ -137,6 +147,10 @@ class Config:
         for name, size in (("display", config.display), ("screen", config.screen)):
             if size.width <= 0 or size.height <= 0:
                 raise ValueError(f"{name} width and height must be positive")
+        for name in ("music_volume", "sound_volume"):
+            volume = getattr(config.audio, name)
+            if isinstance(volume, bool) or not isinstance(volume, (int, float)) or not 0 <= volume <= 1:
+                raise ValueError(f"audio {name.replace('_v', 'V')} must be a number from 0 to 1")
         if config.framerate_limit <= 0:
             config = replace(config, framerate_limit=Config.framerate_limit)
         return config

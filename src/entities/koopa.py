@@ -4,7 +4,7 @@ from enum import Enum, auto
 
 from pygame import Surface
 
-from .entity import Entity, Level, Sprites
+from .entity import Entity, Level
 
 
 class Shell(Enum):
@@ -14,7 +14,8 @@ class Shell(Enum):
 
 
 class Koopa(Entity):
-    """A green Koopa Troopa: walks off ledges like a goomba.
+    """A Koopa Troopa: walks off ledges like a goomba (a red one, with
+    ``turnAtLedges``, turns back instead).
 
     Stomping it makes it hide in its shell. Touching the still shell kicks it:
     the shell slides, bounces off walls and knocks out every enemy on its way,
@@ -22,27 +23,20 @@ class Koopa(Entity):
     up after a while.
     """
 
-    TYPE = "koopa"
+    ANIMATIONS = ("walk", "shell", "spin", "shake")
     ENEMY = True
     HEIGHT = 24
     SHELL_HEIGHT = 14
     SPEED = 32.0
     SHELL_SPEED = 180.0
-    STEP_DURATION = 0.15
-    SPIN_DURATION = 0.05
     WAKE_UP_TIME = 7.0
     SHAKE_TIME = 1.5  # the shell shakes before the koopa comes out
     # Right after a kick, the shell cannot hurt the Mario who kicked it.
     KICK_GRACE = 0.25
     KICK_POINTS = 100
 
-    def __init__(self, sprites: Sprites, column: int, row: int):
-        super().__init__(sprites, column, row)
-        self.walking = [sprites.frame("koopa", (x, 0, 16, 27)) for x in (0, 16)]
-        # The last shell of the sheet is one pixel narrower.
-        self.shells = [
-            sprites.frame("koopa", (x, 0, 16 if x < 96 else 15, 16))[-1] for x in (32, 48, 64, 80, 96)
-        ]
+    def __init__(self, *args):
+        super().__init__(*args)
         self.shell = Shell.NONE
         self.shell_time = 0.0
 
@@ -50,10 +44,7 @@ class Koopa(Entity):
     def kills_enemies(self) -> bool:
         return self.alive and self.shell is Shell.SLIDING
 
-    def update(self, dt: float, level: Level) -> None:
-        super().update(dt, level)
-        if self.knocked:
-            return
+    def behave(self, dt: float, level: Level) -> None:
         self.shell_time += dt
         if self.shell is Shell.NONE:
             self.walk(dt, level, self.SPEED)
@@ -65,6 +56,13 @@ class Koopa(Entity):
                 self._set_shell(Shell.NONE)
                 self.body.resize(self.HEIGHT)
                 self.direction = 1 if level.mario.center_x > self.body.center_x else -1
+
+    def walk(self, dt: float, level: Level, speed: float) -> None:
+        # A sliding shell falls from the ledges, even the one of a red koopa.
+        turn_at_ledges = self.TURN_AT_LEDGES
+        self.TURN_AT_LEDGES = turn_at_ledges and self.shell is Shell.NONE
+        super().walk(dt, level, speed)
+        self.TURN_AT_LEDGES = turn_at_ledges
 
     def touch_mario(self, level: Level, stomp: bool) -> None:
         if self.shell is Shell.STILL:
@@ -83,6 +81,7 @@ class Koopa(Entity):
         self._set_shell(Shell.SLIDING)
         self.direction = direction
         self.ignore_mario = self.KICK_GRACE
+        level.play_sound("kick")
         if score:
             level.score(self.KICK_POINTS, self.body.center_x, self.body.y)
 
@@ -98,10 +97,9 @@ class Koopa(Entity):
 
     def image(self) -> Surface:
         if self.shell is Shell.NONE and not self.knocked:
-            step = int(self.time / self.STEP_DURATION) % 2
-            return self.walking[step][self.direction]
+            return self.animations["walk"].image(self.time, self.direction)
         if self.shell is Shell.SLIDING:
-            return self.shells[(0, 2, 3, 4)[int(self.time / self.SPIN_DURATION) % 4]]
+            return self.animations["spin"].image(self.time)
         if self.shell is Shell.STILL and self.shell_time >= self.WAKE_UP_TIME - self.SHAKE_TIME:
-            return self.shells[int(self.time / self.STEP_DURATION) % 2]
-        return self.shells[0]
+            return self.animations["shake"].image(self.time)
+        return self.animations["shell"].image()

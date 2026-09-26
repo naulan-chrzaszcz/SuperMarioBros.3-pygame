@@ -477,7 +477,7 @@ class EntityMapTest(unittest.TestCase):
 
 class EntityTest(LevelTestCase):
     def entity(self, level, kind):
-        return next(entity for entity in level.entities if entity.TYPE == kind)
+        return next(entity for entity in level.entities if entity.kind.id == kind)
 
     def drop_mario_on(self, level, entity):
         level.body.x = entity.body.x

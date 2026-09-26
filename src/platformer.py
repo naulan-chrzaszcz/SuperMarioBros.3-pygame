@@ -9,11 +9,12 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import Callable, List, Tuple
+from typing import Any, Callable, List, Mapping, Optional, Tuple
 
 from pygame import Rect
 
 from .constants import TILE_HEIGHT, TILE_WIDTH
+from .inputs.tuning import tune
 
 Cell = Tuple[int, int]
 IsSolid = Callable[[int, int], bool]
@@ -67,6 +68,17 @@ class Body:
         self.hit_wall = False
         self._air_time = 0.0
         self._jump_buffer = 0.0
+        # True on the frame a jump starts (for the jump sound).
+        self.jumped = False
+
+    @classmethod
+    def tuned(cls, x: float, y: float, settings: Mapping[str, Any], where: str = "rules.yaml: player") -> "Body":
+        """A body whose constants are overridden by ``settings`` (camelCase
+        keys, see res/rules.yaml)."""
+        body = cls(x, y)
+        tune(body, settings, where)
+        body.width, body.height = body.WIDTH, body.HEIGHT
+        return body
 
     @property
     def rect(self) -> Rect:
@@ -95,8 +107,9 @@ class Body:
         self._jump(dt, controls)
         return self.move(dt, is_solid)
 
-    def fall(self, dt: float, gravity: float = GRAVITY) -> None:
+    def fall(self, dt: float, gravity: Optional[float] = None) -> None:
         """Gravity for the bodies that do not jump (enemies, items)."""
+        gravity = self.GRAVITY if gravity is None else gravity
         self.vy = min(self.vy + gravity * dt, self.MAX_FALL_SPEED)
 
     def move(self, dt: float, is_solid: IsSolid) -> List[Cell]:
@@ -133,12 +146,14 @@ class Body:
             self.vx = math.copysign(speed, self.vx)
 
     def _jump(self, dt: float, controls: Controls) -> None:
+        self.jumped = False
         if controls.jump_pressed:
             self._jump_buffer = self.JUMP_BUFFER
         can_jump = self.on_ground or 0 < self._air_time <= self.COYOTE_TIME
         if self._jump_buffer > 0 and can_jump and self.vy >= 0:
             self.vy = -(self.JUMP_SPEED + abs(self.vx) * self.JUMP_SPEED_BONUS)
             self._jump_buffer = 0.0
+            self.jumped = True
             self._air_time = self.COYOTE_TIME + 1
             self.on_ground = False
         self._jump_buffer = max(0.0, self._jump_buffer - dt)

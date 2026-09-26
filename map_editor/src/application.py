@@ -181,6 +181,15 @@ class MapEditorApplication:
                        or not self.map_path.exists()),
             ],
             [
+                Button("-", lambda: self.model.level.change_time(-1)),
+                Button(lambda: self.model.level.time_label),
+                Button("+", lambda: self.model.level.change_time(1)),
+            ],
+            [
+                Button(lambda: f"Sky: {self.model.level.sky_name}", self.model.level.cycle_sky),
+                Button(lambda: self.model.level.music_label, self.model.level.cycle_music),
+            ],
+            [
                 Button("Play the map  (F5)", controller.request_play,
                        is_enabled=lambda: controller.can_play),
             ],

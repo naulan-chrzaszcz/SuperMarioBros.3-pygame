@@ -1,0 +1,52 @@
+# Gameplay values. Each section changes the UPPER_CASE constants of a class,
+# written here in camelCase (walkSpeed sets WALK_SPEED). A missing value keeps
+# the default of the code, shown in the comments. An unknown name is reported
+# when the game starts, with the list of the known ones.
+#
+# Speeds are in pixels per second, durations in seconds, a tile is 16 pixels.
+# The entities (goomba, koopa...) have their own settings in res/entities.yaml.
+
+# Mario in the platform levels (src/platformer.py, Body).
+player:
+  walkSpeed: 90
+  runSpeed: 150
+  acceleration: 300
+  skidDeceleration: 700
+  friction: 350
+  jumpSpeed: 250
+  jumpSpeedBonus: 0.25     # running jumps go higher: + speed x bonus
+  gravity: 1300
+  jumpGravity: 450         # while rising with the jump key held
+  maxFallSpeed: 300
+  coyoteTime: 0.08         # can still jump just after leaving a ledge
+  jumpBuffer: 0.1          # a jump pressed just before landing is kept
+  # width: 12
+  # height: 15
+  # bigHeight: 26
+
+# Platform levels (src/scenes/platform_level_scene.py). The map editor can
+# give a level its own time limit, sky and music.
+level:
+  timeLimit: 300
+  hurryTime: 100
+  skyColor: [160, 220, 252]
+  music: overworld         # a music of ressources.yaml
+  coinScore: 50
+  blockScore: 100          # coin of a ? block
+  brickScore: 10
+  mushroomScore: 1000
+  stompScores: [100, 200, 400, 800, 1000, 2000, 4000, 8000]  # then a 1UP
+  stompBounce: 200
+  stompBounceHeld: 320     # the jump key held
+  timeBonus: 50            # score per time unit left at the goal
+  coinsPerLife: 100
+  deathDuration: 3
+  invincibleDuration: 1.5  # after being hurt
+  activationMargin: 32     # pixels outside the view where entities wake up
+
+# World map (src/scenes/levels_scene.py).
+worldMap:
+  stepDuration: 0.1
+  enterDuration: 1
+  messageDuration: 2
+  music: world_map
