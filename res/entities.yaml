@@ -96,6 +96,7 @@ entities:
       onStomp: collect
       onTouch: collect
       onKnock: hop
+      collect: grow
     description: Makes Mario big. Put it on a solid block to hide it inside.
 
   - id: one_up

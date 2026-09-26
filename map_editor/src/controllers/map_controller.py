@@ -7,7 +7,15 @@ from typing import Iterator, Optional
 import pygame
 
 from ..constants import SCROLL_TILES, TILE_SIZE
-from ..models import EditorState, MapEditorModel, MessageLevel, Mode, make_region, region_size
+from ..models import (
+    EditorState,
+    EntityPanel,
+    MapEditorModel,
+    MessageLevel,
+    Mode,
+    make_region,
+    region_size,
+)
 from ..views.camera import Camera, Cell
 from ..views.map_view import RectangleSelection
 
@@ -27,6 +35,7 @@ class MapController:
         self._rectangle: Optional[RectangleSelection] = None
         self._panning = False
         self._pan_distance = 0
+        self.entity_panel: Optional[EntityPanel] = None
 
     @property
     def is_dragging(self) -> bool:
@@ -110,6 +119,11 @@ class MapController:
                 self._rectangle = (cell, cell, 1)
             elif event.button == 3:
                 self.state.region = None
+        elif event.button == 1 and self.state.mode is Mode.ENTITIES and (
+            pygame.key.get_mods() & pygame.KMOD_ALT
+        ):
+            if self.entity_panel is not None and not self.entity_panel.open(cell):
+                self.state.notify("No entity on this cell", MessageLevel.WARNING)
         elif event.button in (1, 3):
             if pygame.key.get_mods() & pygame.KMOD_SHIFT:
                 self._rectangle = (cell, cell, event.button)
@@ -140,9 +154,9 @@ class MapController:
     def pick(self, cell: Cell) -> None:
         """Eyedropper: selects the tile (and its settings) found in ``cell``, or
         its entity in the entities mode."""
-        kind = self.model.entities.get(cell)
-        if self.state.mode is Mode.ENTITIES and kind is not None:
-            if self.state.pick_entity(kind):
+        placement = self.model.entities.get(cell)
+        if self.state.mode is Mode.ENTITIES and placement is not None:
+            if self.state.pick_entity(placement.kind):
                 self.state.notify(f"Picked {self.state.selected_entity.name}")
             return
         tile = self.model.tiles.get(cell)

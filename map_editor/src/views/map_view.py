@@ -76,9 +76,9 @@ class MapView:
         if state.show_grid and size >= MIN_GRID_TILE_SIZE:
             self._draw_grid(surface, camera, columns, rows, map_rect)
         # Tall entities (a koopa) go above their cell: draw one more row.
-        for (col, row), kind in model.entities.items():
+        for (col, row), placement in model.entities.items():
             if col in columns and rows.start <= row <= rows.stop:
-                self._draw_entity(surface, camera, (col, row), state.entity_type(kind))
+                self._draw_entity(surface, camera, (col, row), state.entity_type(placement.kind))
         pygame.draw.rect(surface, BORDER_COLOR, map_rect.inflate(2, 2), 1)
 
         if state.region is not None:
@@ -120,8 +120,10 @@ class MapView:
                 surface.blit(self.renderer.render(tile, size, time), position)
             if solid:
                 surface.blit(overlay, position)
-        for (col, row), kind in clipboard.entities.items():
-            self._draw_entity(surface, camera, (origin[0] + col, origin[1] + row), state.entity_type(kind))
+        for (col, row), placement in clipboard.entities.items():
+            self._draw_entity(
+                surface, camera, (origin[0] + col, origin[1] + row), state.entity_type(placement.kind)
+            )
         region = (origin[0], origin[1], origin[0] + clipboard.columns - 1, origin[1] + clipboard.rows - 1)
         pygame.draw.rect(surface, REGION_COLOR, self._region_rect(camera, region), 2)
 

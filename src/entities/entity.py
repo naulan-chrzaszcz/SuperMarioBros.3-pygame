@@ -109,8 +109,8 @@ class Entity:
 
     def __init__(self, kind: EntityType, sprites: SpriteBank, column: int, row: int):
         self.kind = kind
-        tune(self, kind.settings, f"entities.yaml: {kind.id}")
-        where = f"entities.yaml: {kind.id}"
+        where = kind.where
+        tune(self, kind.settings, where)
         # tune() sets the settings of the file on the instance: they are the
         # values the checks below must use, not the defaults of the class.
         overrides = {name: value for name, value in vars(self).items() if name.isupper()}

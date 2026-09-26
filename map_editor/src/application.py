@@ -14,13 +14,15 @@ from .constants import (
     DEFAULT_WINDOW_SIZE,
     FRAMERATE_LIMIT,
     MIN_WINDOW_SIZE,
+    SELECTION_COLOR,
 )
-from .controllers import ApplicationController, MapController, SidebarController
-from .models import Clipboard, EditorState, MapEditorModel, MessageLevel, Mode, Tileset
+from .controllers import ApplicationController, EntityPanelController, MapController, SidebarController
+from .models import Clipboard, EditorState, EntityPanel, MapEditorModel, MessageLevel, Mode, Tileset
 from .views import (
     ApplicationView,
     Button,
     Camera,
+    EntityPanelView,
     EntityRenderer,
     MapView,
     SidebarView,
@@ -75,6 +77,10 @@ class MapEditorApplication:
         )
 
         self.map_controller = MapController(self.model, self.state, self.camera)
+        self.entity_panel = EntityPanel(self.model, self.state.entity_types)
+        self.entity_panel_view = EntityPanelView(self.entity_panel)
+        self.entity_panel_controller = EntityPanelController(self.entity_panel, self.entity_panel_view)
+        self.map_controller.entity_panel = self.entity_panel
         self.sidebar_controller = SidebarController(self.state, self.sidebar_view)
         self.controller = ApplicationController(
             self.map_path,
@@ -84,6 +90,7 @@ class MapEditorApplication:
             self.view,
             self.map_controller,
             self.sidebar_controller,
+            self.entity_panel_controller,
         )
         self.controller.can_play = playable
         self.sidebar_view.set_rows(self._create_buttons())
@@ -121,6 +128,14 @@ class MapEditorApplication:
             self.map_controller.rectangle,
             time,
         )
+        if self.entity_panel.visible and self.entity_panel.cell is not None:
+            position = self.camera.cell_to_screen(self.entity_panel.cell)
+            size = self.camera.tile_size
+            screen.set_clip(self.view.map_rect)
+            pygame.draw.rect(screen, SELECTION_COLOR, (*position, size, size), 2)
+            screen.set_clip(None)
+        self.entity_panel_view.layout(self.view.map_rect)
+        self.entity_panel_view.draw(screen, self.view.font, pygame.mouse.get_pos())
         self.sidebar_view.draw(screen, self.view.font, pygame.mouse.get_pos(), time)
         self.status_bar_view.draw(
             screen,

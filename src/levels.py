@@ -16,7 +16,7 @@ import yaml
 from pygame import Surface, image
 
 from .constants import PROJECT_ROOT, RESSOURCES_FILE
-from .entities.spawner import known_types
+from .entities.spawner import validate_spawns
 from .inputs.map import LevelSettings, Map, TileBehaviour, TileCode, parse_entities
 from .inputs.ressources import Ressources
 
@@ -113,9 +113,7 @@ class LevelCatalog:
             size = (len(data["tiles"][0]), len(data["tiles"]))
             cells = self._cells_of(data)
             spawns = parse_entities(data.get("entities"), *size)
-            unknown = {spawn.type for spawn in spawns} - set(known_types())
-            if unknown:
-                raise ValueError(f"unknown entity type(s): {', '.join(sorted(unknown))}")
+            validate_spawns(spawns)
             settings = LevelSettings.parse(data.get("level"))
         except (OSError, ValueError, TypeError, IndexError) as error:
             return LevelInfo(name, path, error=f"Cannot read the map: {error}", title=name)

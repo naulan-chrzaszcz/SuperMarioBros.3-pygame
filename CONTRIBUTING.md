@@ -112,6 +112,11 @@ extension points:
 
 1. Draw it with the map editor on the `res/sheets/level.png` tileset, paint the
    solid cells (`C`) and place the entities (`E`), including `Mario start`.
+   `Alt` + click an entity in `Entities` mode to tune one instance. The map
+   records its `settings` override next to its `type`, `x` and `y`; add the
+   setting to the type's `settings` block in `res/entities.yaml` to expose it
+   in the editor. Overrides must use the same camelCase keys and valid effect
+   names as the type; the game checks them when it loads the level list.
 2. Test it with `F5` from the in-game editor.
 3. Save it as `res/maps/level_N.json`: the `levelN` tile of the world map plays
    it. Any other map of `res/maps` is listed in `CUSTOM LEVELS`.

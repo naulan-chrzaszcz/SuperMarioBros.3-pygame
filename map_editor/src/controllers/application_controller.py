@@ -9,6 +9,7 @@ import pygame
 from ..constants import QUIT_CONFIRMATION_DELAY
 from ..models import EditorState, MapEditorModel, MessageLevel
 from ..views import ApplicationView, Camera
+from .entity_panel_controller import EntityPanelController
 from .map_controller import MapController
 from .sidebar_controller import SidebarController
 
@@ -28,6 +29,7 @@ class ApplicationController:
         view: ApplicationView,
         map_controller: MapController,
         sidebar_controller: SidebarController,
+        entity_panel_controller: EntityPanelController,
     ) -> None:
         self.map_path = Path(map_path)
         self.model = model
@@ -36,6 +38,7 @@ class ApplicationController:
         self.view = view
         self.map_controller = map_controller
         self.sidebar_controller = sidebar_controller
+        self.entity_panel_controller = entity_panel_controller
         self.running = True
         # True when the window was closed, False when the user only left the
         # editor with Esc (the launcher is then shown again).
@@ -61,10 +64,11 @@ class ApplicationController:
             self._route_mouse(event)
         elif event.type == pygame.MOUSEWHEEL:
             mouse = pygame.mouse.get_pos()
-            if self.view.map_rect.collidepoint(mouse):
-                self.map_controller.handle_wheel(event, mouse)
-            else:
-                self.sidebar_controller.handle_wheel(event, mouse)
+            if not self.entity_panel_controller.handle_wheel(event, mouse):
+                if self.view.map_rect.collidepoint(mouse):
+                    self.map_controller.handle_wheel(event, mouse)
+                else:
+                    self.sidebar_controller.handle_wheel(event, mouse)
         elif event.type == pygame.KEYDOWN:
             self._handle_key(event)
 
@@ -140,7 +144,12 @@ class ApplicationController:
 
     def _route_mouse(self, event: pygame.event.Event) -> None:
         # A drag started on the map keeps going even if the cursor leaves it.
-        if self.map_controller.is_dragging or self.view.map_rect.collidepoint(event.pos):
+        if self.map_controller.is_dragging:
+            self.map_controller.handle_mouse(event)
+            return
+        if self.entity_panel_controller.handle_mouse(event):
+            return
+        if self.view.map_rect.collidepoint(event.pos):
             self.map_controller.handle_mouse(event)
             return
         if event.type == pygame.MOUSEMOTION:
@@ -149,6 +158,8 @@ class ApplicationController:
             self.sidebar_controller.handle_mouse(event)
 
     def _handle_key(self, event: pygame.event.Event) -> None:
+        if self.entity_panel_controller.handle_key(event):
+            return
         ctrl = event.mod & pygame.KMOD_CTRL
         shift = event.mod & pygame.KMOD_SHIFT
         key = event.key

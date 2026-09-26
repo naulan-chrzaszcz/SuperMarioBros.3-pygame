@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Dict, Iterable, Iterator, List, Optional, Set, Tuple
 
 from ..constants import HISTORY_LIMIT
+from ..outputs.entity import Placement, Value
 from ..outputs.map import Cell, Map
 from ..outputs.tile import Tile
 from .clipboard import Clipboard, Region
@@ -21,7 +22,7 @@ class Edit:
 
     tiles: Dict[Cell, Tuple[Optional[Tile], Optional[Tile]]] = field(default_factory=dict)
     collisions: Dict[Cell, Tuple[bool, bool]] = field(default_factory=dict)
-    entities: Dict[Cell, Tuple[Optional[str], Optional[str]]] = field(default_factory=dict)
+    entities: Dict[Cell, Tuple[Optional[Placement], Optional[Placement]]] = field(default_factory=dict)
 
     def is_empty(self) -> bool:
         """True when the edit would not change any map data."""
@@ -43,7 +44,7 @@ class Edit:
         else:
             self.collisions[cell] = (old, new)
 
-    def record_entity(self, cell: Cell, old: Optional[str], new: Optional[str]) -> None:
+    def record_entity(self, cell: Cell, old: Optional[Placement], new: Optional[Placement]) -> None:
         """Records the first old entity and latest new entity for one cell."""
         old = self.entities.get(cell, (old, None))[0]
         if old == new:
@@ -55,8 +56,9 @@ class Edit:
 class MapEditorModel:
     """The edited map, in cell coordinates, with an undo/redo history.
 
-    Besides tiles and collisions, a cell can hold one entity (a type of
-    ``res/entities.yaml``, e.g. ``"goomba"``).
+    Besides tiles and collisions, a cell can hold one entity: a Placement,
+    that is a type of ``res/entities.yaml`` (e.g. ``"goomba"``) with the
+    settings given to this entity alone.
     """
 
     def __init__(
@@ -65,7 +67,7 @@ class MapEditorModel:
         rows: int,
         tiles: Optional[Dict[Cell, Tile]] = None,
         collidables: Iterable[Cell] = (),
-        entities: Optional[Dict[Cell, str]] = None,
+        entities: Optional[Dict[Cell, Placement]] = None,
         level: Optional[LevelSettings] = None,
     ) -> None:
         if columns <= 0 or rows <= 0:
@@ -80,10 +82,10 @@ class MapEditorModel:
         for cell in collidables:
             self._check_cell(cell)
             self.collidables.add(cell)
-        self.entities: Dict[Cell, str] = {}
-        for cell, kind in (entities or {}).items():
+        self.entities: Dict[Cell, Placement] = {}
+        for cell, placement in (entities or {}).items():
             self._check_cell(cell)
-            self.entities[cell] = kind
+            self.entities[cell] = placement
 
         self.level = level or LevelSettings()
 
@@ -185,18 +187,38 @@ class MapEditorModel:
     def set_entity(self, cell: Cell, kind: Optional[str], unique: bool = False) -> bool:
         """Places (or removes, when ``kind`` is None) the entity of a cell. A
         ``unique`` entity is moved: the others of its type are removed."""
+        if kind is not None and self.entities.get(cell) is not None:
+            if self.entities[cell].kind == kind:
+                return False
+        placement = None if kind is None else Placement(kind)
+        return self.place_entity(cell, placement, unique)
+
+    def place_entity(
+        self, cell: Cell, placement: Optional[Placement], unique: bool = False
+    ) -> bool:
+        """Same as :meth:`set_entity` with the settings of the entity kept."""
         if not self.contains(cell):
             return False
         old = self.entities.get(cell)
-        if old == kind:
+        if old == placement:
             return False
         with self.edit():
-            if unique and kind is not None:
-                for other in [other for other, value in self.entities.items() if value == kind]:
+            if unique and placement is not None:
+                for other in [
+                    other for other, value in self.entities.items() if value.kind == placement.kind
+                ]:
                     self.set_entity(other, None)
-            self._current.record_entity(cell, old, kind)
-            self._apply_entity(cell, kind)
+            self._current.record_entity(cell, old, placement)
+            self._apply_entity(cell, placement)
         return True
+
+    def set_entity_setting(self, cell: Cell, key: str, value: Optional[Value]) -> bool:
+        """Gives one setting to the entity of ``cell`` only, or gives the setting
+        of its type back when ``value`` is None. Undoable like any other edit."""
+        placement = self.entities.get(cell)
+        if placement is None:
+            return False
+        return self.place_entity(cell, placement.with_setting(key, value))
 
     def undo(self) -> bool:
         """Reverts the latest edit and makes it redoable."""
@@ -237,7 +259,9 @@ class MapEditorModel:
         self.rows = rows
         self.tiles = {cell: tile for cell, tile in self.tiles.items() if self.contains(cell)}
         self.collidables = {cell for cell in self.collidables if self.contains(cell)}
-        self.entities = {cell: kind for cell, kind in self.entities.items() if self.contains(cell)}
+        self.entities = {
+            cell: placement for cell, placement in self.entities.items() if self.contains(cell)
+        }
         self._undo.clear()
         self._redo.clear()
         self._saved_edit = None
@@ -309,7 +333,7 @@ class MapEditorModel:
                 kind = clipboard.entities.get((col, row))
                 self.set_tile(cell, tile)
                 self.set_collidable(cell, solid)
-                self.set_entity(cell, kind, kind in unique_entities)
+                self.place_entity(cell, kind, kind is not None and kind.kind in unique_entities)
         return skipped
 
     def undeclared_tiles(self, tileset: Tileset) -> Set[SheetCell]:
@@ -339,8 +363,8 @@ class MapEditorModel:
         if not self.contains(cell):
             raise ValueError(f"Cell is outside the map: {cell}")
 
-    def _apply_entity(self, cell: Cell, kind: Optional[str]) -> None:
-        if kind is None:
+    def _apply_entity(self, cell: Cell, placement: Optional[Placement]) -> None:
+        if placement is None:
             self.entities.pop(cell, None)
         else:
-            self.entities[cell] = kind
+            self.entities[cell] = placement

@@ -2,6 +2,7 @@
 
 from .application_view import ApplicationView
 from .camera import Camera
+from .entity_panel_view import EntityPanelView
 from .entity_renderer import EntityRenderer
 from .launcher_view import LauncherView
 from .map_view import MapView
@@ -14,6 +15,7 @@ __all__ = [
     "ApplicationView",
     "Button",
     "Camera",
+    "EntityPanelView",
     "EntityRenderer",
     "LauncherView",
     "ListBox",
