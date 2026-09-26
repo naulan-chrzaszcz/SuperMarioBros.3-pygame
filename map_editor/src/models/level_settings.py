@@ -38,6 +38,8 @@ def load_musics(path: Path = RESSOURCES_FILE) -> Tuple[str, ...]:
 
 
 class LevelSettings:
+    """Mutable level settings preserved in the map's ``level`` JSON block."""
+
     def __init__(self, data: Optional[Mapping[str, Any]] = None, musics: Optional[Tuple[str, ...]] = None):
         self.data: Dict[str, Any] = dict(data or {})
         self.musics = load_musics() if musics is None else tuple(musics)
@@ -49,6 +51,7 @@ class LevelSettings:
         return self.data != self._saved
 
     def mark_saved(self) -> None:
+        """Marks the current settings as matching the saved map."""
         self._saved = dict(self.data)
 
     def _set(self, key: str, value: Any) -> None:
@@ -92,6 +95,7 @@ class LevelSettings:
         return "Custom"
 
     def cycle_sky(self) -> None:
+        """Switches to the next predefined sky, or default after the last one."""
         names = [name for name, _ in SKY_PRESETS]
         index = names.index(self.sky_name) + 1 if self.sky_name in names else 0
         color = SKY_PRESETS[index % len(SKY_PRESETS)][1]
@@ -104,6 +108,7 @@ class LevelSettings:
         return self.data.get("music")
 
     def cycle_music(self) -> None:
+        """Switches to the next known music id, including the default choice."""
         choices = (None, *self.musics)
         index = choices.index(self.music) + 1 if self.music in choices else 0
         self._set("music", choices[index % len(choices)])

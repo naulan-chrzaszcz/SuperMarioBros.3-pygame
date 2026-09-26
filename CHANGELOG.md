@@ -16,6 +16,8 @@ Notable changes of the project. The format follows
 - Sound effects and musics, as named events mapped in `ressources.yaml`;
   `audio` section in `config.yaml`.
 - Level settings in the map editor (time limit, sky, music), saved in the map.
+- `docs/ARCHITECTURE.md` (how the game and the editor work, with diagrams),
+  a docstring on every module and commented `ressources.yaml`.
 - Entities, placed with the map editor (`Entities` mode, `E`) and playable in
   the game: Mario start, Goomba, Koopa Troopa (shell to kick), Super Mushroom
   and 1-Up Mushroom, declared in `res/entities.yaml`. Mushrooms can be hidden

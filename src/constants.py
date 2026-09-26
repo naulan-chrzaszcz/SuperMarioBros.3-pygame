@@ -1,3 +1,8 @@
+"""Paths (from the project root), sizes and colours shared by the game.
+
+Gameplay values do not live here: they are in ``res/rules.yaml``.
+"""
+
 from pathlib import Path
 
 # Every file is resolved from the project root, so the game also starts when it

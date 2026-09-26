@@ -1,3 +1,5 @@
+"""Scene switching: one scene runs at a time, changes happen after the update."""
+
 from __future__ import annotations
 
 from typing import Dict, Iterable, Optional

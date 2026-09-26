@@ -1,3 +1,7 @@
+"""Status bar drawn under the levels and the world map, from the ``hud`` sprite
+of ``res/sprites.yaml`` and the progress in ``save.yaml``.
+"""
+
 from __future__ import annotations
 
 from pygame import Surface

@@ -123,6 +123,9 @@ class Entity:
         self.behind_tiles = True
 
     def update(self, dt: float, level: Level) -> None:
+        """Template method, called every frame: handles being knocked, rising
+        out of a block and falling off the level, and calls ``behave`` the rest
+        of the time. Subclasses override ``behave``, not this."""
         self.time += dt
         self.ignore_mario = max(0.0, self.ignore_mario - dt)
         if self.knocked:
@@ -179,9 +182,11 @@ class Entity:
         level.play_sound("kick")
 
     def image(self) -> Surface:
+        """The current picture, taken from ``self.animations``."""
         raise NotImplementedError
 
     def draw(self, surface: Surface, camera_x: float, camera_y: float) -> None:
+        """Draws ``image()`` with its feet on the body (upside down when knocked)."""
         image = self.image()
         if self.knocked:
             image = transform.flip(image, False, True)

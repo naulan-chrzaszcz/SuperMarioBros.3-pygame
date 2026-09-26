@@ -1,3 +1,9 @@
+"""Grid movement of Mario on the world map, without any drawing.
+
+A tile named ``levelN`` opens the level ``level_N`` (``level_scene_of``); the
+scene ``scenes/levels_scene.py`` places Mario on ``start`` and draws the map.
+"""
+
 from __future__ import annotations
 
 import re

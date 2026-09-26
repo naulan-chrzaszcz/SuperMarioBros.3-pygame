@@ -1,3 +1,5 @@
+"""Application-level controller for global shortcuts, saving and quitting."""
+
 from pathlib import Path
 
 import pygame

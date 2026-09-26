@@ -1,3 +1,5 @@
+"""Tileset model loading sheet images and metadata used by the editor."""
+
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, Iterator, Optional, Tuple
@@ -45,15 +47,19 @@ class Tileset:
         return "outside the tileset image"
 
     def contains(self, x: int, y: int) -> bool:
+        """True when the sheet cell is inside the image grid."""
         return 0 <= x < self.columns and 0 <= y < self.rows
 
     def name_of(self, x: int, y: int) -> Optional[str]:
+        """Returns the metadata name of a sheet cell, if declared."""
         return self.names.get((x, y))
 
     def behaviour_of(self, x: int, y: int) -> Optional[str]:
+        """Returns the gameplay behaviour declared for a sheet cell, if any."""
         return self.behaviours.get((x, y))
 
     def is_declared(self, x: int, y: int) -> bool:
+        """True when a cell is inside the sheet and allowed by metadata."""
         return self.contains(x, y) and (not self.has_metadata or (x, y) in self.names)
 
     def declared_cells(self) -> Iterator[SheetCell]:
@@ -111,6 +117,7 @@ class Tileset:
 
     @staticmethod
     def read_names(metadata_path: Path) -> Dict[SheetCell, str]:
+        """Reads ``coordinate`` to tile name mappings from sheet metadata."""
         with metadata_path.open(encoding="utf-8") as file:
             metadata = yaml.safe_load(file) or {}
         return {
@@ -120,6 +127,7 @@ class Tileset:
 
     @staticmethod
     def read_behaviours(metadata_path: Path) -> Dict[SheetCell, str]:
+        """Reads optional gameplay behaviours from sheet metadata."""
         with metadata_path.open(encoding="utf-8") as file:
             metadata = yaml.safe_load(file) or {}
         return {

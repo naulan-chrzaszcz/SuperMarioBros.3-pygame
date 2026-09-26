@@ -1,3 +1,5 @@
+"""Launcher data model for maps, tilesets and validated launch requests."""
+
 import json
 import re
 from dataclasses import dataclass, field
@@ -24,6 +26,8 @@ MAP_NAME_PATTERN = re.compile(r"^[A-Za-z0-9_-]+$")
 
 @dataclass(frozen=True)
 class MapEntry:
+    """A map listed by the launcher, with readable metadata or an error."""
+
     path: Path
     size: Optional[Tuple[int, int]] = None
     sheet_cells: FrozenSet[SheetCell] = frozenset()
@@ -33,6 +37,7 @@ class MapEntry:
 
     @classmethod
     def read(cls, path: Path) -> "MapEntry":
+        """Reads map metadata without preventing the launcher from listing bad files."""
         try:
             columns, rows, tiles, _ = Map.read(path)
             sheet = Map.read_sheet(path)
@@ -44,6 +49,8 @@ class MapEntry:
 
 @dataclass(frozen=True)
 class SheetEntry:
+    """A tileset listed by the launcher, with optional declared tile names."""
+
     path: Path
     # Tile names from the metadata, None when the sheet has no metadata.
     names: Optional[Dict[SheetCell, str]] = None
@@ -54,6 +61,7 @@ class SheetEntry:
 
     @classmethod
     def read(cls, path: Path, ressources_file: Path) -> "SheetEntry":
+        """Reads sheet metadata; invalid metadata leaves the sheet selectable."""
         _, metadata_path = Tileset.settings_of(path, ressources_file)
         if metadata_path is None:
             return cls(path)
@@ -65,6 +73,8 @@ class SheetEntry:
 
 @dataclass(frozen=True)
 class LaunchRequest:
+    """Validated map, tileset and optional resize chosen in the launcher."""
+
     map_path: Path
     sheet_path: Path
     # New size of the map, None to keep its size.
@@ -115,6 +125,7 @@ class LauncherModel:
         return None if self.selected is None else self.maps[self.selected]
 
     def refresh(self) -> None:
+        """Reloads available maps and sheets from disk."""
         self.maps = sorted(
             (MapEntry.read(path) for path in self.maps_directory.glob("*.json")),
             key=lambda entry: entry.path.name.lower(),
@@ -124,6 +135,7 @@ class LauncherModel:
         self.sheets = sorted(sheets, key=lambda sheet: (not sheet.has_metadata, sheet.path.name.lower()))
 
     def select_new(self) -> None:
+        """Switches the form to create a new map with default values."""
         self.selected = None
         self.name = ""
         self.width, self.height = (str(value) for value in DEFAULT_MAP_SIZE)
@@ -131,6 +143,7 @@ class LauncherModel:
         self.message = ""
 
     def select_map(self, index: int) -> None:
+        """Selects an existing map and fills the form from its metadata."""
         entry = self.maps[index]
         self.selected = index
         self.name = entry.path.stem
@@ -163,10 +176,12 @@ class LauncherModel:
         return self._sheet_index_of(DEFAULT_SHEET)
 
     def notify(self, message: str, level: MessageLevel = MessageLevel.INFO) -> None:
+        """Stores a launcher status message for the view."""
         self.message = message
         self.message_level = level
 
     def size(self) -> Tuple[int, int]:
+        """Parses and validates the map size fields."""
         try:
             columns, rows = int(self.width), int(self.height)
         except ValueError:

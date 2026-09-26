@@ -1,3 +1,5 @@
+"""Splash screen shown before the title screen (``skipIntro`` in ``config.yaml``)."""
+
 from __future__ import annotations
 
 from enum import Enum, auto

@@ -1,3 +1,5 @@
+"""Renderer for entity sprites and fallback labels in the map view."""
+
 from typing import Dict, Optional, Tuple
 
 import pygame

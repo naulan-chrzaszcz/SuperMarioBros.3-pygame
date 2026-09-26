@@ -1,3 +1,5 @@
+"""World map scene: draws the map, moves Mario (``world_map.py``) and opens levels."""
+
 from __future__ import annotations
 
 from enum import Enum, auto

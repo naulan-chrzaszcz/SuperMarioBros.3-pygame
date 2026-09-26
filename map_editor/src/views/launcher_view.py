@@ -1,3 +1,5 @@
+"""Pygame launcher view with fields and lists for map selection."""
+
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Tuple
 
