@@ -4,13 +4,15 @@ The game reads the same file (``src/entities/catalog.py``) and gives each type
 its behaviour.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 
 import yaml
 
-from ..constantes import DEFAULT_COLOR_KEY, ENTITIES_FILE, PROJECT_ROOT, RESSOURCES_FILE
+from ..constants import DEFAULT_COLOR_KEY, ENTITIES_FILE, PROJECT_ROOT, RESSOURCES_FILE
 
 Color = Tuple[int, int, int]
 

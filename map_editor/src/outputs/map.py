@@ -1,11 +1,13 @@
 """JSON map serializer used by the editor and compatible game loader."""
 
+from __future__ import annotations
+
 import json
 import re
 from pathlib import Path
 from typing import Dict, Iterable, Optional, Set, Tuple
 
-from ..constantes import PROJECT_ROOT
+from ..constants import PROJECT_ROOT
 from .tile import Tile
 
 Cell = Tuple[int, int]

@@ -30,5 +30,9 @@ jobs:
         run: python -m pip install -r requirements-dev.txt
       - name: Lint
         run: python -m pyflakes src map_editor tests SuperMarioBros3.pyw
+      - name: Style
+        run: python -m pycodestyle src map_editor tests SuperMarioBros3.pyw
+      - name: Import order
+        run: python -m isort --check-only src map_editor tests SuperMarioBros3.pyw
       - name: Tests
         run: python -m unittest discover -s tests -v

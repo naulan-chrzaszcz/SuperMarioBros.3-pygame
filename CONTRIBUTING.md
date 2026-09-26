@@ -48,6 +48,11 @@ SDL_VIDEODRIVER=dummy python -m unittest discover -s tests
 
 # Lint: unused imports, undefined names...
 python -m pyflakes src map_editor tests SuperMarioBros3.pyw
+
+# Style (line length, blank lines...) and import order; both read setup.cfg.
+python -m pycodestyle src map_editor tests SuperMarioBros3.pyw
+python -m isort --check-only src map_editor tests SuperMarioBros3.pyw
+# isort without --check-only sorts the imports for you.
 ```
 
 Every fix or feature should come with a test in `tests/`:
@@ -59,7 +64,12 @@ without a screen.
 ## Code style
 
 - Follow [PEP 8](https://peps.python.org/pep-0008/), 4 spaces, lines up to
-  about 110 characters (see [.editorconfig](.editorconfig)).
+  110 characters (see [.editorconfig](.editorconfig) and [setup.cfg](setup.cfg),
+  which `pycodestyle` and `isort` read).
+- Start every module with `from __future__ import annotations` (after the
+  docstring), write `Optional[X]` rather than `X | None` and `Tuple[int, int]`
+  rather than `tuple[int, int]`: the game also runs on Python 3.10.
+- Prefer f-strings to `%` or `.format()`, and double quotes for strings.
 - Start every module with a docstring that says its role (a test checks it).
   Add type hints to new functions and a docstring when the purpose is not
   obvious. Comment *why*, not *what*.
@@ -72,7 +82,7 @@ without a screen.
   pygame drawing code, views do not change the models, controllers turn events
   into model changes.
 - Paths are built from the project root (`src/constants.py`,
-  `map_editor/src/constantes.py`), never from the working directory.
+  `map_editor/src/constants.py`), never from the working directory.
 
 ## Git workflow
 

@@ -1,10 +1,10 @@
 """Model package exports editor state, map data and launcher choices."""
 
 from .clipboard import Clipboard, Region, make_region, region_size
-from .entities import EntityType, load_entity_types
 from .editor_state import EditorState, MessageLevel, Mode
-from .level_settings import LevelSettings
+from .entities import EntityType, load_entity_types
 from .launcher_model import LauncherModel, LaunchRequest
+from .level_settings import LevelSettings
 from .map_editor_model import Edit, MapEditorModel
 from .tileset import Tileset
 

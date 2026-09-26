@@ -62,7 +62,8 @@ class MapTest(unittest.TestCase):
         return Map(self.sheet, self.names, {"tiles": tiles, "collidables": collidables})
 
     def test_queries(self):
-        world = self.make([["1,0", "0,0", "0,1"], ["0,0", "-1,-1", "0,0"]], [[False, True, False], [False] * 3])
+        world = self.make([["1,0", "0,0", "0,1"], ["0,0", "-1,-1", "0,0"]],
+                          [[False, True, False], [False] * 3])
         self.assertEqual((world.columns, world.rows, world.width, world.height), (3, 2, 48, 32))
         self.assertEqual(world.find("start").cell, (0, 0))
         self.assertEqual(len(world.tiles_named("grass")), 3)
@@ -117,7 +118,8 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.controls.action_of("Up"), Action.UP)
 
     def test_unknown_settings_are_reported(self):
-        for data in ({"skipIntr": True}, {"screen": {"widht": 3}}, {"display": {"width": 0}}, {"controls": {"jump": "x"}}):
+        for data in ({"skipIntr": True}, {"screen": {"widht": 3}},
+                     {"display": {"width": 0}}, {"controls": {"jump": "x"}}):
             with self.subTest(data=data), self.assertRaises(ValueError):
                 Config.from_dict(data)
 
@@ -534,7 +536,9 @@ class EntityTest(LevelTestCase):
         self.assertEqual(koopa.shell, Shell.STILL)
         self.assertEqual(koopa.body.height, Koopa.SHELL_HEIGHT)
         # Mario lands and walks into the shell from the left: he kicks it.
-        level.body.x, level.body.y, level.body.vy = koopa.body.x - 14, koopa.body.bottom - level.body.height, 0
+        level.body.x = koopa.body.x - 14
+        level.body.y = koopa.body.bottom - level.body.height
+        level.body.vy = 0
         self.run_frames(0.3, [key_event(pygame.K_d)])
         self.run_frames(0, [key_event(pygame.K_d, released=True)])
         self.assertEqual(koopa.shell, Shell.SLIDING)

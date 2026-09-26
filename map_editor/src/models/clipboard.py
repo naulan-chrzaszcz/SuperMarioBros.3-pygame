@@ -1,5 +1,7 @@
 """Clipboard model for copied map regions and their rotation helpers."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Dict, FrozenSet, Iterator, Optional, Tuple

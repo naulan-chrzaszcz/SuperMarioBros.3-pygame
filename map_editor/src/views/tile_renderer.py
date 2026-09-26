@@ -1,10 +1,12 @@
 """Renderer for tileset cells and animated map tiles."""
 
+from __future__ import annotations
+
 from typing import Dict, Tuple
 
 import pygame
 
-from ..constantes import ANIMATION_SPEED, TILE_SIZE
+from ..constants import ANIMATION_SPEED, TILE_SIZE
 from ..models.tileset import Tileset
 from ..outputs.tile import Tile
 

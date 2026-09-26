@@ -1,5 +1,7 @@
 """Tileset model loading sheet images and metadata used by the editor."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, Iterator, Optional, Tuple
@@ -7,7 +9,7 @@ from typing import Dict, Iterator, Optional, Tuple
 import pygame
 import yaml
 
-from ..constantes import DEFAULT_COLOR_KEY, RESSOURCES_FILE, TILE_SIZE
+from ..constants import DEFAULT_COLOR_KEY, RESSOURCES_FILE, TILE_SIZE
 
 SheetCell = Tuple[int, int]
 

@@ -8,7 +8,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field, fields, replace
 from enum import Enum, auto
 from pathlib import Path
-from typing import Any, Dict, Mapping, Tuple
+from typing import Any, Dict, Mapping, Optional, Tuple
 
 import yaml
 
@@ -86,7 +86,7 @@ class Controls:
         default_factory=lambda: dict(DEFAULT_CONTROLS)
     )
 
-    def action_of(self, key_name: str) -> Action | None:
+    def action_of(self, key_name: str) -> Optional[Action]:
         key_name = key_name.lower()
         for action, names in self.bindings.items():
             if key_name in names:
@@ -94,7 +94,7 @@ class Controls:
         return None
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, Any] | None) -> "Controls":
+    def from_dict(cls, data: Optional[Mapping[str, Any]]) -> "Controls":
         bindings = dict(DEFAULT_CONTROLS)
         for name, keys in (data or {}).items():
             try:
@@ -111,7 +111,7 @@ def _camel_to_snake(name: str) -> str:
     return "".join(f"_{char.lower()}" if char.isupper() else char for char in name)
 
 
-def _section(cls, data: Mapping[str, Any] | None):
+def _section(cls, data: Optional[Mapping[str, Any]]):
     """Builds a dataclass from a YAML section, keeping defaults for missing keys."""
     known = {item.name for item in fields(cls)}
     values = {}
@@ -137,7 +137,7 @@ class Config:
     controls: Controls = field(default_factory=Controls)
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, Any] | None) -> "Config":
+    def from_dict(cls, data: Optional[Mapping[str, Any]]) -> "Config":
         data = dict(data or {})
         config = cls(
             framerate_limit=int(data.pop("framerateLimit", cls.framerate_limit)),

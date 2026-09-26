@@ -1,12 +1,14 @@
 """Launcher data model for maps, tilesets and validated launch requests."""
 
+from __future__ import annotations
+
 import json
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, FrozenSet, List, Optional, Tuple
 
-from ..constantes import (
+from ..constants import (
     DEFAULT_MAP_SIZE,
     DEFAULT_SHEET,
     LAUNCHER_SETTINGS_FILE,

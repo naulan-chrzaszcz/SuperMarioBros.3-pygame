@@ -45,6 +45,7 @@ class MainMenuScene(Scene):
         super().__init__(context)
         self.play_opening = play_opening
         # The pictures are the "title" sprite of res/sprites.yaml.
+
         def picture(name: str) -> Surface:
             return context.sprites.image("title", name)
 
@@ -163,4 +164,5 @@ class MainMenuScene(Scene):
             y = self.MENU_TOP + index * self.MENU_SPACING
             self.surface.blit(item, (left, y))
             if index == self.selected:
-                pygame.draw.polygon(self.surface, BLACK, [(left - 12, y), (left - 12, y + 7), (left - 5, y + 3)])
+                arrow = [(left - 12, y), (left - 12, y + 7), (left - 5, y + 3)]
+                pygame.draw.polygon(self.surface, BLACK, arrow)

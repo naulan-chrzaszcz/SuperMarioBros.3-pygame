@@ -1,11 +1,13 @@
 """Camera view helper converting between map cells and screen coordinates."""
 
+from __future__ import annotations
+
 import math
 from typing import Optional, Tuple
 
 import pygame
 
-from ..constantes import MAX_ZOOM, MIN_ZOOM, TILE_SIZE
+from ..constants import MAX_ZOOM, MIN_ZOOM, TILE_SIZE
 
 Cell = Tuple[int, int]
 

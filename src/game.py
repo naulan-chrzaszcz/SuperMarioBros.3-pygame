@@ -13,10 +13,10 @@ from .animation import SpriteBank
 from .audio import Audio
 from .constants import BLACK, MAX_FRAME_TIME, TITLE
 from .editor_bridge import EditorResult, EditorSession
-from .font import Font
-from .hud import HUD
 from .entities.catalog import entity_types
 from .entities.spawner import validate_entity_types
+from .font import Font
+from .hud import HUD
 from .inputs.config import Config
 from .inputs.ressources import Ressources
 from .inputs.rules import Rules

@@ -1,10 +1,12 @@
 """Sidebar view that draws tool buttons and tileset/entity palettes."""
 
+from __future__ import annotations
+
 from typing import List, Optional, Tuple
 
 import pygame
 
-from ..constantes import (
+from ..constants import (
     BORDER_COLOR,
     BUTTON_GAP,
     BUTTON_HEIGHT,
@@ -334,6 +336,7 @@ class SidebarView:
             for y in range(tileset.rows):
                 for x in range(tileset.columns):
                     if not tileset.is_declared(x, y):
-                        shade.fill(UNDECLARED_TILE_SHADE, (x * cell_size, y * cell_size, cell_size, cell_size))
+                        shade.fill(UNDECLARED_TILE_SHADE,
+                                   (x * cell_size, y * cell_size, cell_size, cell_size))
             self._undeclared_shade = shade
         return self._undeclared_shade

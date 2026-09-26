@@ -1,11 +1,13 @@
 """Editable map model with tiles, collisions, entities and undo history."""
 
+from __future__ import annotations
+
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, Iterable, Iterator, List, Optional, Set, Tuple
 
-from ..constantes import HISTORY_LIMIT
+from ..constants import HISTORY_LIMIT
 from ..outputs.map import Cell, Map
 from ..outputs.tile import Tile
 from .clipboard import Clipboard, Region

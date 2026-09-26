@@ -7,6 +7,8 @@ import unittest
 from pathlib import Path
 
 import pygame
+import test_game
+from test_game import LevelTestCase, key_event, write_level
 
 from src.animation import Animation, SpriteBank
 from src.entities.catalog import EntityType, entity_types, load_entity_types, parse_entity_type
@@ -24,8 +26,6 @@ from src.inputs.tuning import check, constant_name, setting_key, tune
 from src.levels import LevelCatalog
 from src.platformer import Body
 from src.scenes import LevelsScene, PlatformLevelScene
-import test_game
-from test_game import LevelTestCase, key_event, write_level
 
 
 def setUpModule():
@@ -71,7 +71,9 @@ class RulesTest(unittest.TestCase):
 
     def test_the_file_gives_the_defaults_of_the_code(self):
         rules = Rules.load()
-        for cls, settings in ((Body, rules.player), (PlatformLevelScene, rules.level), (LevelsScene, rules.world_map)):
+        sections = ((Body, rules.player), (PlatformLevelScene, rules.level),
+                    (LevelsScene, rules.world_map))
+        for cls, settings in sections:
             for name, value in check(cls, settings, cls.__name__).items():
                 self.assertEqual(value, getattr(cls, name), f"{cls.__name__}.{name}")
 
@@ -82,9 +84,11 @@ class RulesTest(unittest.TestCase):
 
     def test_errors_are_reported_when_the_game_starts(self):
         with self.assertRaisesRegex(ValueError, "walkSped"):
-            Game(Config.from_dict({"skipIntro": True}), Save(), rules=Rules.from_dict({"player": {"walkSped": 1}}))
+            Game(Config.from_dict({"skipIntro": True}), Save(),
+                 rules=Rules.from_dict({"player": {"walkSped": 1}}))
         with self.assertRaisesRegex(ValueError, "unknown music"):
-            Game(Config.from_dict({"skipIntro": True}), Save(), rules=Rules.from_dict({"level": {"music": "nope"}}))
+            Game(Config.from_dict({"skipIntro": True}), Save(),
+                 rules=Rules.from_dict({"level": {"music": "nope"}}))
 
 
 class SpritesTest(unittest.TestCase):
@@ -157,7 +161,8 @@ class EntityDataTest(unittest.TestCase):
 
 class TileBehaviourTest(unittest.TestCase):
     def test_parse_and_guess(self):
-        self.assertEqual(TileBehaviour.parse("question_block", "block"), TileBehaviour("question_block", "block"))
+        self.assertEqual(TileBehaviour.parse("question_block", "block"),
+                         TileBehaviour("question_block", "block"))
         with self.assertRaises(ValueError):
             TileBehaviour.parse("lava")
         self.assertEqual(TileBehaviour.guess("coin_frame_2").kind, "coin")
@@ -171,7 +176,8 @@ class TileBehaviourTest(unittest.TestCase):
         self.assertEqual(level.behaviour_of(level.tile_at(6, 4)), TileBehaviour("question_block", "block"))
 
     def test_level_settings(self):
-        settings = LevelSettings.parse({"name": "Hills", "timeLimit": 200, "sky": [0, 0, 0], "music": "title"})
+        settings = LevelSettings.parse(
+            {"name": "Hills", "timeLimit": 200, "sky": [0, 0, 0], "music": "title"})
         self.assertEqual((settings.name, settings.time_limit, settings.sky), ("Hills", 200, (0, 0, 0)))
         for wrong in ({"timeLimit": 0}, {"timeLimit": "300"}, {"weather": "rain"}, {"sky": "blue-ish"}):
             with self.assertRaises(ValueError, msg=wrong):
@@ -188,7 +194,8 @@ def add_level_block(path, level):
 class DataInGameTest(LevelTestCase):
     def test_level_settings_of_the_map(self):
         path = add_level_block(write_level(self.maps / "level.json"),
-                               {"name": "Night hills", "timeLimit": 120, "sky": [16, 24, 64], "music": "title"})
+                               {"name": "Night hills", "timeLimit": 120,
+                                "sky": [16, 24, 64], "music": "title"})
         self.assertEqual(self.game.context.levels.info(path).title, "Night hills")
         level = self.play(path)
         self.assertLessEqual(level.time_left, 120)
@@ -247,7 +254,8 @@ class RulesInGameTest(LevelTestCase):
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
         self.maps = Path(self.directory.name)
-        rules = Rules.from_dict({"player": {"walkSpeed": 40}, "level": {"timeLimit": 42, "skyColor": [1, 2, 3]}})
+        rules = Rules.from_dict({"player": {"walkSpeed": 40},
+                                 "level": {"timeLimit": 42, "skyColor": [1, 2, 3]}})
         self.game = Game(
             Config.from_dict({"skipIntro": True, "screen": {"width": 640, "height": 480}}),
             Save(),

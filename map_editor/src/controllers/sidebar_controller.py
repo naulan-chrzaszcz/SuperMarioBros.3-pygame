@@ -1,5 +1,7 @@
 """Controller for sidebar tile/entity selection and button input."""
 
+from __future__ import annotations
+
 import pygame
 
 from ..models import EditorState, MessageLevel

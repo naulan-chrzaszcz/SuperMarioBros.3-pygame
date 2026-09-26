@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Dict
+from typing import Dict, Optional
 
 from .inputs.map import Map
 from .inputs.ressources import Ressources
@@ -14,7 +14,7 @@ class MapManager:
     def __init__(self, ressources: Ressources):
         self.ressources = ressources
         self.maps: Dict[str, Map] = {}
-        self.current: Map | None = None
+        self.current: Optional[Map] = None
 
     def register(self, name: str, _map: Map) -> None:
         self.maps[name] = _map

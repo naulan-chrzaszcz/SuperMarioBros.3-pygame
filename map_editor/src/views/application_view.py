@@ -1,8 +1,10 @@
 """Top-level Pygame view that lays out the map, sidebar and status bar."""
 
+from __future__ import annotations
+
 import pygame
 
-from ..constantes import FONT_SIZE, MAX_SIDEBAR_WIDTH, MIN_SIDEBAR_WIDTH, STATUS_BAR_HEIGHT
+from ..constants import FONT_SIZE, MAX_SIDEBAR_WIDTH, MIN_SIDEBAR_WIDTH, STATUS_BAR_HEIGHT
 from .camera import Camera
 from .sidebar_view import SidebarView
 

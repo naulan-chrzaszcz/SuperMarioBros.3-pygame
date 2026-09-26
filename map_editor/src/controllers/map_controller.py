@@ -1,10 +1,12 @@
 """Controller for mouse and keyboard edits in the map canvas."""
 
+from __future__ import annotations
+
 from typing import Iterator, Optional
 
 import pygame
 
-from ..constantes import SCROLL_TILES, TILE_SIZE
+from ..constants import SCROLL_TILES, TILE_SIZE
 from ..models import EditorState, MapEditorModel, MessageLevel, Mode, make_region, region_size
 from ..views.camera import Camera, Cell
 from ..views.map_view import RectangleSelection

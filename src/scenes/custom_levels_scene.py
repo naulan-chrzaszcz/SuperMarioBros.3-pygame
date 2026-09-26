@@ -105,7 +105,8 @@ class CustomLevelsScene(Scene):
                 pygame.draw.polygon(surface, WHITE, [(left - 14, y), (left - 14, y + 7), (left - 7, y + 3)])
 
         if self.scroll > 0:
-            pygame.draw.polygon(surface, MUTED, [(width // 2 - 4, 38), (width // 2 + 4, 38), (width // 2, 34)])
+            arrow = [(width // 2 - 4, 38), (width // 2 + 4, 38), (width // 2, 34)]
+            pygame.draw.polygon(surface, MUTED, arrow)
         if self.scroll + self.VISIBLE_ROWS < self.items:
             bottom = self.LIST_TOP + self.VISIBLE_ROWS * self.ROW_HEIGHT
             pygame.draw.polygon(

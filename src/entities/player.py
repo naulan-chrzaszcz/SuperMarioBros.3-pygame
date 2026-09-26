@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Optional
+
 from pygame import Vector2
 from pygame.sprite import Sprite
 
@@ -18,9 +20,9 @@ class Player(Sprite):
         self.vector = Vector2(vector)
         self.rect = self.image.get_rect(topleft=self.vector)
         self.levels_animation = Animator(self, animation)
-        self.current_animation: Animator | None = None
+        self.current_animation: Optional[Animator] = None
 
-    def play(self, animation: Animator | None) -> None:
+    def play(self, animation: Optional[Animator]) -> None:
         self.current_animation = animation
         if animation is not None:
             animation.reset()

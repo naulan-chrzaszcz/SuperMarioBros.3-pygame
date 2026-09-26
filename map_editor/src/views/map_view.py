@@ -1,10 +1,12 @@
 """Map canvas view that draws tiles, entities, selections and overlays."""
 
+from __future__ import annotations
+
 from typing import Dict, Optional, Tuple
 
 import pygame
 
-from ..constantes import (
+from ..constants import (
     BORDER_COLOR,
     COLLISION_COLOR,
     GRID_COLOR,
