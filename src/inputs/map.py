@@ -1,3 +1,7 @@
+"""Reads a map made with the map editor: its tiles, solid cells, entities, the
+behaviour of its tiles (``res/sheets/*.yaml``) and its ``level`` settings.
+"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass

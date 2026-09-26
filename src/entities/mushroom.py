@@ -1,3 +1,5 @@
+"""The ``mushroom`` behaviour of ``res/entities.yaml``: an item hidden in a block."""
+
 from __future__ import annotations
 
 from pygame import Surface

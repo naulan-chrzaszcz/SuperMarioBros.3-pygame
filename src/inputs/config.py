@@ -1,3 +1,8 @@
+"""Reads ``config.yaml``: window, controls (keys mapped to ``Action``), audio.
+
+Every setting is optional; a misspelt one is reported with the known names.
+"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field, fields, replace
@@ -120,6 +125,8 @@ def _section(cls, data: Mapping[str, Any] | None):
 
 @dataclass(frozen=True)
 class Config:
+    """Every setting of ``config.yaml``; the README lists them."""
+
     framerate_limit: int = 120
     skip_intro: bool = False
     mixer: Mixer = Mixer()

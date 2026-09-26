@@ -1,3 +1,7 @@
+"""The scenes of the game. Each one receives a ``GameContext`` and reacts to
+actions; ``src/game.py`` registers them by name.
+"""
+
 from .animation_levels_scene import AnimationLevelsScene
 from .custom_levels_scene import CustomLevelsScene
 from .intro_scene import IntroScene

@@ -1,3 +1,5 @@
+"""The ``goomba`` behaviour of ``res/entities.yaml``."""
+
 from __future__ import annotations
 
 from pygame import Surface

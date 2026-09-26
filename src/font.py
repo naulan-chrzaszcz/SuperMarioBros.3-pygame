@@ -1,3 +1,5 @@
+"""Bitmap font used by every text of the game (menus, HUD, messages)."""
+
 from __future__ import annotations
 
 from typing import Dict, List

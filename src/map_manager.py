@@ -1,3 +1,5 @@
+"""Lazy access to the maps declared in ``ressources.yaml`` (world map, world card)."""
+
 from __future__ import annotations
 
 from typing import Dict

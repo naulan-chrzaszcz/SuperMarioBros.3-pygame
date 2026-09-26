@@ -1,3 +1,5 @@
+"""Reads ``ressources.yaml``: images, maps, sounds and musics, by id."""
+
 from __future__ import annotations
 
 import json

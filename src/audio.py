@@ -18,6 +18,12 @@ from .inputs.config import Audio as AudioSettings
 
 
 class Audio:
+    """Sound events and musics of ``ressources.yaml``.
+
+    Code plays *events* (``play("jump")``), the data maps them to files: an
+    event without a file is silent, and so is the game without an audio device.
+    """
+
     def __init__(
         self,
         sounds: Mapping[str, Path],

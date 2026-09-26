@@ -1,3 +1,5 @@
+"""Sidebar view that draws tool buttons and tileset/entity palettes."""
+
 from typing import List, Optional, Tuple
 
 import pygame

@@ -1,3 +1,5 @@
+"""Map canvas view that draws tiles, entities, selections and overlays."""
+
 from typing import Dict, Optional, Tuple
 
 import pygame

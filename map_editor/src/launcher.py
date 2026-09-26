@@ -1,3 +1,5 @@
+"""Launcher window loop that chooses a map and starts the editor application."""
+
 from typing import Optional, Tuple
 
 import pygame

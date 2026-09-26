@@ -1,3 +1,5 @@
+"""Editable map model with tiles, collisions, entities and undo history."""
+
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -20,9 +22,11 @@ class Edit:
     entities: Dict[Cell, Tuple[Optional[str], Optional[str]]] = field(default_factory=dict)
 
     def is_empty(self) -> bool:
+        """True when the edit would not change any map data."""
         return not self.tiles and not self.collisions and not self.entities
 
     def record_tile(self, cell: Cell, old: Optional[Tile], new: Optional[Tile]) -> None:
+        """Records the first old tile and latest new tile for one cell."""
         old = self.tiles.get(cell, (old, None))[0]
         if old == new:
             self.tiles.pop(cell, None)
@@ -30,6 +34,7 @@ class Edit:
             self.tiles[cell] = (old, new)
 
     def record_collision(self, cell: Cell, old: bool, new: bool) -> None:
+        """Records the first old collision state and latest new state for one cell."""
         old = self.collisions.get(cell, (old, None))[0]
         if old == new:
             self.collisions.pop(cell, None)
@@ -37,6 +42,7 @@ class Edit:
             self.collisions[cell] = (old, new)
 
     def record_entity(self, cell: Cell, old: Optional[str], new: Optional[str]) -> None:
+        """Records the first old entity and latest new entity for one cell."""
         old = self.entities.get(cell, (old, None))[0]
         if old == new:
             self.entities.pop(cell, None)
@@ -87,11 +93,13 @@ class MapEditorModel:
 
     @classmethod
     def from_file(cls, path: Path) -> "MapEditorModel":
+        """Loads map geometry, cells, entities and level settings from JSON."""
         columns, rows, tiles, collidables = Map.read(path)
         level = LevelSettings(Map.read_level(path))
         return cls(columns, rows, tiles, collidables, Map.read_entities(path), level)
 
     def save(self, path: Path, sheet: Optional[Path] = None) -> None:
+        """Writes the map JSON and marks the current state as saved."""
         self.end_edit()
         Map.write(
             path, self.columns, self.rows, self.tiles, self.collidables, sheet, self.entities, self.level.data
@@ -124,10 +132,12 @@ class MapEditorModel:
                 yield col, row
 
     def begin_edit(self) -> None:
+        """Starts collecting cell changes for one undo step."""
         if self._current is None:
             self._current = Edit()
 
     def end_edit(self) -> None:
+        """Commits the current edit to history and clears redo entries."""
         edit, self._current = self._current, None
         if edit is None or edit.is_empty():
             return
@@ -147,6 +157,7 @@ class MapEditorModel:
                 self.end_edit()
 
     def set_tile(self, cell: Cell, tile: Optional[Tile]) -> bool:
+        """Places or removes a tile and returns whether the map changed."""
         if not self.contains(cell):
             return False
         old = self.tiles.get(cell)
@@ -158,6 +169,7 @@ class MapEditorModel:
         return True
 
     def set_collidable(self, cell: Cell, value: bool) -> bool:
+        """Sets the solid flag of a cell and returns whether it changed."""
         if not self.contains(cell):
             return False
         old = cell in self.collidables
@@ -185,6 +197,7 @@ class MapEditorModel:
         return True
 
     def undo(self) -> bool:
+        """Reverts the latest edit and makes it redoable."""
         self.end_edit()
         if not self._undo:
             return False
@@ -199,6 +212,7 @@ class MapEditorModel:
         return True
 
     def redo(self) -> bool:
+        """Reapplies the latest undone edit."""
         self.end_edit()
         if not self._redo:
             return False
@@ -236,6 +250,7 @@ class MapEditorModel:
         return left, top, right, bottom
 
     def copy(self, region: Region, sheet_path: Optional[Path] = None) -> Clipboard:
+        """Copies a clipped region into clipboard-local coordinates."""
         left, top, right, bottom = region
         cells = list(self.cells_between((left, top), (right, bottom)))
         return Clipboard(
@@ -296,6 +311,7 @@ class MapEditorModel:
         return skipped
 
     def undeclared_tiles(self, tileset: Tileset) -> Set[SheetCell]:
+        """Tile sheet cells used by the map but unavailable in ``tileset``."""
         return {
             (tile.x, tile.y)
             for tile in self.tiles.values()

@@ -20,6 +20,8 @@ EDITOR_KEY_REPEAT = (250, 35)
 
 @dataclass(frozen=True)
 class EditorResult:
+    """What the player asked for when leaving the editor."""
+
     # The window was closed: the whole game quits.
     quit: bool = False
     # Map to play (already saved), None when the editor was only left.
@@ -32,6 +34,12 @@ class EditorResult:
 
 
 class EditorSession:
+    """The map editor, run inside the game window.
+
+    ``run`` shows the launcher (or the paused map, after a test with F5) and
+    returns an ``EditorResult``; the clipboard is kept between two runs.
+    """
+
     def __init__(self):
         self.application = None
         self.clipboard = None

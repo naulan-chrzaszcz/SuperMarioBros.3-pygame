@@ -1,3 +1,5 @@
+"""World card shown before the world map ("WORLD 1", lives, Mario walking)."""
+
 from __future__ import annotations
 
 import math
