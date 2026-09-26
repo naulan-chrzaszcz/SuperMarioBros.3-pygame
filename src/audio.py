@@ -78,3 +78,19 @@ class Audio:
         self.music = None
         if self.enabled:
             pygame.mixer.music.stop()
+
+    def apply(self, settings: AudioSettings) -> None:
+        """New audio settings, used right away (the SETTINGS screen)."""
+        music = self.music
+        self.settings = settings
+        for sound in self._loaded.values():
+            if sound is not None:
+                sound.set_volume(settings.sound_volume)
+        if not settings.enabled:
+            self.stop_music()
+            self.music = music
+        elif music is not None:
+            self.music = None
+            self.play_music(music)
+        if self.enabled:
+            pygame.mixer.music.set_volume(settings.music_volume)

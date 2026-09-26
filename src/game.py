@@ -4,6 +4,7 @@ builds the scenes and runs the main loop (and the map editor in the same window)
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Iterable, Optional, Tuple
 
 import pygame
@@ -11,7 +12,7 @@ from pygame import Rect, Surface
 
 from .animation import SpriteBank
 from .audio import Audio
-from .constants import BLACK, MAX_FRAME_TIME, TITLE
+from .constants import BLACK, CONFIG_FILE, MAX_FRAME_TIME, TITLE
 from .editor_bridge import EditorResult, EditorSession
 from .entities.catalog import entity_types
 from .entities.spawner import validate_entity_types
@@ -34,6 +35,7 @@ from .scenes import (
     LevelsScene,
     MainMenuScene,
     PlatformLevelScene,
+    SettingsScene,
 )
 
 
@@ -80,8 +82,12 @@ class Game:
         levels: Optional[LevelCatalog] = None,
         editor: Optional[EditorSession] = None,
         rules: Optional[Rules] = None,
+        config_path: Optional[Path] = None,
     ):
-        self.config = config or Config.load()
+        # The settings are written back only when they come from a file.
+        # The settings are written back only when they come from a file.
+        self.config_path = config_path or (None if config is not None else CONFIG_FILE)
+        self.config = config or Config.load(self.config_path)
         mixer = self.config.mixer
         pygame.mixer.pre_init(mixer.frequency, mixer.size, mixer.channels, mixer.buffer)
         pygame.init()
@@ -114,6 +120,8 @@ class Game:
             audio=Audio(ressources.sounds, ressources.musics, self.config.audio),
             open_editor=self.open_editor,
             play_level=self.play_level,
+            apply_config=self.apply_config,
+            save_config=self.save_config,
         )
         self.editor = editor or EditorSession()
         self._editor_requested = False
@@ -125,6 +133,7 @@ class Game:
         self.scenes.register("animation_levels", AnimationLevelsScene(self.context))
         self.scenes.register("levels", LevelsScene(self.context))
         self.scenes.register("custom_levels", CustomLevelsScene(self.context))
+        self.scenes.register(SettingsScene.NAME, SettingsScene(self.context))
         self.level_scene = PlatformLevelScene(self.context)
         self.scenes.register(PlatformLevelScene.NAME, self.level_scene)
         self.scenes.set_default_scene("main_menu" if self.config.skip_intro else "intro")
@@ -154,6 +163,18 @@ class Game:
                 return
         self.scenes.draw()
         self.present()
+
+    def apply_config(self, config: Config) -> None:
+        """New settings, used right away (see the SETTINGS screen)."""
+        self.config = config
+        self.context.config = config
+        self.context.audio.apply(config.audio)
+        pygame.mouse.set_visible(config.mouse.visible)
+
+    def save_config(self) -> None:
+        """Writes the settings back to ``config.yaml``, when it has one."""
+        if self.config_path is not None:
+            self.config.write(self.config_path)
 
     def open_editor(self) -> None:
         """Asks for the map editor; it opens once the current frame is updated."""

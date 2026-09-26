@@ -51,6 +51,9 @@ class GameContext:
     open_editor: Callable[[], None] = field(default=_unavailable)
     # play_level(level, on_finish): plays a map, then calls on_finish(cleared).
     play_level: PlayLevel = field(default=_unavailable)
+    # Uses new settings right away, then writes them to config.yaml.
+    apply_config: Callable[[Config], None] = field(default=_unavailable)
+    save_config: Callable[[], None] = field(default=_unavailable)
 
     def __post_init__(self) -> None:
         if self.sprites is None:

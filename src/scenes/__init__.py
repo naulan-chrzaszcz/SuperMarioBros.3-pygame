@@ -9,6 +9,7 @@ from .levels_scene import LevelsScene
 from .main_menu_scene import MainMenuScene
 from .platform_level_scene import PlatformLevelScene
 from .scene import GameContext, Scene
+from .settings_scene import SettingsScene
 
 __all__ = [
     "AnimationLevelsScene",
@@ -19,4 +20,5 @@ __all__ = [
     "MainMenuScene",
     "PlatformLevelScene",
     "Scene",
+    "SettingsScene",
 ]

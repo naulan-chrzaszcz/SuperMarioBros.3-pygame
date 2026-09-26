@@ -117,6 +117,15 @@ class ConfigTest(unittest.TestCase):
         self.assertIsNone(config.controls.action_of("a"))
         self.assertEqual(config.controls.action_of("Up"), Action.UP)
 
+    def test_written_settings_are_read_back(self):
+        config = Config.from_dict(
+            {"skipIntro": True, "audio": {"musicVolume": 0.2}, "controls": {"confirm": "x"}}
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "config.yaml"
+            config.write(path)
+            self.assertEqual(Config.load(path), config)
+
     def test_unknown_settings_are_reported(self):
         for data in ({"skipIntr": True}, {"screen": {"widht": 3}},
                      {"display": {"width": 0}}, {"controls": {"jump": "x"}}):
@@ -726,6 +735,51 @@ class GameTest(unittest.TestCase):
         self.run_frames(0.1, [key_event(pygame.K_a)])
         self.run_frames(4.5)
         self.assertEqual(world.walker.cell, world.world.find("level1").cell, "position kept")
+
+    def open_settings(self):
+        """From the title screen to the SETTINGS scene."""
+        self.run_frames(0.1, [key_event(pygame.K_a)])
+        for _ in range(3):
+            self.run_frames(0.1, [key_event(pygame.K_s)])
+        self.run_frames(0.1, [key_event(pygame.K_a)])
+        self.assertEqual(self.game.scenes.current_name, "settings")
+        return self.game.scenes.current
+
+    def test_settings_change_the_game_and_are_saved(self):
+        path = Path(self.directory.name) / "config.yaml"
+        self.game.config_path = path
+        settings = self.open_settings()
+        # AUDIO off, then one row down to lower the music volume.
+        self.run_frames(0.1, [key_event(pygame.K_d)])
+        self.assertFalse(self.game.config.audio.enabled)
+        self.assertFalse(self.game.context.audio.enabled)
+        self.run_frames(0.1, [key_event(pygame.K_s)])
+        self.run_frames(0.1, [key_event(pygame.K_q)])
+        self.assertAlmostEqual(self.game.config.audio.music_volume, 0.4)
+        self.assertIs(self.game.context.config, self.game.config, "the scenes see the new settings")
+        self.assertEqual(settings.rows()[1], ("MUSIC VOLUME", "40"))
+
+        self.run_frames(0.1, [key_event(pygame.K_ESCAPE)])
+        self.assertEqual(self.game.scenes.current_name, "main_menu")
+        self.assertEqual(Config.load(path), self.game.config, "the settings are written")
+
+    def test_settings_rebind_a_key_and_reset(self):
+        settings = self.open_settings()
+        for _ in range(settings.CONTROLS_ROW):
+            self.run_frames(0.1, [key_event(pygame.K_s)])
+        self.run_frames(0.1, [key_event(pygame.K_a)])
+        self.assertTrue(settings.controls)
+        self.run_frames(0.1, [key_event(pygame.K_a)])
+        self.assertTrue(settings.waiting)
+        self.run_frames(0.1, [key_event(pygame.K_k)])
+        self.assertEqual(self.game.config.controls.bindings[Action.UP], ("k",))
+        self.assertEqual(self.game.config.controls.action_of("k"), Action.UP)
+        # Escape leaves the controls, then the defaults are put back.
+        self.run_frames(0.1, [key_event(pygame.K_ESCAPE)])
+        self.assertFalse(settings.controls)
+        self.run_frames(0.1, [key_event(pygame.K_s)])
+        self.run_frames(0.1, [key_event(pygame.K_a)])
+        self.assertEqual(self.game.config, Config())
 
     def test_rendering_is_letterboxed(self):
         self.run_frames(0.1)

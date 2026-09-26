@@ -1,4 +1,4 @@
-"""Title screen and its menu: play, custom levels, map editor, quit."""
+"""Title screen and its menu: play, custom levels, map editor, settings, quit."""
 
 from __future__ import annotations
 
@@ -27,7 +27,7 @@ class MainMenuScene(Scene):
     confirm opens the choice and going back quits.
     """
 
-    MENU = ("START GAME", "CUSTOM LEVELS", "MAP EDITOR", "QUIT")
+    MENU = ("START GAME", "CUSTOM LEVELS", "MAP EDITOR", "SETTINGS", "QUIT")
     MENU_TOP = 150
     MENU_SPACING = 12
     MUSIC = "title"
@@ -120,6 +120,8 @@ class MainMenuScene(Scene):
             self.manager.change_scene("custom_levels")
         elif item == "MAP EDITOR":
             self.context.open_editor()
+        elif item == "SETTINGS":
+            self.manager.change_scene("settings")
         elif item == "QUIT":
             self.manager.quit()
 

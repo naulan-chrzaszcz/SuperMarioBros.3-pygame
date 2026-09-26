@@ -116,8 +116,9 @@ scene that plays any map; `play_level(level, on_finish)` starts it, and
    coin or wakes a hidden entity, `brick` breaks for big Mario.
 2. `_touch_tiles` handles the cells Mario overlaps: `coin`, `hurt`, `goal`.
 3. Each entity runs `Entity.update`, a template method: knocked, rising out of
-   a block, or `behave()` (the subclass). The level then checks the contacts
-   and calls `touch_mario(level, stomp)`.
+   a block, or `behave()`, which runs its `movement` effect. The level then
+   checks the contacts and calls `touch_mario(level, stomp)`, which runs its
+   `onStomp` or its `onTouch` effect.
 4. Then the timer, the hurry music and the camera.
 
 Entities never see the scene: they talk to it through the small `Level`
@@ -126,23 +127,34 @@ protocol (`mario`, `is_solid`, `hurt_mario`, `stomped`, `score`,
 
 ```mermaid
 classDiagram
-    Entity <|-- Goomba
     Entity <|-- Koopa
-    Entity <|-- Mushroom
     Entity : kind EntityType
     Entity : body Body
     Entity : animations
     Entity : update(dt, level)
-    Entity : behave(dt, level)
-    Entity : touch_mario(level, stomp)
-    Entity : knock(level, direction)
+    Entity : behave(dt, level) -> move_*
+    Entity : touch_mario(level, stomp) -> react_*
+    Entity : knock(level, direction) -> knock_*
+    Entity : activate(level) -> wake_*
     Entity : image()
+    class Koopa {
+        move_koopa(dt, level)
+        react_shell(level, stomp)
+    }
     class Spawner {
         ENTITY_CLASSES behaviour -> class
         spawn_entities(map entities)
     }
     Spawner ..> Entity : builds from entities.yaml
 ```
+
+The behaviour itself is data: a setting names the effect to run (`movement`,
+`onStomp`, `onTouch`, `onKnock`, `onWake`, `collect`) and `Entity` looks for
+the method of that name (`move_walk`, `react_squash`, `knock_hop`...). An
+entity whose `behaviour` is `generic` therefore needs no Python: the goomba
+and the mushrooms are only `entities.yaml`. A class is added for a real state
+machine only, like the shell of the `koopa`. `validate_entity_types` checks
+every name when the game starts, with the list of the effects of the class.
 
 `red_koopa` shows why this matters: it is a `koopa` behaviour with a
 `palette` swap and `turnAtLedges: true`, written only in `entities.yaml`.
