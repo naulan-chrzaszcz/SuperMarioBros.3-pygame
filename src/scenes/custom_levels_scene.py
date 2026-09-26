@@ -90,7 +90,7 @@ class CustomLevelsScene(Scene):
                 text, detail = "OPEN THE MAP EDITOR", ""
             else:
                 level = self.levels[index]
-                text = level.name.replace("_", " ")
+                text = (level.title or level.name).replace("_", " ")
                 detail = f"{level.size[0]}X{level.size[1]}" if level.size else ""
                 if not level.playable:
                     detail = "ERROR"

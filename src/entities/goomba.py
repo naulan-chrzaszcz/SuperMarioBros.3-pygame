@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pygame import Surface
 
-from .entity import Entity, Level, Sprites
+from .entity import Entity, Level
 
 
 class Goomba(Entity):
@@ -11,16 +11,13 @@ class Goomba(Entity):
     Stomping it squashes it; touching it from the side hurts Mario.
     """
 
-    TYPE = "goomba"
+    ANIMATIONS = ("walk", "squashed")
     ENEMY = True
     SPEED = 32.0
-    STEP_DURATION = 0.15  # the walk is the frame flipped back and forth
     SQUASHED_DURATION = 0.5
 
-    def __init__(self, sprites: Sprites, column: int, row: int):
-        super().__init__(sprites, column, row)
-        self.walking = sprites.frame("goomba", (0, 0, 16, 16))
-        self.flat = sprites.frame("goomba", (16, 0, 16, 16))[-1]
+    def __init__(self, *args):
+        super().__init__(*args)
         self.squashed = False
         self.squashed_time = 0.0
 
@@ -28,10 +25,7 @@ class Goomba(Entity):
     def alive(self) -> bool:
         return super().alive and not self.squashed
 
-    def update(self, dt: float, level: Level) -> None:
-        super().update(dt, level)
-        if self.knocked:
-            return
+    def behave(self, dt: float, level: Level) -> None:
         if self.squashed:
             self.squashed_time += dt
             self.removed = self.squashed_time >= self.SQUASHED_DURATION
@@ -48,5 +42,5 @@ class Goomba(Entity):
 
     def image(self) -> Surface:
         if self.squashed:
-            return self.flat
-        return self.walking[1 if int(self.time / self.STEP_DURATION) % 2 else -1]
+            return self.animations["squashed"].image()
+        return self.animations["walk"].image(self.time)

@@ -22,6 +22,8 @@ class Tileset:
     names: Dict[SheetCell, str] = field(default_factory=dict)
     metadata_path: Optional[Path] = None
     sheet_path: Optional[Path] = None
+    # What some tiles do in a level (coin, question_block, brick, hurt, goal).
+    behaviours: Dict[SheetCell, str] = field(default_factory=dict)
 
     @property
     def columns(self) -> int:
@@ -48,6 +50,9 @@ class Tileset:
     def name_of(self, x: int, y: int) -> Optional[str]:
         return self.names.get((x, y))
 
+    def behaviour_of(self, x: int, y: int) -> Optional[str]:
+        return self.behaviours.get((x, y))
+
     def is_declared(self, x: int, y: int) -> bool:
         return self.contains(x, y) and (not self.has_metadata or (x, y) in self.names)
 
@@ -66,7 +71,9 @@ class Tileset:
         image = pygame.image.load(sheet_path)
         if color_key is not None:
             image.set_colorkey(color_key)
-        return cls(image, cls.read_names(metadata_path) if metadata_path else {}, metadata_path, sheet_path)
+        names = cls.read_names(metadata_path) if metadata_path else {}
+        behaviours = cls.read_behaviours(metadata_path) if metadata_path else {}
+        return cls(image, names, metadata_path, sheet_path, behaviours)
 
     @classmethod
     def settings_of(
@@ -109,4 +116,14 @@ class Tileset:
         return {
             (int(tile["coordinate"]["x"]), int(tile["coordinate"]["y"])): str(tile["name"])
             for tile in metadata.get("tiles", [])
+        }
+
+    @staticmethod
+    def read_behaviours(metadata_path: Path) -> Dict[SheetCell, str]:
+        with metadata_path.open(encoding="utf-8") as file:
+            metadata = yaml.safe_load(file) or {}
+        return {
+            (int(tile["coordinate"]["x"]), int(tile["coordinate"]["y"])): str(tile["behaviour"])
+            for tile in metadata.get("tiles", [])
+            if tile.get("behaviour")
         }

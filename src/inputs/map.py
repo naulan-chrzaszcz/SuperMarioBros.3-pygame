@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, Iterator, List, Optional, Tuple
+from typing import Any, Dict, Iterator, List, Mapping, Optional, Tuple
 
 from pygame import Surface, Vector2, transform
 from pygame.sprite import LayeredUpdates
 
 from ..sprite_animation import SpriteAnimation
 from ..tile import Tile
+from .sprites import Color, parse_color
 
 Cell = Tuple[int, int]
 
@@ -96,6 +97,78 @@ def parse_entities(entries, columns: int, rows: int) -> List[EntitySpawn]:
     return sorted(spawns.values(), key=lambda spawn: (spawn.row, spawn.column))
 
 
+@dataclass(frozen=True)
+class TileBehaviour:
+    """What a named tile does in a platform level, from the ``behaviour`` (and
+    ``becomes``) keys of the tileset metadata:
+
+    - ``coin``: collected when Mario touches it;
+    - ``question_block``: gives a coin (or the item hidden in it) when hit from
+      below, then is drawn with the tile ``becomes``;
+    - ``brick``: big Mario breaks it from below; ``becomes`` is ignored;
+    - ``hurt``: hurts Mario when he touches it (spikes, lava...);
+    - ``goal``: clears the course when Mario touches it.
+    """
+
+    kind: str
+    becomes: Optional[str] = None
+
+    KINDS = ("coin", "question_block", "brick", "hurt", "goal")
+    # Tilesets without any behaviour (made before they existed) use these name
+    # prefixes, as the first versions of the game did.
+    GUESSES = (("coin", "coin", None), ("mystery_block", "question_block", "block"), ("brick", "brick", None))
+
+    @classmethod
+    def parse(cls, kind: Any, becomes: Any = None, where: str = "tile") -> "TileBehaviour":
+        if kind not in cls.KINDS:
+            raise ValueError(f"{where}: unknown behaviour {kind!r} (known: {', '.join(cls.KINDS)})")
+        if becomes is not None and not isinstance(becomes, str):
+            raise ValueError(f"{where}: 'becomes' must be a tile name")
+        return cls(kind, becomes)
+
+    @classmethod
+    def guess(cls, name: str) -> Optional["TileBehaviour"]:
+        for prefix, kind, becomes in cls.GUESSES:
+            if name.startswith(prefix):
+                return cls(kind, becomes)
+        return None
+
+
+@dataclass(frozen=True)
+class LevelSettings:
+    """The ``"level"`` block of a map file, set in the map editor. A missing
+    value uses the default of ``res/rules.yaml``."""
+
+    name: Optional[str] = None
+    time_limit: Optional[int] = None
+    sky: Optional[Color] = None
+    music: Optional[str] = None
+
+    KEYS = {"name": "name", "timeLimit": "time_limit", "sky": "sky", "music": "music"}
+
+    @classmethod
+    def parse(cls, data: Any) -> "LevelSettings":
+        if data is None:
+            return cls()
+        if not isinstance(data, Mapping):
+            raise ValueError("The level settings of a map must be a mapping")
+        unknown = set(data) - set(cls.KEYS)
+        if unknown:
+            raise ValueError(f"Unknown level setting(s): {', '.join(sorted(unknown))}")
+        name, time_limit, sky, music = (data.get(key) for key in cls.KEYS)
+        if name is not None and not isinstance(name, str):
+            raise ValueError("The level name must be a text")
+        if time_limit is not None and (
+            isinstance(time_limit, bool) or not isinstance(time_limit, int) or time_limit <= 0
+        ):
+            raise ValueError("The time limit of a level must be a positive whole number")
+        if sky is not None:
+            sky = parse_color(sky, "The sky color")
+        if music is not None and not isinstance(music, str):
+            raise ValueError("The music of a level must be a music id of ressources.yaml")
+        return cls(name or None, time_limit, sky, music or None)
+
+
 class Map:
     """A level made with the map editor: tile sprites, a collision grid and the
     entities to spawn."""
@@ -107,7 +180,13 @@ class Map:
 
     ANIMATION_SPEED = 1.5  # frames per second
 
-    def __init__(self, sheet: Surface, sheet_metadata: Dict[str, str], map_data: dict):
+    def __init__(
+        self,
+        sheet: Surface,
+        sheet_metadata: Dict[str, str],
+        map_data: dict,
+        behaviours: Optional[Mapping[str, TileBehaviour]] = None,
+    ):
         tiles = map_data.get("tiles") or []
         collidables = map_data.get("collidables") or []
         self.rows = len(tiles)
@@ -121,6 +200,7 @@ class Map:
         self.height = self.rows * Tile.HEIGHT
         self.collidables: List[List[bool]] = [[bool(value) for value in row] for row in collidables]
         self.entities = parse_entities(map_data.get("entities"), self.columns, self.rows)
+        self.settings = LevelSettings.parse(map_data.get("level"))
         self.sprites = LayeredUpdates()
         self.sheet = sheet
         self._by_name: Dict[str, List[Tile]] = {}
@@ -130,6 +210,14 @@ class Map:
         for coordinate, name in sheet_metadata.items():
             x, y = coordinate.split(",")
             self._coordinates.setdefault(name, (int(x), int(y)))
+        if behaviours:
+            self.behaviours: Dict[str, TileBehaviour] = dict(behaviours)
+        else:
+            guesses = {name: TileBehaviour.guess(name) for name in self._coordinates}
+            self.behaviours = {name: guess for name, guess in guesses.items() if guess is not None}
+        for name, behaviour in self.behaviours.items():
+            if behaviour.becomes is not None and behaviour.becomes not in self._coordinates:
+                raise ValueError(f"Tile {name!r} becomes {behaviour.becomes!r}, which the tileset does not declare")
 
         sheet_columns = sheet.get_width() // Tile.WIDTH
         sheet_rows = sheet.get_height() // Tile.HEIGHT
@@ -189,6 +277,14 @@ class Map:
 
     def tile_at(self, column: int, row: int) -> Optional[Tile]:
         return self._by_cell.get((column, row))
+
+    def behaviour_of(self, tile: Optional[Tile]) -> Optional[TileBehaviour]:
+        return None if tile is None else self.behaviours.get(tile.id)
+
+    def names_with(self, kind: str) -> List[str]:
+        """Tile names of the tileset with the behaviour ``kind``, in the order
+        of the metadata."""
+        return [name for name in self._coordinates if getattr(self.behaviours.get(name), "kind", None) == kind]
 
     def has_tile_named(self, name: str) -> bool:
         """True when the tileset declares a tile called ``name``."""

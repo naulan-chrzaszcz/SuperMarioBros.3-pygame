@@ -665,3 +665,67 @@ class EntityEditorTest(unittest.TestCase):
         self.assertEqual(app.model.entities, {})
         app.step([Event(pygame.KEYDOWN, key=pygame.K_e, mod=0, unicode="")], 0.016)
         self.assertIs(app.state.mode, Mode.TILES)
+
+
+class LevelSettingsEditorTest(unittest.TestCase):
+    def setUp(self):
+        pygame.init()
+        self.directory = tempfile.TemporaryDirectory()
+        self.path = Path(self.directory.name) / "map.json"
+
+    def tearDown(self):
+        self.directory.cleanup()
+
+    def test_settings_are_kept_and_read_by_the_game(self):
+        Map.write(self.path, 2, 1, {}, set(), level={"name": "Hills", "music": "title"})
+        model = MapEditorModel.from_file(self.path)
+        self.assertFalse(model.dirty)
+        level = model.level
+        level.change_time(-1)
+        self.assertIsNone(level.time_limit, "no time limit under the default")
+        level.change_time(1)
+        level.change_time(1)
+        self.assertEqual(level.time_limit, 350)
+        level.cycle_sky()
+        self.assertEqual(level.sky_name, "Day")
+        self.assertTrue(model.dirty)
+        model.save(self.path)
+        self.assertFalse(model.dirty)
+        data = json.loads(self.path.read_text())
+        self.assertEqual(data["level"], {"name": "Hills", "music": "title", "timeLimit": 350,
+                                         "sky": [160, 220, 252]})
+        settings = GameMap(pygame.Surface((16, 16)), {}, data).settings
+        self.assertEqual((settings.name, settings.time_limit, settings.music), ("Hills", 350, "title"))
+
+    def test_going_back_to_the_saved_settings_is_not_a_change(self):
+        Map.write(self.path, 2, 1, {}, set())
+        model = MapEditorModel.from_file(self.path)
+        for _ in range(4):
+            model.level.cycle_sky()
+            self.assertTrue(model.dirty)
+        model.level.cycle_sky()
+        self.assertEqual(model.level.data, {})
+        self.assertFalse(model.dirty)
+
+    def test_music_cycles_through_the_musics_of_the_game(self):
+        from map_editor.src.models import LevelSettings
+
+        level = LevelSettings(musics=("a", "b"))
+        choices = []
+        for _ in range(3):
+            level.cycle_music()
+            choices.append(level.music)
+        self.assertEqual(choices, ["a", "b", None])
+        self.assertIn("overworld", LevelSettings().musics)
+
+    def test_a_map_without_settings_has_no_level_key(self):
+        MapEditorModel(2, 1).save(self.path)
+        self.assertNotIn("level", json.loads(self.path.read_text()))
+
+    def test_tile_behaviours_and_entity_frames(self):
+        tileset = Tileset.load(LEVEL_SHEET)
+        self.assertIn("coin", tileset.behaviours.values())
+        state = EditorState(tileset)
+        red_koopa = state.entity_type("red_koopa")
+        self.assertEqual(red_koopa.frame, (0, 0, 16, 27), "first frame of the first animation")
+        self.assertTrue(red_koopa.palette)

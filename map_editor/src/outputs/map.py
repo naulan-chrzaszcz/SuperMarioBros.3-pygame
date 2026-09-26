@@ -144,10 +144,12 @@ class Map:
         collidables: Iterable[Cell],
         sheet: Optional[Path] = None,
         entities: Optional[Dict[Cell, str]] = None,
+        level: Optional[Dict] = None,
     ) -> None:
         """Writes the map. ``sheet`` is the tileset the map is drawn with: the game
         uses it to know which image the tile coordinates refer to. ``entities``
-        are the enemies and items placed on it (see ``res/entities.yaml``)."""
+        are the enemies and items placed on it (see ``res/entities.yaml``) and
+        ``level`` its settings (time limit, sky, music)."""
         if columns <= 0 or rows <= 0:
             raise ValueError("Map dimensions must be positive")
 
@@ -170,6 +172,8 @@ class Map:
                 {"type": kind, "x": col, "y": row}
                 for (col, row), kind in sorted(entities.items(), key=lambda item: (item[0][1], item[0][0]))
             ]
+        if level:
+            map_data["level"] = dict(level)
 
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -177,6 +181,18 @@ class Map:
         with temporary_path.open("w", encoding="utf-8") as file:
             json.dump(map_data, file, separators=(",", ":"))
         temporary_path.replace(path)
+
+    @classmethod
+    def read_level(cls, path: Path) -> Dict:
+        """The ``"level"`` block of a map file (empty when it has none)."""
+        with Path(path).open(encoding="utf-8") as file:
+            map_data = json.load(file)
+        level = map_data.get("level") if isinstance(map_data, dict) else None
+        if level is None:
+            return {}
+        if not isinstance(level, dict):
+            raise ValueError("Map 'level' must be a mapping")
+        return level
 
     @classmethod
     def read_sheet(cls, path: Path) -> Optional[Path]:
