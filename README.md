@@ -81,6 +81,13 @@ by the game and the editor:
 | Super Mushroom | Makes Mario big (big Mario breaks bricks and survives one hit)   |
 | 1-Up Mushroom  | One more life                                                     |
 
+What an entity *does* is data too: its `settings` name the effects it uses
+(`movement`, `onStomp`, `onTouch`, `onKnock`, `onWake`, `collect`), so a goomba
+or a mushroom needs no Python at all (`behaviour: generic`). Only a real state
+machine, like the shell of the koopa, has a class. The header of
+`res/entities.yaml` lists every effect, and an unknown one is reported with the
+known names when the game starts.
+
 A mushroom placed on a solid block (a `?` block) is hidden inside it and comes
 out when the block is hit from below. Enemies are only woken up when they get
 near the screen. Stomping several enemies without landing gives more and more
@@ -100,11 +107,11 @@ starts, with the list of the known names.
 |-----------------------|--------------------------------------------------------------------------|
 | `res/rules.yaml`      | Gameplay: Mario's physics (`player`), scores, durations, time limit, sky and music of the levels (`level`), world map (`worldMap`) |
 | `res/sprites.yaml`    | Named animations cut in the images: Mario, world-map Mario, HUD layout, title screen |
-| `res/entities.yaml`   | Entities: behaviour, animations, palette swaps, `settings` (speed...)    |
+| `res/entities.yaml`   | Entities: behaviour, animations, palette swaps, `settings` (speed, but also what a stomp or a touch does) |
 | `res/sheets/*.yaml`   | Tile names and their `behaviour` (`coin`, `question_block`, `brick`, `hurt`, `goal`) |
 | `ressources.yaml`     | Image, map, sound and music files, by id                                 |
 | `res/maps/*.json`     | Levels made with the map editor, with their entities and `level` settings |
-| `config.yaml`         | Window, controls, audio volume                                           |
+| `config.yaml`         | Window, controls, audio volume (the `SETTINGS` screen writes it)         |
 
 Each section of `rules.yaml` and the `settings` of an entity set the
 UPPER_CASE constants of a class, written in camelCase: `walkSpeed: 120` in
@@ -131,6 +138,12 @@ one is reported when the game starts.
 | `audio`                 | `enabled`, `musicVolume` and `soundVolume` (0 to 1)       |
 
 The game image is always scaled without distortion (black bars fill the rest).
+
+`SETTINGS`, on the title screen, changes them without opening the file: audio
+and volumes, sharp pixels, skip intro, mouse cursor, framerate and the keys of
+each action (`CONTROLS`, then confirm a line and press the key to use).
+Leaving the screen writes `config.yaml`; `DEFAULT SETTINGS` puts everything
+back.
 
 ## Files
 
@@ -173,9 +186,9 @@ src/
                            rules.yaml, sprites.yaml; tuning.py applies the
                            camelCase settings to the class constants
   scenes/                  intro, title screen, world card, world map,
-                           custom level list, platform level
-  entities/                entities.yaml catalog, Entity base class, goomba,
-                           koopa, mushrooms, spawner; player.py (world map)
+                           custom level list, settings, platform level
+  entities/                entities.yaml catalog, data-driven Entity base
+                           class, koopa, spawner; player.py (world map)
 tests/                     python -m unittest discover -s tests
 docs/ARCHITECTURE.md       how it all works at run time, with diagrams
 ```
@@ -184,8 +197,8 @@ docs/ARCHITECTURE.md       how it all works at run time, with diagrams
 together at run time (main loop, scenes, entities, editor), with diagrams.
 
 Scenes receive a `GameContext` (config, ressources, save, font, HUD, maps,
-display surface, level catalog, rules, sprite bank, audio, `open_editor` and
-`play_level`) instead of reaching global singletons, and react to
+display surface, level catalog, rules, sprite bank, audio, `open_editor`,
+`play_level`, `apply_config` and `save_config`) instead of reaching global singletons, and react to
 *actions* (`Action.CONFIRM`...) rather than raw keys.
 
 ### Adding a level

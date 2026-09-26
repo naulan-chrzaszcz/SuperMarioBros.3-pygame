@@ -2,7 +2,8 @@
 
 ``res/entities.yaml`` names the behaviour of each type: several types can
 share a behaviour with other pictures and settings (the green and the red
-koopa are both ``koopa``).
+koopa are both ``koopa``). ``generic`` is the behaviour of an entity that
+needs no Python at all: its settings choose what it does.
 """
 
 from __future__ import annotations
@@ -14,18 +15,14 @@ from ..inputs.map import EntitySpawn
 from ..inputs.tuning import check
 from .catalog import EntityType, entity_types
 from .entity import Entity
-from .goomba import Goomba
 from .koopa import Koopa
-from .mushroom import Mushroom, OneUp
 
 # Behaviour of Mario's starting point: a marker, not an entity.
 START = "start"
 
 ENTITY_CLASSES: Dict[str, Type[Entity]] = {
-    "goomba": Goomba,
+    "generic": Entity,
     "koopa": Koopa,
-    "mushroom": Mushroom,
-    "one_up": OneUp,
 }
 
 
@@ -40,8 +37,9 @@ def validate_entity_types(types: Mapping[str, EntityType]) -> None:
         if cls is None:
             known = ", ".join([START, *ENTITY_CLASSES])
             raise ValueError(f"{where}: unknown behaviour {kind.behaviour!r} (known: {known})")
-        check(cls, kind.settings, where)
-        missing = [name for name in cls.ANIMATIONS if name not in kind.animations]
+        values = check(cls, kind.settings, where)
+        cls.check_effects(where, values)
+        missing = [name for name in cls.required_animations(values) if name not in kind.animations]
         if missing:
             raise ValueError(f"{where} needs the animation(s) {', '.join(missing)}")
 

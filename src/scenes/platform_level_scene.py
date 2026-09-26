@@ -362,8 +362,8 @@ class PlatformLevelScene(Scene):
         for first, second in combinations(enemies, 2):
             if not (first.alive and second.alive) or not first.rect.colliderect(second.rect):
                 continue
-            first_shell = getattr(first, "kills_enemies", False)
-            second_shell = getattr(second, "kills_enemies", False)
+            first_shell = first.kills_enemies
+            second_shell = second.kills_enemies
             if first_shell:
                 second.knock(self, first.direction)
             if second_shell:

@@ -111,6 +111,11 @@ def _camel_to_snake(name: str) -> str:
     return "".join(f"_{char.lower()}" if char.isupper() else char for char in name)
 
 
+def _snake_to_camel(name: str) -> str:
+    first, *others = name.split("_")
+    return first + "".join(word.capitalize() for word in others)
+
+
 def _section(cls, data: Optional[Mapping[str, Any]]):
     """Builds a dataclass from a YAML section, keeping defaults for missing keys."""
     known = {item.name for item in fields(cls)}
@@ -173,3 +178,27 @@ class Config:
                 return cls.from_dict(yaml.safe_load(config_file))
             except ValueError as error:
                 raise ValueError(f"{path.name}: {error}") from None
+
+    def to_dict(self) -> Dict[str, Any]:
+        """The settings as ``config.yaml`` writes them (camelCase keys)."""
+        data: Dict[str, Any] = {
+            "framerateLimit": self.framerate_limit,
+            "skipIntro": self.skip_intro,
+        }
+        for name in ("mixer", "audio", "display", "screen", "mouse"):
+            section = getattr(self, name)
+            data[name] = {
+                _snake_to_camel(item.name): getattr(section, item.name) for item in fields(section)
+            }
+        data["controls"] = {
+            action.name.lower(): list(keys) for action, keys in self.controls.bindings.items()
+        }
+        return data
+
+    def write(self, path: Path = CONFIG_FILE) -> None:
+        """Writes the settings back to ``config.yaml`` (see the SETTINGS screen)."""
+        path = Path(path)
+        temporary = path.with_suffix(path.suffix + ".tmp")
+        with temporary.open("w", encoding="utf-8") as config_file:
+            yaml.safe_dump(self.to_dict(), config_file, sort_keys=False)
+        temporary.replace(path)

@@ -3,7 +3,8 @@
 # A map stores them in its "entities" list: {"type": <id>, "x": <column>, "y": <row>}.
 #
 #   behaviour:   Python class that moves it (src/entities/spawner.py,
-#                ENTITY_CLASSES), default is the id. Several ids can share a
+#                ENTITY_CLASSES), default is the id. "generic" needs no Python:
+#                its settings below say what it does. Several ids can share a
 #                behaviour with other pictures and settings (see red_koopa).
 #   image:       id of the sheet in ressources.yaml
 #   animations:  named pictures. Each one is a [x, y, width, height] frame, a
@@ -15,7 +16,18 @@
 #                the first animation
 #   flip:        draw the editor picture flipped
 #   palette:     [[from r, g, b], [to r, g, b]] color swaps applied to the sheet
-#   settings:    constants of the behaviour, in camelCase (speed: 40 sets SPEED)
+#   settings:    constants of the behaviour, in camelCase (speed: 40 sets SPEED).
+#                They also choose what it does, among the effects of its class:
+#                  movement: walk (default, at "speed") or still
+#                  onStomp / onTouch (Mario lands on it / walks into it):
+#                    hurt (default), squash, collect, nothing, shell (koopa)
+#                  collect:  what a collected entity gives: grow or life
+#                  onKnock (a shell or the block under it hits it):
+#                    flip (default, falls off the screen), hop or nothing
+#                  onWake:   where it looks when it starts: face_mario, left, right
+#                  animation: the animation it plays (default walk)
+#                  turns:    false to always draw it as in the sheet
+#                An unknown name is reported with the list of the known ones.
 #   unique:      a map holds at most one of them
 #   description: help shown in the editor
 entities:
@@ -29,11 +41,14 @@ entities:
 
   - id: goomba
     name: Goomba
+    behaviour: generic
     image: goomba
     animations:
       walk: {frames: [[0, 0, 16, 16]], period: 0.15, mirror: true}
       squashed: [16, 0, 16, 16]
     settings:
+      enemy: true
+      onStomp: squash
       speed: 32
       squashedDuration: 0.5
     description: Walks and falls off ledges. Stomp it!
@@ -66,19 +81,32 @@ entities:
 
   - id: mushroom
     name: Super Mushroom
+    behaviour: generic
     image: mushroom
-    animations:
+    animations: &item_idle
       idle: [0, 0, 16, 16]
-    settings:
+    settings: &item_settings
+      width: 16
+      height: 16
+      canHide: true
+      animation: idle
+      turns: false
       speed: 60
+      onWake: right
+      onStomp: collect
+      onTouch: collect
+      onKnock: hop
     description: Makes Mario big. Put it on a solid block to hide it inside.
 
   - id: one_up
     name: 1-Up Mushroom
+    behaviour: generic
     image: mushroom
-    animations:
-      idle: [0, 0, 16, 16]
+    animations: *item_idle
     palette:
       - [[248, 24, 16], [0, 168, 0]]
       - [[192, 0, 16], [0, 104, 0]]
+    settings:
+      <<: *item_settings
+      collect: life
     description: Gives a life. Put it on a solid block to hide it inside.

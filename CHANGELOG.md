@@ -7,6 +7,12 @@ Notable changes of the project. The format follows
 
 ### Added
 
+- `SETTINGS` on the title screen: audio and volumes, sharp pixels, skip intro,
+  mouse cursor, framerate and the keys of every action, applied right away and
+  written back to `config.yaml`.
+- Data-driven entity behaviours: the `settings` of `res/entities.yaml` choose
+  the effects of an entity (`movement`, `onStomp`, `onTouch`, `onKnock`,
+  `onWake`, `collect`), so an entity needs no Python (`behaviour: generic`).
 - A data-driven engine: `res/rules.yaml` (Mario's physics, scores, durations,
   time limit, sky, musics), `res/sprites.yaml` (animations of Mario, the HUD
   and the title screen), entity `behaviour`, `animations` and `settings` in
@@ -34,6 +40,8 @@ Notable changes of the project. The format follows
 
 ### Changed
 
+- The goomba and the mushrooms are pure data: their Python classes are gone and
+  only the shell state machine of the koopa remains a class.
 - Game engine refactor: scenes receive a `GameContext`, actions instead of raw
   keys, paths from the project root, validated settings, saves and maps.
 - Uniform code style, now checked by `pycodestyle` and `isort` (`setup.cfg`)

@@ -128,23 +128,44 @@ code).
 
 ### Adding an entity
 
-An entity that behaves like an existing one is only data: add it to
-`res/entities.yaml` with the `behaviour` of the existing one and its own
-`animations`, `palette` or `settings` (see `red_koopa`). For a new behaviour:
+Most entities need no Python: add them to `res/entities.yaml` with
+`behaviour: generic`, their `animations`, `palette` and the `settings` that
+choose what they do (the header of the file lists every effect):
 
-1. Write its class in `src/entities/`, as a subclass of `Entity`
-   (`src/entities/entity.py`): list the animation names it needs in
-   `ANIMATIONS`, put its tunable values in UPPER_CASE constants, and override
-   `behave` (what it does each frame), `touch_mario` (stomp or side touch),
-   `knock` and `image` (pick a frame in `self.animations`). `CAN_HIDE` hides
-   it in a `?` block, `TURN_AT_LEDGES` makes `walk` turn back at ledges. It
-   talks to the level only through the `Level` protocol (`hurt_mario`,
-   `stomped`, `score`, `play_sound`...).
-2. Register the class in `ENTITY_CLASSES` (`src/entities/spawner.py`).
-3. Declare it in `res/entities.yaml`. The editor lists it right away; the game
-   checks its behaviour, animations and settings when it starts.
-4. Test it in `tests/test_game.py` (see `EntityTest`) or `tests/test_data.py`,
-   and document it in the entity table of the README.
+```yaml
+  - id: spiny
+    name: Spiny
+    behaviour: generic
+    image: goomba
+    animations:
+      walk: {frames: [[0, 0, 16, 16]], period: 0.15, mirror: true}
+    settings:
+      enemy: true
+      onStomp: hurt     # stomping it hurts Mario instead of squashing it
+      speed: 40
+    description: An enemy that cannot be stomped.
+```
+
+Reusing another entity works the same way: take its `behaviour` and change its
+`palette` or its `settings` (see `red_koopa`). A **new effect** (something no
+setting can express, like the shell of the koopa) is Python:
+
+1. Write the method on `Entity` (`src/entities/entity.py`) when every entity
+   could use it, or on a subclass for a state machine of its own. Its name is
+   the prefix of its kind plus the name used in the file: `move_*` for
+   `movement`, `react_*` for `onStomp` and `onTouch`, `knock_*` for `onKnock`,
+   `wake_*` for `onWake`, `collect_*` for `collect`. Put its tunable values in
+   UPPER_CASE constants, list the animations it always needs in `ANIMATIONS`
+   (or in `EFFECT_ANIMATIONS` when only that effect needs them) and talk to the
+   level through the `Level` protocol only (`hurt_mario`, `stomped`, `score`,
+   `play_sound`...).
+2. Register a new class in `ENTITY_CLASSES` (`src/entities/spawner.py`).
+3. Declare the entity in `res/entities.yaml`. The editor lists it right away;
+   the game checks its behaviour, effects, animations and settings when it
+   starts, and reports an unknown name with the known ones.
+4. Test it in `tests/test_game.py` (see `EntityTest`) or `tests/test_data.py`
+   (see `EntityEffectsTest`), and document it in the entity table of the
+   README.
 
 ### Adding a sprite or a sound
 
@@ -158,6 +179,14 @@ An entity that behaves like an existing one is only data: add it to
 
 Subclass `src.scenes.Scene`, register it in `src/game.py` and switch to it with
 the scene manager. A scene named `level_N` replaces the map of the level `N`.
+
+### Adding a setting to the SETTINGS screen
+
+`src/scenes/settings_scene.py` draws one row per `Option` of its `OPTIONS`
+tuple: add a line there (`_switch`, `_volume` or an `Option` of your own with
+its `show` and `change` functions). The scene changes the `Config` and the
+game applies it right away (`Game.apply_config`) and writes `config.yaml` when
+the screen is left.
 
 ### Adding a tile type to the editor
 

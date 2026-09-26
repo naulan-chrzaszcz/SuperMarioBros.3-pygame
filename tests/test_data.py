@@ -12,7 +12,6 @@ from test_game import LevelTestCase, key_event, write_level
 
 from src.animation import Animation, SpriteBank
 from src.entities.catalog import EntityType, entity_types, load_entity_types, parse_entity_type
-from src.entities.goomba import Goomba
 from src.entities.koopa import Koopa
 from src.entities.spawner import ENTITY_CLASSES, validate_entity_types
 from src.game import Game
@@ -136,13 +135,14 @@ class EntityDataTest(unittest.TestCase):
             parse_entity_type({"id": "a", "image": "goomba"})
         with self.assertRaisesRegex(ValueError, "unknown behaviour"):
             validate_entity_types({"a": EntityType("a", "A", "goomba", "dragon", (0, 0, 16, 16))})
-        goomba = parse_entity_type({"id": "g", "behaviour": "goomba", "image": "goomba",
+        goomba = parse_entity_type({"id": "g", "behaviour": "generic", "image": "goomba",
+                                    "settings": {"onStomp": "squash"},
                                     "animations": {"walk": [0, 0, 16, 16]}})
         with self.assertRaisesRegex(ValueError, "squashed"):
             validate_entity_types({"g": goomba})
         with self.assertRaisesRegex(ValueError, "speeed"):
             validate_entity_types({"g": parse_entity_type({
-                "id": "g", "behaviour": "goomba", "image": "goomba", "settings": {"speeed": 1},
+                "id": "g", "behaviour": "generic", "image": "goomba", "settings": {"speeed": 1},
                 "animations": {"walk": [0, 0, 16, 16], "squashed": [16, 0, 16, 16]}})})
 
     def test_duplicated_ids(self):
@@ -292,10 +292,72 @@ class EntitySettingsTest(LevelTestCase):
 
     def test_goomba_speed_comes_from_the_settings(self):
         kind = entity_types()["goomba"]
-        goomba = Goomba(kind, self.game.context.sprites, 3, 6)
+        goomba = self.spawn(kind)
         self.assertEqual(goomba.SPEED, kind.settings["speed"])
-        faster = EntityType(**{**kind.__dict__, "settings": {"speed": 64}})
-        self.assertEqual(Goomba(faster, self.game.context.sprites, 3, 6).SPEED, 64)
+        self.assertEqual(self.spawn(kind, speed=64).SPEED, 64)
+
+    def spawn(self, kind, **settings):
+        """The entity of a type, with other settings."""
+        if settings:
+            kind = EntityType(**{**kind.__dict__, "settings": {**kind.settings, **settings}})
+        cls = ENTITY_CLASSES[kind.behaviour]
+        return cls(kind, self.game.context.sprites, 3, 6)
+
+
+class EntityEffectsTest(EntitySettingsTest):
+    """The behaviour of an entity is data: the settings name its effects."""
+
+    def test_the_goomba_and_the_mushrooms_need_no_python(self):
+        for name in ("goomba", "mushroom", "one_up"):
+            self.assertEqual(entity_types()[name].behaviour, "generic")
+
+    def test_stomping_runs_the_effect_of_the_settings(self):
+        level = self.play(write_level(self.maps / "level.json"))
+        goomba = self.spawn(entity_types()["goomba"])
+        goomba.active = True
+        self.assertEqual(goomba.ON_STOMP, "squash")
+        goomba.touch_mario(level, stomp=True)
+        self.assertTrue(goomba.squashed)
+        self.assertFalse(goomba.alive)
+        goomba.update(goomba.SQUASHED_DURATION + 0.1, level)
+        self.assertTrue(goomba.removed, "it disappears once squashed")
+
+    def test_the_settings_choose_the_reward_of_an_item(self):
+        level = self.play(write_level(self.maps / "level.json"))
+        lives = self.game.context.save.game.life
+        one_up = self.spawn(entity_types()["one_up"])
+        one_up.active = True
+        one_up.touch_mario(level, stomp=False)
+        self.assertTrue(one_up.removed)
+        self.assertEqual(self.game.context.save.game.life, lives + 1)
+
+    def test_an_entity_can_be_made_of_settings_only(self):
+        """A goomba that cannot be stomped and stays where it is."""
+        level = self.play(write_level(self.maps / "level.json"))
+        kind = entity_types()["goomba"]
+        spiny = self.spawn(kind, movement="still", onStomp="nothing", onKnock="nothing")
+        spiny.active = True
+        x = spiny.body.x
+        spiny.update(1 / 60, level)
+        self.assertEqual(spiny.body.x, x, "it does not walk")
+        spiny.touch_mario(level, stomp=True)
+        self.assertFalse(spiny.squashed, "a stomp does nothing to it")
+        spiny.knock(level, 1)
+        self.assertFalse(spiny.knocked, "nothing can knock it out")
+
+    def test_an_unknown_effect_is_reported_with_the_known_ones(self):
+        kind = entity_types()["goomba"]
+        broken = EntityType(**{**kind.__dict__, "settings": {"onStomp": "explode"}})
+        with self.assertRaisesRegex(ValueError, "unknown onStomp 'explode' .*squash"):
+            validate_entity_types({"goomba": broken})
+        with self.assertRaisesRegex(ValueError, "unknown onStomp 'explode' .*squash"):
+            self.spawn(broken)
+
+    def test_an_effect_that_needs_an_animation_is_checked(self):
+        kind = entity_types()["mushroom"]
+        broken = EntityType(**{**kind.__dict__, "settings": {**kind.settings, "onStomp": "squash"}})
+        with self.assertRaisesRegex(ValueError, "squashed"):
+            validate_entity_types({"mushroom": broken})
 
 
 if __name__ == "__main__":
