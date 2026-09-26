@@ -29,6 +29,8 @@ DEFAULT_COLOR_KEY = (255, 174, 201)
 
 @dataclass(frozen=True)
 class LevelInfo:
+    """A map file of ``res/maps`` and whether it can be played (``error``)."""
+
     name: str
     path: Path
     sheet_path: Optional[Path] = None
@@ -45,6 +47,8 @@ class LevelInfo:
 
 @dataclass(frozen=True)
 class SheetInfo:
+    """A tileset image with its tile names and tile behaviours."""
+
     path: Path
     color_key: Optional[Tuple[int, int, int]]
     metadata: Optional[Dict[str, str]]
@@ -52,6 +56,12 @@ class SheetInfo:
 
 
 class LevelCatalog:
+    """The playable maps of ``res/maps``, each one matched with its tileset.
+
+    A map names its tileset (``sheet``); otherwise the first tileset of
+    ``res/sheets`` (``level.png`` first) that declares all its tiles is used.
+    """
+
     def __init__(
         self,
         maps_directory: Path = MAPS_DIRECTORY,
@@ -82,6 +92,7 @@ class LevelCatalog:
         return self.levels
 
     def find(self, name: str) -> Optional[LevelInfo]:
+        """The level ``name`` (file name without ``.json``), None when there is none."""
         for level in self._levels:
             if level.name == name:
                 return level

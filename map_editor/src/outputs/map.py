@@ -1,3 +1,5 @@
+"""JSON map serializer used by the editor and compatible game loader."""
+
 import json
 import re
 from pathlib import Path
@@ -24,6 +26,7 @@ class Map:
 
     @classmethod
     def decode_tile(cls, value: str) -> Optional[Tile]:
+        """Parses one JSON tile entry; the empty marker returns None."""
         if not isinstance(value, str):
             raise ValueError("Tile entries must be strings")
 
@@ -51,6 +54,7 @@ class Map:
 
     @classmethod
     def encode_tile(cls, tile: Tile) -> str:
+        """Serializes one tile using the compact map JSON notation."""
         if tile.x < 0 or tile.y < 0:
             raise ValueError("Tile coordinates cannot be negative")
         if tile.x_frames < 1 or tile.y_frames < 1:
@@ -117,6 +121,7 @@ class Map:
 
     @classmethod
     def decode_entities(cls, entries, columns: int, rows: int) -> Dict[Cell, str]:
+        """Validates entity JSON entries and returns them by cell."""
         if entries is None:
             return {}
         if not isinstance(entries, list):

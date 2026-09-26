@@ -1,3 +1,5 @@
+"""Top-level editor application wiring models, controllers and views together."""
+
 import sys
 from pathlib import Path
 from typing import Optional, Tuple

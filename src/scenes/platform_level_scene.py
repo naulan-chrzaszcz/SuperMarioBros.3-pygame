@@ -1,3 +1,9 @@
+"""The platform level: Mario, entities, tiles, camera, score and time.
+
+It plays the maps of ``res/maps`` and applies ``res/rules.yaml`` (``level``
+and ``player``), the tile behaviours and the ``level`` settings of the map.
+"""
+
 from __future__ import annotations
 
 import math
@@ -53,6 +59,7 @@ class MarioSprites:
         self.dead = pick("dead").frame(0, 1)
 
     def image_of(self, body: Body, time: float, big: bool = False) -> Surface:
+        """Mario's picture for the movement of his body (stand, walk, run, skid, jump)."""
         animations = self.big if big else self.small
         facing = body.facing
         if body.jumping:

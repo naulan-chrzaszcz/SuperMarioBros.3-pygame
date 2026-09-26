@@ -1,3 +1,12 @@
+# Files of the game, by id. The code and the other data files only use the ids.
+#
+# images: id, path (from the project root), optional colorKey {r, g, b} (the
+#         transparent colour) and metadata (tile names of a tileset).
+# maps:   id, path of a map made with the map editor, sheet = id of its tileset image.
+# sounds: id of a sound *event* (jump, coin, stomp...) and the path of its file;
+#         an event without a file is silent.
+# musics: id of a music (title, overworld...) and the path of its file.
+
 images:
   - id: font
     path: res/sheets/custom_font.png

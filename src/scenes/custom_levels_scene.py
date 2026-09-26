@@ -1,3 +1,5 @@
+"""CUSTOM LEVELS: every map of ``res/maps`` to play it, then "open the map editor"."""
+
 from __future__ import annotations
 
 from typing import List, Optional

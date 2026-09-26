@@ -1,3 +1,5 @@
+"""View package exports Pygame drawing components for the editor UI."""
+
 from .application_view import ApplicationView
 from .camera import Camera
 from .entity_renderer import EntityRenderer

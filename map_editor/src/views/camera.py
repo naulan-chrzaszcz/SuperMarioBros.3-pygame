@@ -1,3 +1,5 @@
+"""Camera view helper converting between map cells and screen coordinates."""
+
 import math
 from typing import Optional, Tuple
 
@@ -33,10 +35,12 @@ class Camera:
         return self.viewport.height / self.zoom
 
     def set_viewport(self, rect: pygame.Rect) -> None:
+        """Updates the screen rectangle used for map drawing and clamps position."""
         self.viewport = pygame.Rect(rect)
         self.clamp()
 
     def set_map_size(self, columns: int, rows: int) -> None:
+        """Updates the map dimensions used to keep the camera inside bounds."""
         self.columns = columns
         self.rows = rows
         self.clamp()
@@ -49,6 +53,7 @@ class Camera:
         self.clamp()
 
     def clamp(self) -> None:
+        """Keeps the camera inside the map or centered when the map is smaller."""
         self.x = self._clamp_axis(self.x, self.columns * TILE_SIZE, self.view_width)
         self.y = self._clamp_axis(self.y, self.rows * TILE_SIZE, self.view_height)
 
@@ -71,16 +76,19 @@ class Camera:
         return True
 
     def screen_to_world(self, position: Tuple[int, int]) -> Tuple[float, float]:
+        """Converts a screen pixel to an unzoomed map pixel position."""
         return (
             self.x + (position[0] - self.viewport.x) / self.zoom,
             self.y + (position[1] - self.viewport.y) / self.zoom,
         )
 
     def screen_to_cell(self, position: Tuple[int, int]) -> Cell:
+        """Converts a screen pixel to the map cell under it."""
         world_x, world_y = self.screen_to_world(position)
         return math.floor(world_x / TILE_SIZE), math.floor(world_y / TILE_SIZE)
 
     def cell_to_screen(self, cell: Cell) -> Tuple[int, int]:
+        """Converts a map cell to its top-left screen pixel."""
         return (
             self.viewport.x + round((cell[0] * TILE_SIZE - self.x) * self.zoom),
             self.viewport.y + round((cell[1] * TILE_SIZE - self.y) * self.zoom),
@@ -94,6 +102,7 @@ class Camera:
         )
 
     def visible_cells(self) -> Tuple[range, range]:
+        """Column and row ranges that intersect the viewport."""
         first_col = max(math.floor(self.x / TILE_SIZE), 0)
         first_row = max(math.floor(self.y / TILE_SIZE), 0)
         last_col = min(math.ceil((self.x + self.view_width) / TILE_SIZE), self.columns)

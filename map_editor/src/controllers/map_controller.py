@@ -1,3 +1,5 @@
+"""Controller for mouse and keyboard edits in the map canvas."""
+
 from typing import Iterator, Optional
 
 import pygame
@@ -33,6 +35,7 @@ class MapController:
         return self._rectangle
 
     def handle_mouse(self, event: pygame.event.Event) -> None:
+        """Routes a mouse event in the map viewport to drag, draw or select logic."""
         cell = self.camera.screen_to_cell(event.pos)
         if event.type == pygame.MOUSEMOTION:
             self._on_motion(event, cell)
@@ -42,6 +45,7 @@ class MapController:
             self._on_release(event, cell)
 
     def handle_wheel(self, event: pygame.event.Event, mouse) -> None:
+        """Scrolls, pans horizontally with Shift, or zooms with Ctrl."""
         mods = pygame.key.get_mods()
         step = SCROLL_TILES * TILE_SIZE
         if mods & pygame.KMOD_CTRL:
@@ -53,6 +57,7 @@ class MapController:
         self.hover_cell = self.camera.screen_to_cell(mouse)
 
     def handle_key(self, event: pygame.event.Event) -> bool:
+        """Moves the camera with arrow keys; Shift jumps by one viewport."""
         directions = {
             pygame.K_LEFT: (-1, 0),
             pygame.K_RIGHT: (1, 0),
@@ -146,10 +151,12 @@ class MapController:
         self.state.notify(f"Picked {name}")
 
     def select_all(self) -> None:
+        """Selects the whole map rectangle."""
         self.state.set_mode(Mode.SELECT)
         self.state.region = (0, 0, self.model.columns - 1, self.model.rows - 1)
 
     def copy(self) -> bool:
+        """Copies the selected region into editor state and reports failures."""
         region = self.state.region
         if region is None:
             self.state.notify("Select an area first (S, then drag on the map)")
@@ -164,16 +171,19 @@ class MapController:
         return True
 
     def cut(self) -> None:
+        """Copies then clears the selected region when copying succeeds."""
         if self.copy():
             self.model.clear(self.state.region)
 
     def delete_selection(self) -> None:
+        """Clears the selected region or asks the user to select one."""
         if self.state.region is None:
             self.state.notify("Select an area first (S, then drag on the map)")
         else:
             self.model.clear(self.state.region)
 
     def start_pasting(self) -> None:
+        """Starts paste preview if the clipboard belongs to the current tileset."""
         clipboard = self.state.clipboard
         if clipboard is None or clipboard.is_empty:
             self.state.notify("Nothing to paste: copy an area first (Ctrl+C)")
@@ -185,6 +195,7 @@ class MapController:
         self.state.notify("Click to paste (R: rotate, right click / Esc: stop)", duration=6.0)
 
     def paste_at(self, cell: Cell) -> None:
+        """Pastes the clipboard at ``cell`` and warns about skipped tiles."""
         skipped = self.model.paste(
             self.state.clipboard, cell, self.state.tileset, self.state.unique_entities
         )

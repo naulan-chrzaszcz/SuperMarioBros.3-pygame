@@ -1,3 +1,5 @@
+"""Tile value object serialized into map JSON files."""
+
 from dataclasses import dataclass
 
 

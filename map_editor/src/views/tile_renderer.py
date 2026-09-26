@@ -1,3 +1,5 @@
+"""Renderer for tileset cells and animated map tiles."""
+
 from typing import Dict, Tuple
 
 import pygame

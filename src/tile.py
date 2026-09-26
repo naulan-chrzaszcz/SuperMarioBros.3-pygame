@@ -1,3 +1,5 @@
+"""One tile of a map, as a pygame sprite (optionally animated)."""
+
 from __future__ import annotations
 
 from typing import Optional
@@ -10,6 +12,8 @@ from .sprite_animation import SpriteAnimation
 
 
 class Tile(Sprite):
+    """One cell of a map; ``id`` is its tile name in the tileset metadata."""
+
     WIDTH = TILE_WIDTH
     HEIGHT = TILE_HEIGHT
 

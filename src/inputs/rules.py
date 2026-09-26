@@ -23,6 +23,8 @@ SECTIONS = {
 
 @dataclass(frozen=True)
 class Rules:
+    """Sections of ``res/rules.yaml``; ``tune(obj, rules.player)`` applies one."""
+
     sections: Mapping[str, Mapping[str, Any]] = field(default_factory=dict)
 
     def section(self, name: str) -> Dict[str, Any]:
@@ -54,6 +56,7 @@ class Rules:
 
     @classmethod
     def load(cls, path: Path = RULES_FILE) -> "Rules":
+        """Reads the file; errors name it (``rules.yaml: ...``)."""
         try:
             return cls.from_dict(read_yaml(path))
         except ValueError as error:

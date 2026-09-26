@@ -1,3 +1,7 @@
+"""The ``koopa`` behaviour of ``res/entities.yaml`` (also used by ``red_koopa``):
+walks, hides in its shell when stomped, and the shell can be kicked.
+"""
+
 from __future__ import annotations
 
 from enum import Enum, auto

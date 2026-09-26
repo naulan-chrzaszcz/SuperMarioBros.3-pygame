@@ -1,3 +1,5 @@
+"""Status bar view for editor messages and cursor details."""
+
 from typing import Optional
 
 import pygame

@@ -1,3 +1,5 @@
+"""Progress of the player (world, lives, score, coins...), stored in ``save.yaml``."""
+
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
@@ -26,6 +28,8 @@ INVENTORY_SIZE = 3
 
 @dataclass
 class Game:
+    """The ``game`` section of ``save.yaml``: world, score, coins, lives..."""
+
     level: str = "WORLD 1"
     score: int = 0
     coins: int = 0
