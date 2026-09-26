@@ -8,283 +8,296 @@
 #   becomes:   the tile drawn once a question_block is used
 tiles:
   - name: floor_top_left
-    coordinate:
-      x: 0
-      y: 0
+    coordinate: {x: 0, y: 0}
   - name: floor_top
-    coordinate:
-      x: 1
-      y: 0
+    coordinate: {x: 1, y: 0}
   - name: floor_top_right
-    coordinate:
-      x: 2
-      y: 0
+    coordinate: {x: 2, y: 0}
   - name: floor_left
-    coordinate:
-      x: 3
-      y: 0
+    coordinate: {x: 3, y: 0}
   - name: floor_center
-    coordinate:
-      x: 4
-      y: 0
+    coordinate: {x: 4, y: 0}
   - name: floor_right
-    coordinate:
-      x: 5
-      y: 0
-  - name: shadow_platforms_top_right
-    coordinate:
-      x: 6
-      y: 0
-  - name: shadow_platforms_right
-    coordinate:
-      x: 7
-      y: 0
-  - name: cactus_corner_left
-    coordinate:
-      x: 9
-      y: 0
-  - name: cactus_corner_right
-    coordinate:
-      x: 10
-      y: 0
-  - name: cactus_eyes_corner_left
-    coordinate:
-      x: 11
-      y: 0
-  - name: cactus_eyes_corner_right
-    coordinate:
-      x: 12
-      y: 0
-  - name: flowering_bushes_frame_0
-    coordinate:
-      x: 14
-      y: 0
-  - name: platform_top_left
-    coordinate:
-      x: 0
-      y: 1
-  - name: platform_top
-    coordinate:
-      x: 1
-      y: 1
-  - name: platform_top_right
-    coordinate:
-      x: 2
-      y: 1
-  - name: platform_bottom_right
-    coordinate:
-      x: 3
-      y: 1
-  - name: platform_center
-    coordinate:
-      x: 4
-      y: 1
-  - name: platform_right
-    coordinate:
-      x: 5
-      y: 1
-  - name: platform_bottom_left
-    coordinate:
-      x: 6
-      y: 1
-  - name: platform_bottom
-    coordinate:
-      x: 7
-      y: 1
-  - name: platform_left
-    coordinate:
-      x: 8
-      y: 1
-  - name: cactus_left
-    coordinate:
-      x: 9
-      y: 1
-  - name: cactus_right
-    coordinate:
-      x: 10
-      y: 1
-  - name: cactus_eyes_left
-    coordinate:
-      x: 11
-      y: 1
-  - name: cactus_eyes_right
-    coordinate:
-      x: 12
-      y: 1
-  - name: cactus_eyes_center
-    coordinate:
-      x: 13
-      y: 1
-  - name: flowering_bushes_frame_1
-    coordinate:
-      x: 13
-      y: 1
-  - name: case_top_left
-    coordinate:
-      x: 0
-      y: 2
-  - name: case_top
-    coordinate:
-      x: 1
-      y: 2
-  - name: case_top_right
-    coordinate:
-      x: 2
-      y: 2
-  - name: case_bottom_right
-    coordinate:
-      x: 3
-      y: 2
-  - name: case_center
-    coordinate:
-      x: 4
-      y: 2
-  - name: case_right
-    coordinate:
-      x: 5
-      y: 2
+    coordinate: {x: 5, y: 0}
+  - name: shadow_top_right
+    coordinate: {x: 6, y: 0}
+  - name: shadow_right
+    coordinate: {x: 7, y: 0}
   - name: cloud_platform
-    coordinate:
-      x: 6
-      y: 2
+    coordinate: {x: 8, y: 0}
+  - name: cactus_corner_left
+    coordinate: {x: 9, y: 0}
+  - name: cactus_corner_right
+    coordinate: {x: 10, y: 0}
+  - name: cactus_eyes_corner_left
+    coordinate: {x: 11, y: 0}
+  - name: cactus_eyes_corner_right
+    coordinate: {x: 12, y: 0}
+  - name: flowering_bush_frame_0
+    coordinate: {x: 14, y: 0}
+  - name: flowering_bushes_left
+    coordinate: {x: 15, y: 0}
+  - name: flowering_bushes_center
+    coordinate: {x: 16, y: 0}
+  - name: flowering_bushes_right
+    coordinate: {x: 17, y: 0}
+
+  - name: platform_top_left
+    coordinate: {x: 0, y: 1}
+  - name: platform_top
+    coordinate: {x: 1, y: 1}
+  - name: platform_top_right
+    coordinate: {x: 2, y: 1}
+  - name: platform_bottom_right
+    coordinate: {x: 3, y: 1}
+  - name: platform_center
+    coordinate: {x: 4, y: 1}
+  - name: platform_right
+    coordinate: {x: 5, y: 1}
+  - name: platform_bottom_left
+    coordinate: {x: 6, y: 1}
+  - name: platform_bottom
+    coordinate: {x: 7, y: 1}
+  - name: platform_left
+    coordinate: {x: 8, y: 1}
+  - name: cactus_left
+    coordinate: {x: 9, y: 1}
+  - name: cactus_right
+    coordinate: {x: 10, y: 1}
+  - name: cactus_eyes_left
+    coordinate: {x: 11, y: 1}
+  - name: cactus_eyes_right
+    coordinate: {x: 12, y: 1}
+  - name: cactus_eyes_center
+    coordinate: {x: 13, y: 1}
+  - name: flowering_bush_frame_1
+    coordinate: {x: 14, y: 1}
+  - name: grass_floor_top_left
+    coordinate: {x: 15, y: 1}
+  - name: grass_floor_top
+    coordinate: {x: 16, y: 1}
+  - name: grass_floor_top_right
+    coordinate: {x: 17, y: 1}
+
+  - name: case_top_left
+    coordinate: {x: 0, y: 2}
+  - name: case_top
+    coordinate: {x: 1, y: 2}
+  - name: case_top_right
+    coordinate: {x: 2, y: 2}
+  - name: case_bottom_right
+    coordinate: {x: 3, y: 2}
+  - name: case_center
+    coordinate: {x: 4, y: 2}
+  - name: case_right
+    coordinate: {x: 5, y: 2}
+  - name: vine_frame_0
+    coordinate: {x: 6, y: 2}
+  - name: vine_frame_1
+    coordinate: {x: 7, y: 2}
+  - name: vine_frame_2
+    coordinate: {x: 8, y: 2}
   - name: cactus_corner_left_center
-    coordinate:
-      x: 9
-      y: 2
+    coordinate: {x: 9, y: 2}
   - name: cactus_corner_right_center
-    coordinate:
-      x: 10
-      y: 2
+    coordinate: {x: 10, y: 2}
   - name: cactus_eyes_corner_left_center
-    coordinate:
-      x: 11
-      y: 2
+    coordinate: {x: 11, y: 2}
   - name: cactus_eyes_corner_right_center
-    coordinate:
-      x: 12
-      y: 2
+    coordinate: {x: 12, y: 2}
   - name: cactus_center
-    coordinate:
-      x: 13
-      y: 2
-  - name: flowering_bushes_frame_2
-    coordinate:
-      x: 14
-      y: 2
+    coordinate: {x: 13, y: 2}
+  - name: flowering_bush_frame_2
+    coordinate: {x: 14, y: 2}
+  - name: grass_floor_left
+    coordinate: {x: 15, y: 2}
+  - name: grass_floor_center
+    coordinate: {x: 16, y: 2}
+  - name: grass_floor_corner_right
+    coordinate: {x: 17, y: 2}
+
   - name: cloud_0
-    coordinate:
-      x: 0
-      y: 3
+    coordinate: {x: 0, y: 3}
   - name: cloud_1_frame_0
-    coordinate:
-      x: 1
-      y: 3
-  - name: cloud_2
-    coordinate:
-      x: 2
-      y: 3
+    coordinate: {x: 1, y: 3}
   - name: cloud_1_frame_1
-    coordinate:
-      x: 3
-      y: 3
+    coordinate: {x: 2, y: 3}
+  - name: cloud_2
+    coordinate: {x: 3, y: 3}
   - name: coin_frame_0
-    coordinate:
-      x: 4
-      y: 3
+    coordinate: {x: 4, y: 3}
     behaviour: coin
   - name: coin_frame_1
-    coordinate:
-      x: 5
-      y: 3
+    coordinate: {x: 5, y: 3}
     behaviour: coin
   - name: coin_frame_2
-    coordinate:
-      x: 6
-      y: 3
+    coordinate: {x: 6, y: 3}
     behaviour: coin
   - name: coin_frame_3
-    coordinate:
-      x: 7
-      y: 3
+    coordinate: {x: 7, y: 3}
     behaviour: coin
   - name: coin_frame_4
-    coordinate:
-      x: 8
-      y: 3
+    coordinate: {x: 8, y: 3}
     behaviour: coin
-  - name: pipe_top_left
-    coordinate:
-      x: 9
-      y: 3
-  - name: pipe_top_right
-    coordinate:
-      x: 10
-      y: 3
+  - name: pipe_standing_top_left
+    coordinate: {x: 9, y: 3}
+  - name: pipe_standing_top_right
+    coordinate: {x: 10, y: 3}
+  - name: pipe_down_top_left
+    coordinate: {x: 11, y: 3}
+  - name: pipe_down_top
+    coordinate: {x: 12, y: 3}
+  - name: little_pipe_head_up
+    coordinate: {x: 13, y: 3}
+  - name: little_pipe_head_down
+    coordinate: {x: 14, y: 3}
+  - name: hill_giant_top_left
+    coordinate: {x: 15, y: 3}
+  - name: hill_giant_top
+    coordinate: {x: 16, y: 3}
+  - name: hill_giant_top_right
+    coordinate: {x: 17, y: 3}
+
   - name: cloud_3
-    coordinate:
-      x: 0
-      y: 4
+    coordinate: {x: 0, y: 4}
   - name: cloud_4
-    coordinate:
-      x: 1
-      y: 4
+    coordinate: {x: 1, y: 4}
   - name: cloud_5
-    coordinate:
-      x: 2
-      y: 4
+    coordinate: {x: 2, y: 4}
   - name: brick_frame_0
-    coordinate:
-      x: 4
-      y: 4
+    coordinate: {x: 4, y: 4}
     behaviour: brick
   - name: brick_frame_1
-    coordinate:
-      x: 5
-      y: 4
+    coordinate: {x: 5, y: 4}
     behaviour: brick
   - name: brick_frame_2
-    coordinate:
-      x: 6
-      y: 4
+    coordinate: {x: 6, y: 4}
     behaviour: brick
   - name: brick_frame_3
-    coordinate:
-      x: 7
-      y: 4
+    coordinate: {x: 7, y: 4}
     behaviour: brick
-  - name: pipe_left
-    coordinate:
-      x: 9
-      y: 4
-  - name: pipe_right
-    coordinate:
-      x: 10
-      y: 4
+  - name: wood_block_solid
+    coordinate: {x: 8, y: 4}
+  - name: pipe_standing_left
+    coordinate: {x: 9, y: 4}
+  - name: pipe_standing_right
+    coordinate: {x: 10, y: 4}
+  - name: pipe_down_bottom_left
+    coordinate: {x: 11, y: 4}
+  - name: pipe_down_bottom
+    coordinate: {x: 12, y: 4}
+  - name: little_pipe_body
+    coordinate: {x: 13, y: 4}
+  - name: canon_head
+    coordinate: {x: 14, y: 4}
+  - name: hill_giant_left
+    coordinate: {x: 15, y: 4}
+  - name: hill_giant_center
+    coordinate: {x: 16, y: 4}
+  - name: hill_giant_right
+    coordinate: {x: 17, y: 4}
+
+  - name: note_block_frame_0
+    coordinate: {x: 0, y: 5}
+  - name: note_block_frame_1
+    coordinate: {x: 1, y: 5}
+  - name: note_block_frame_2
+    coordinate: {x: 2, y: 5}
   - name: mystery_block_frame_0
-    coordinate:
-      x: 4
-      y: 5
+    coordinate: {x: 4, y: 5}
     behaviour: question_block
-    becomes: block
+    becomes: block_used
   - name: mystery_block_frame_1
-    coordinate:
-      x: 5
-      y: 5
+    coordinate: {x: 5, y: 5}
     behaviour: question_block
-    becomes: block
+    becomes: block_used
   - name: mystery_block_frame_2
-    coordinate:
-      x: 6
-      y: 5
+    coordinate: {x: 6, y: 5}
     behaviour: question_block
-    becomes: block
+    becomes: block_used
   - name: mystery_block_frame_3
-    coordinate:
-      x: 7
-      y: 5
+    coordinate: {x: 7, y: 5}
     behaviour: question_block
-    becomes: block
-  - name: block
-    coordinate:
-      x: 8
-      y: 5
+    becomes: block_used
+  - name: block_used
+    coordinate: {x: 8, y: 5}
+  - name: little_cactus_left
+    coordinate: {x: 9, y: 5}
+  - name: little_cactus_center
+    coordinate: {x: 10, y: 5}
+  - name: little_cactus_right
+    coordinate: {x: 11, y: 5}
+  - name: canon_skull_body
+    coordinate: {x: 13, y: 5}
+  - name: canon_body
+    coordinate: {x: 14, y: 5}
+  - name: muncher_frame_0
+    coordinate: {x: 15, y: 5}
+    behaviour: hurt
+  - name: muncher_frame_1
+    coordinate: {x: 16, y: 5}
+    behaviour: hurt
+  - name: muncher_frame_2
+    coordinate: {x: 17, y: 5}
+    behaviour: hurt
+
+  - name: end_limit
+    coordinate: {x: 0, y: 6}
+  - name: end_square_bottom_left
+    coordinate: {x: 1, y: 6}
+  - name: end_square_left
+    coordinate: {x: 2, y: 6}
+  - name: end_square_top_left
+    coordinate: {x: 3, y: 6}
+  - name: end_square_bottom
+    coordinate: {x: 4, y: 6}
+  - name: end_square_bottom_right
+    coordinate: {x: 5, y: 6}
+  - name: end_square_right
+    coordinate: {x: 6, y: 6}
+  - name: end_square_top_right
+    coordinate: {x: 7, y: 6}
+  - name: end_square_top
+    coordinate: {x: 8, y: 6}
+  - name: end_fill
+    coordinate: {x: 9, y: 6}
+  - name: end_cactus_top_left
+    coordinate: {x: 11, y: 6}
+  - name: end_cactus_top_right
+    coordinate: {x: 12, y: 6}
+  - name: grass_top_left
+    coordinate: {x: 13, y: 6}
+  - name: grass_top_center
+    coordinate: {x: 14, y: 6}
+  - name: grass_top_right
+    coordinate: {x: 15, y: 6}
+
+  - name: water_frame_0
+    coordinate: {x: 0, y: 7}
+  - name: water_frame_1
+    coordinate: {x: 1, y: 7}
+  - name: water_frame_2
+    coordinate: {x: 2, y: 7}
+  - name: water_frame_3
+    coordinate: {x: 3, y: 7}
+  - name: water_frame_4
+    coordinate: {x: 4, y: 7}
+  - name: water_fill
+    coordinate: {x: 5, y: 7}
+  - name: water_floor_top
+    coordinate: {x: 6, y: 7}
+  - name: end_cactus_left
+    coordinate: {x: 11, y: 7}
+  - name: end_cactus_right
+    coordinate: {x: 12, y: 7}
+  - name: grass_left_0
+    coordinate: {x: 13, y: 7}
+  - name: grass_center
+    coordinate: {x: 14, y: 7}
+  - name: grass_right_0
+    coordinate: {x: 15, y: 7}
+
+  - name: grass_left_1
+    coordinate: {x: 13, y: 8}
+  - name: grass_right_1
+    coordinate: {x: 15, y: 8}
