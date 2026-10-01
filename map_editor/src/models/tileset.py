@@ -9,6 +9,8 @@ from typing import Dict, Iterator, Optional, Tuple
 import pygame
 import yaml
 
+from src.inputs.tile_animations import Animations, tile_animations
+
 from ..constants import DEFAULT_COLOR_KEY, RESSOURCES_FILE, TILE_SIZE
 
 SheetCell = Tuple[int, int]
@@ -28,6 +30,9 @@ class Tileset:
     sheet_path: Optional[Path] = None
     # What some tiles do in a level (coin, question_block, brick, hurt, goal).
     behaviours: Dict[SheetCell, str] = field(default_factory=dict)
+    # Origin -> (horizontal frames, vertical frames); continuations stay
+    # declared for old maps, but are folded into their origin in the palette.
+    animations: Animations = field(default_factory=dict)
 
     @property
     def columns(self) -> int:
@@ -71,6 +76,19 @@ class Tileset:
                 if self.is_declared(x, y):
                     yield x, y
 
+    def origin_of(self, x: int, y: int) -> SheetCell:
+        """Palette origin of an animation frame (or the cell itself)."""
+        for origin, frames in self.animations.items():
+            if (x, y) in frames:
+                return origin
+        return x, y
+
+    def palette_cells(self) -> Iterator[SheetCell]:
+        """Logical tiles in sheet order, without duplicate animation frames."""
+        for cell in self.declared_cells():
+            if self.origin_of(*cell) == cell:
+                yield cell
+
     @classmethod
     def load(cls, sheet_path: Path, ressources_file: Path = RESSOURCES_FILE) -> "Tileset":
         """Loads a sheet with the color key and metadata used by the game."""
@@ -79,9 +97,26 @@ class Tileset:
         image = pygame.image.load(sheet_path)
         if color_key is not None:
             image.set_colorkey(color_key)
-        names = cls.read_names(metadata_path) if metadata_path else {}
-        behaviours = cls.read_behaviours(metadata_path) if metadata_path else {}
-        return cls(image, names, metadata_path, sheet_path, behaviours)
+        if metadata_path is None:
+            return cls(image, sheet_path=sheet_path)
+        with metadata_path.open(encoding="utf-8") as file:
+            metadata = yaml.safe_load(file)
+        if not isinstance(metadata, dict) or not isinstance(metadata.get("tiles"), list):
+            raise ValueError(f"{metadata_path}: tileset metadata needs a list of tiles")
+        entries = metadata["tiles"]
+        names = {
+            (int(tile["coordinate"]["x"]), int(tile["coordinate"]["y"])): str(tile["name"])
+            for tile in entries
+        }
+        behaviours = {
+            (int(tile["coordinate"]["x"]), int(tile["coordinate"]["y"])): str(tile["behaviour"])
+            for tile in entries if tile.get("behaviour")
+        }
+        animations = tile_animations(
+            entries, (image.get_width() // TILE_SIZE, image.get_height() // TILE_SIZE),
+            metadata_path.name,
+        )
+        return cls(image, names, metadata_path, sheet_path, behaviours, animations)
 
     @classmethod
     def settings_of(

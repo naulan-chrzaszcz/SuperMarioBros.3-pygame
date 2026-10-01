@@ -20,6 +20,7 @@ from .constants import PROJECT_ROOT, RESSOURCES_FILE
 from .entities.spawner import validate_spawns
 from .inputs.map import Map, MapData, TileBehaviour, tile_behaviours
 from .inputs.ressources import Ressources
+from .inputs.tile_animations import Animations
 
 MAPS_DIRECTORY = PROJECT_ROOT / "res" / "maps"
 SHEETS_DIRECTORY = PROJECT_ROOT / "res" / "sheets"
@@ -54,6 +55,7 @@ class SheetInfo:
     color_key: Optional[Tuple[int, int, int]]
     metadata: Optional[Dict[str, str]]
     behaviours: Optional[Dict[str, TileBehaviour]] = None
+    animations: Optional[Animations] = None
 
 
 class LevelCatalog:
@@ -160,7 +162,7 @@ class LevelCatalog:
         sheet = self.sheet(level.sheet_path)
         with level.path.open(encoding="utf-8") as file:
             data = json.load(file)
-        return Map(self._image(sheet), sheet.metadata, data, sheet.behaviours)
+        return Map(self._image(sheet), sheet.metadata, data, sheet.behaviours, sheet.animations)
 
     def sheet(self, path: Path) -> SheetInfo:
         path = Path(path).resolve()
@@ -195,11 +197,12 @@ class LevelCatalog:
                 break
         if metadata_path is None and path.with_suffix(".yaml").is_file():
             metadata_path = path.with_suffix(".yaml")
-        metadata = behaviours = None
+        metadata = behaviours = animations = None
         if metadata_path is not None:
             metadata = Ressources.read_metadata(metadata_path)
             behaviours = Ressources.read_behaviours(metadata_path)
-        return SheetInfo(path, color_key, metadata, behaviours)
+            animations = Ressources.read_animations(metadata_path, image.load(str(path)).get_size())
+        return SheetInfo(path, color_key, metadata, behaviours, animations)
 
     def _ressource_images(self) -> List[dict]:
         with self.ressources_file.open(encoding="utf-8") as file:

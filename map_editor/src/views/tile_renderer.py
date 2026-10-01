@@ -30,8 +30,13 @@ class TileRenderer:
 
     def render(self, tile: Tile, size: int, time: float = 0.0) -> pygame.Surface:
         frame = self.frame_index(tile, time)
-        x = tile.x + (frame if tile.x_frames > 1 else 0)
-        y = tile.y + (frame if tile.y_frames > 1 else 0)
+        if tile.frames == 1 and (tile.x, tile.y) in self.tileset.animations:
+            x, y = self.tileset.animations[(tile.x, tile.y)][
+                int(time * ANIMATION_SPEED) % len(self.tileset.animations[(tile.x, tile.y)])
+            ]
+        else:
+            x = tile.x + (frame if tile.x_frames > 1 else 0)
+            y = tile.y + (frame if tile.y_frames > 1 else 0)
         key = (x, y, tile.rotation, size)
 
         surface = self._cache.get(key)
