@@ -10,6 +10,7 @@ import yaml
 from pygame import Surface, image
 
 from ..constants import PROJECT_ROOT, RESSOURCES_FILE
+from .tile_animations import Animations, tile_animations
 
 if TYPE_CHECKING:
     from .map import TileBehaviour
@@ -30,6 +31,7 @@ class Ressources:
         sounds: Mapping[str, Path] = None,
         musics: Mapping[str, Path] = None,
         behaviours: Mapping[str, Dict[str, "TileBehaviour"]] = None,
+        animations: Mapping[str, Animations] = None,
     ):
         self.images = dict(images)
         self.metadata = dict(metadata)
@@ -38,6 +40,7 @@ class Ressources:
         self.musics = dict(musics or {})
         # Behaviours of the named tiles of each image (coins, blocks...).
         self.behaviours = dict(behaviours or {})
+        self.animations = dict(animations or {})
 
     def image(self, name: str) -> Surface:
         try:
@@ -58,7 +61,10 @@ class Ressources:
             raise KeyError(f"Map {name!r}: image {sheet!r} has no metadata file")
         with Path(entry["path"]).open(encoding="utf-8") as map_file:
             data = json.load(map_file)
-        return Map(self.image(sheet), self.metadata[sheet], data, self.behaviours.get(sheet))
+        return Map(
+            self.image(sheet), self.metadata[sheet], data, self.behaviours.get(sheet),
+            self.animations.get(sheet),
+        )
 
     @staticmethod
     def read_metadata(path: Path) -> Dict[str, str]:
@@ -101,12 +107,22 @@ class Ressources:
                     f"{Path(path).name}: tile {tile['name']!r} has 'becomes' without 'behaviour'")
         return behaviours
 
+    @staticmethod
+    def read_animations(path: Path, sheet_size) -> Animations:
+        from ..tile import Tile
+
+        entries = Ressources._sheet_tiles(path)
+        return tile_animations(
+            entries, (sheet_size[0] // Tile.WIDTH, sheet_size[1] // Tile.HEIGHT),
+            str(path),
+        )
+
     @classmethod
     def load(cls, path: Path = RESSOURCES_FILE, root: Path = PROJECT_ROOT) -> "Ressources":
         with Path(path).open(encoding="utf-8") as ressources_file:
             ressources = yaml.safe_load(ressources_file) or {}
 
-        images, metadata, behaviours = {}, {}, {}
+        images, metadata, behaviours, animations = {}, {}, {}, {}
         for entry in ressources.get("images", []):
             surface = image.load(str(root / entry["path"])).convert()
             color_key = entry.get("colorKey")
@@ -116,6 +132,7 @@ class Ressources:
             if entry.get("metadata") is not None:
                 metadata[entry["id"]] = cls.read_metadata(root / entry["metadata"])
                 behaviours[entry["id"]] = cls.read_behaviours(root / entry["metadata"])
+                animations[entry["id"]] = cls.read_animations(root / entry["metadata"], surface.get_size())
 
         maps = {}
         for entry in ressources.get("maps", []):
@@ -126,7 +143,7 @@ class Ressources:
             }
         sounds = cls._audio_files(ressources, "sounds", root)
         musics = cls._audio_files(ressources, "musics", root)
-        return cls(images, metadata, maps, sounds, musics, behaviours)
+        return cls(images, metadata, maps, sounds, musics, behaviours, animations)
 
     @staticmethod
     def _audio_files(ressources: dict, section: str, root: Path) -> Dict[str, Path]:

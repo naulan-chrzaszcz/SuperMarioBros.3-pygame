@@ -160,16 +160,6 @@ class MapEditorApplication:
                 Button("Fit view  (Home)", self.camera.fit),
             ],
             [
-                Button("-", lambda: state.set_frames_x(state.frames_x - 1)),
-                Button(lambda: f"Frames X: {state.frames_x}"),
-                Button("+", lambda: state.set_frames_x(state.frames_x + 1)),
-            ],
-            [
-                Button("-", lambda: state.set_frames_y(state.frames_y - 1)),
-                Button(lambda: f"Frames Y: {state.frames_y}"),
-                Button("+", lambda: state.set_frames_y(state.frames_y + 1)),
-            ],
-            [
                 Button("Tiles", lambda: state.set_mode(Mode.TILES),
                        is_active=lambda: state.mode is Mode.TILES),
                 Button("Solid", lambda: state.set_mode(Mode.COLLISIONS),

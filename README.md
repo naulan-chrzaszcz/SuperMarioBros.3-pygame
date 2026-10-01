@@ -115,7 +115,7 @@ starts, with the list of the known names.
 | `res/rules.yaml`      | Gameplay: Mario's physics (`player`), scores, durations, time limit, sky and music of the levels (`level`), world map (`worldMap`) |
 | `res/sprites.yaml`    | Named animations cut in the images: Mario, world-map Mario, HUD layout, title screen |
 | `res/entities.yaml`   | Entities: behaviour, animations, palette swaps, `settings` (speed, but also what a stomp or a touch does) |
-| `res/sheets/*.yaml`   | Tile names and their `behaviour` (`coin`, `question_block`, `brick`, `hurt`, `goal`) |
+| `res/sheets/*.yaml`   | Tile names, gameplay `behaviour` and optional ordered animation frame names |
 | `ressources.yaml`     | Image, map, sound and music files, by id                                 |
 | `res/maps/*.json`     | Levels made with the map editor, with their entities and `level` settings |
 | `config.yaml`         | Window, controls, audio volume (the `SETTINGS` screen writes it)         |
@@ -170,7 +170,9 @@ back.
   explains every key.
 - `res/sprites.yaml`: animations of Mario, of the HUD and of the title screen.
 - `res/rules.yaml`: gameplay values.
-- `res/sheets/*.yaml`: tile names of a tileset and their `behaviour`. The world
+- `res/sheets/*.yaml`: tile names, behaviour and animation frame names of a tileset.
+  The editor lists named tiles and selects an animation as one tile (see
+  [tileset metadata](map_editor/README.md#tileset-metadata)). The world
   map needs a tile named `start`; a tile named `levelN` opens the level
   `level_N`.
 - `save.yaml`: progress of the player (world, lives, score, coins...).

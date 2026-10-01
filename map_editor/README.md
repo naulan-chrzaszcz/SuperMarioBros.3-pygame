@@ -84,17 +84,43 @@ The `behaviour` of a tile (`coin`, `question_block`, `brick`, `hurt`, `goal`,
 see the header of `res/sheets/level.yaml`) is shown next to its name in the
 preview and in the status bar.
 
-Undeclared tiles are darkened in the tileset and cannot be painted. Declare
-them in the metadata file first. If the sheet has no metadata at all, every
-tile can be used.
+Names ending in `_frame_0`, `_frame_1`, etc. form an animation automatically,
+in numerical order, **regardless of the frames' coordinates**. For a
+different naming convention or order, list the tile names explicitly on the
+first frame:
+
+```yaml
+tiles:
+  - name: coin
+    coordinate: {x: 4, y: 3}
+    animation: {frames: [coin, coin_side, coin_back]}
+    behaviour: coin
+  - name: coin_side
+    coordinate: {x: 12, y: 0}
+  - name: coin_back
+    coordinate: {x: 1, y: 7}
+```
+
+Each named frame must be declared once in the sheet; the first name is the
+tile to place. The old `animation: {axis: x, frames: 5}` definition still
+loads for existing metadata. In the editor, the right panel shows a
+**scrollable list of named tiles with animated previews**, like the entity
+list, rather than the entire image. Continuation frames are folded into
+their origin, and painting writes just `x,y` to JSON: the game looks up
+the ordered frame names in the same YAML. Old map codes with `+N` keep their
+contiguous animation exactly as saved, independently of YAML. Picking an
+existing tile preserves its rotation and saved frame span.
+
+Only tiles declared in metadata appear in the list. If the sheet has no
+metadata, all image cells appear as individual numbered entries.
 
 ## Window layout
 
 Everything is in a single resizable window:
 
 - left: the map, drawn with pixel-perfect integer zoom;
-- right: the selected tile (or entity) preview, the tool buttons, the tileset
-  (or the entity palette) and a reminder of the shortcuts;
+- right: the selected tile (or entity) preview, the tool buttons, a named tile
+  list (or the entity palette) and a reminder of the shortcuts;
 - bottom: a status bar with the hovered cell, its tile name, entity and collision,
   the map size, the zoom and the mode, plus messages (save result, warnings).
 
@@ -178,7 +204,7 @@ transparent: pasting leaves the map unchanged there. Every paste, cut or clear i
 | Action | Control |
 | --- | --- |
 | Rotate the tile (counter-clockwise, as in the game) | `R` (`Shift+R`: other way) |
-| Horizontal / vertical animation frames | `Frames X` / `Frames Y` buttons |
+| Animation frames | Defined by the selected tile's YAML `animation` |
 | Switch between tiles and collisions | `C`, or the `Tiles` / `Solid` buttons |
 | Entities mode (and back to tiles) | `E`, or the `Entities` button |
 | Toggle the grid | `G` |
@@ -189,9 +215,8 @@ transparent: pasting leaves the map unchanged there. Every paste, cut or clear i
 | Close the map (back to the launcher) | `Esc` (press twice if there are unsaved changes; the first `Esc` stops pasting or deselects) |
 | Quit | Close the window |
 
-In the tileset, left click selects a tile and the mouse wheel moves the
-selection through the declared tiles. Only one animation axis can have more
-than one frame, and animations cannot go past the tileset bounds.
+In the tile list, left click selects a named tile and the mouse wheel moves
+through the entries (one choice per animation). The list follows the selection.
 
 ## Code structure
 
@@ -255,5 +280,6 @@ x[+xFrames],y[+yFrames][&quarterTurns]
 ```
 
 - `-1,-1` means that the cell is empty.
-- `+N` sets the number of consecutive animation frames.
+- `+N` sets the number of consecutive animation frames, populated by the
+  YAML definition when painting; older maps keep their existing values.
 - `&N` stores rotation in quarter turns (`1` = 90 degrees).

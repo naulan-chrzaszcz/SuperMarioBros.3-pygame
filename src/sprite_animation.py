@@ -32,6 +32,18 @@ class SpriteAnimation:
         self.timer = 0.0
         self.frames = self.cut(image, frames, subsurface_direction, rotation)
 
+    @classmethod
+    def from_frames(cls, sprite, frames: List[Surface], speed: float) -> "SpriteAnimation":
+        """Animate arbitrary sheet cells without requiring a contiguous strip."""
+        if not frames:
+            raise ValueError("An animation needs at least one frame")
+        animation = cls.__new__(cls)
+        animation.sprite = sprite
+        animation.speed = speed
+        animation.timer = 0.0
+        animation.frames = frames
+        return animation
+
     @staticmethod
     def cut(image: Surface, frames: int, direction: str, rotation: int = 0) -> List[Surface]:
         width, height = image.get_size()

@@ -11,7 +11,6 @@ from ..constants import (
     BUTTON_GAP,
     BUTTON_HEIGHT,
     HOVER_COLOR,
-    MAX_SIDEBAR_WIDTH,
     MIN_SIDEBAR_WIDTH,
     MUTED_TEXT_COLOR,
     PANEL_COLOR,
@@ -20,17 +19,17 @@ from ..constants import (
     SELECTION_COLOR,
     TEXT_COLOR,
     TILE_SIZE,
-    UNDECLARED_TILE_SHADE,
     WARNING_COLOR,
 )
 from ..models import EditorState, Mode
+from ..outputs.tile import Tile
 from .entity_renderer import EntityRenderer
 from .tile_renderer import TileRenderer
 from .widgets import Button
 
-MAX_TILESET_SCALE = 4
 ENTITY_ROW_HEIGHT = 36
 ENTITY_ICON_SIZE = 32
+TILE_ROW_HEIGHT = 36
 HELP_SEPARATOR = "   "
 HELP_LINES = (
     "Left: paint   Right: erase",
@@ -68,9 +67,7 @@ class SidebarView:
         self.rect = pygame.Rect(0, 0, 0, 0)
         self.preview_rect = pygame.Rect(0, 0, PREVIEW_SIZE, PREVIEW_SIZE)
         self.tileset_rect = pygame.Rect(0, 0, 0, 0)
-        self.tileset_scale = 1
-        self._scaled_tileset: Optional[pygame.Surface] = None
-        self._undeclared_shade: Optional[pygame.Surface] = None
+        self.tile_scroll = 0
 
     @property
     def buttons(self) -> List[Button]:
@@ -82,8 +79,7 @@ class SidebarView:
             self.layout(self.rect)
 
     def preferred_width(self) -> int:
-        width = self.state.tileset.image.get_width() * 2 + 2 * PANEL_PADDING
-        return min(max(width, MIN_SIDEBAR_WIDTH), MAX_SIDEBAR_WIDTH)
+        return MIN_SIDEBAR_WIDTH
 
     def layout(self, rect: pygame.Rect) -> None:
         self.rect = pygame.Rect(rect)
@@ -105,24 +101,15 @@ class SidebarView:
             y += BUTTON_HEIGHT + BUTTON_GAP
 
         y += PANEL_PADDING + BUTTON_HEIGHT  # Room for the "Tileset" title.
-        image = self.state.tileset.image
-        help_height = len(HELP_LINES) * 18 + PANEL_PADDING
-        available_height = self.rect.bottom - y - PANEL_PADDING - help_height
-        scale = min(inner_width // image.get_width(), MAX_TILESET_SCALE)
-        while scale > 1 and image.get_height() * scale > available_height:
-            scale -= 1
-        self.tileset_scale = max(scale, 1)
+        available_height = max(
+            TILE_ROW_HEIGHT, self.rect.bottom - y - 2 * PANEL_PADDING - 60
+        )
         self.tileset_rect = pygame.Rect(
-            left,
-            y,
-            min(image.get_width() * self.tileset_scale, inner_width),
-            image.get_height() * self.tileset_scale,
+            left, y, inner_width, available_height,
         )
         self.palette_rect = pygame.Rect(
             left, y, inner_width, len(self.state.entity_types) * ENTITY_ROW_HEIGHT
         )
-        self._scaled_tileset = None
-        self._undeclared_shade = None
 
     @property
     def showing_entities(self) -> bool:
@@ -143,10 +130,9 @@ class SidebarView:
     def tileset_cell_at(self, position: Tuple[int, int]) -> Optional[Tuple[int, int]]:
         if self.showing_entities or not self.tileset_rect.collidepoint(position):
             return None
-        cell_size = TILE_SIZE * self.tileset_scale
-        x = (position[0] - self.tileset_rect.x) // cell_size
-        y = (position[1] - self.tileset_rect.y) // cell_size
-        return (x, y) if self.state.tileset.contains(x, y) else None
+        index = self.tile_scroll + (position[1] - self.tileset_rect.y) // TILE_ROW_HEIGHT
+        cells = list(self.state.tileset.palette_cells())
+        return cells[index] if index < len(cells) else None
 
     def draw(
         self,
@@ -168,7 +154,7 @@ class SidebarView:
         if self.showing_entities:
             self._draw_palette(surface, font, mouse)
         else:
-            self._draw_tileset(surface, font, mouse)
+            self._draw_tileset(surface, font, mouse, time)
 
         y = self.help_top
         for line in self._help_lines(font):
@@ -281,63 +267,55 @@ class SidebarView:
         return lines
 
     def _frames_text(self) -> str:
+        frames = self.state.tileset.animations.get(
+            (self.state.selection_x, self.state.selection_y)
+        )
+        if frames and self.state.frames_x == self.state.frames_y == 1:
+            return f"Animated: {len(frames)} named frames"
         if self.state.frames_x > 1:
             return f"Animated: {self.state.frames_x} frames (X)"
         if self.state.frames_y > 1:
             return f"Animated: {self.state.frames_y} frames (Y)"
         return "Static"
 
-    def _draw_tileset(self, surface, font, mouse) -> None:
+    def _draw_tileset(self, surface, font, mouse, time) -> None:
         title_y = self.tileset_rect.y - BUTTON_HEIGHT
         surface.blit(
-            font.render("Tileset  (click, wheel to browse)", True, TEXT_COLOR),
+            font.render("Tiles  (click, wheel to browse)", True, TEXT_COLOR),
             (self.tileset_rect.x, title_y + 4),
         )
         surface.fill((0, 0, 0), self.tileset_rect)
-        surface.blit(self._tileset_image(), self.tileset_rect)
-        if self.state.tileset.has_metadata:
-            surface.blit(self._undeclared_overlay(), self.tileset_rect)
-
-        cell_size = TILE_SIZE * self.tileset_scale
+        cells = list(self.state.tileset.palette_cells())
+        current = (self.state.selection_x, self.state.selection_y)
+        if current in cells:
+            index = cells.index(current)
+            visible = max(1, self.tileset_rect.height // TILE_ROW_HEIGHT)
+            self.tile_scroll = min(self.tile_scroll, max(0, len(cells) - visible))
+            if index < self.tile_scroll:
+                self.tile_scroll = index
+            elif index >= self.tile_scroll + visible:
+                self.tile_scroll = index - visible + 1
         hovered = self.tileset_cell_at(mouse)
-        if hovered is not None:
-            rect = pygame.Rect(
-                self.tileset_rect.x + hovered[0] * cell_size,
-                self.tileset_rect.y + hovered[1] * cell_size,
-                cell_size,
-                cell_size,
+        surface.set_clip(self.tileset_rect)
+        last = min(len(cells), self.tile_scroll + self.tileset_rect.height // TILE_ROW_HEIGHT + 1)
+        for index in range(self.tile_scroll, last):
+            cell = cells[index]
+            row = pygame.Rect(
+                self.tileset_rect.x, self.tileset_rect.y + (index - self.tile_scroll) * TILE_ROW_HEIGHT,
+                self.tileset_rect.width, TILE_ROW_HEIGHT - 2,
             )
-            pygame.draw.rect(surface, HOVER_COLOR, rect, 1)
-
-        state = self.state
-        selection = pygame.Rect(
-            self.tileset_rect.x + state.selection_x * cell_size,
-            self.tileset_rect.y + state.selection_y * cell_size,
-            cell_size * state.frames_x,
-            cell_size * state.frames_y,
-        )
-        pygame.draw.rect(surface, SELECTION_COLOR, selection, 2)
+            icon = self.renderer.render(Tile(*cell), ENTITY_ICON_SIZE, time)
+            surface.blit(icon, (row.x + 2, row.y + 1))
+            label = self.state.tileset.name_of(*cell) or f"Tile {cell[0]},{cell[1]}"
+            frames = self.state.tileset.animations.get(cell)
+            if frames:
+                label = label.removesuffix("_frame_0")
+                label = f"{label}  ({len(frames)} frames)"
+            text = font.render(label, True, TEXT_COLOR)
+            surface.blit(text, text.get_rect(midleft=(row.x + ENTITY_ICON_SIZE + PANEL_PADDING, row.centery)))
+            if cell == current:
+                pygame.draw.rect(surface, SELECTION_COLOR, row, 2)
+            elif cell == hovered:
+                pygame.draw.rect(surface, HOVER_COLOR, row, 1)
+        surface.set_clip(self.rect)
         pygame.draw.rect(surface, BORDER_COLOR, self.tileset_rect.inflate(2, 2), 1)
-
-    def _tileset_image(self) -> pygame.Surface:
-        if self._scaled_tileset is None:
-            image = self.state.tileset.image
-            self._scaled_tileset = pygame.transform.scale(
-                image,
-                (image.get_width() * self.tileset_scale, image.get_height() * self.tileset_scale),
-            )
-        return self._scaled_tileset
-
-    def _undeclared_overlay(self) -> pygame.Surface:
-        """Darkens the sheet cells that the game cannot load."""
-        if self._undeclared_shade is None:
-            tileset = self.state.tileset
-            cell_size = TILE_SIZE * self.tileset_scale
-            shade = pygame.Surface(self._tileset_image().get_size(), pygame.SRCALPHA)
-            for y in range(tileset.rows):
-                for x in range(tileset.columns):
-                    if not tileset.is_declared(x, y):
-                        shade.fill(UNDECLARED_TILE_SHADE,
-                                   (x * cell_size, y * cell_size, cell_size, cell_size))
-            self._undeclared_shade = shade
-        return self._undeclared_shade

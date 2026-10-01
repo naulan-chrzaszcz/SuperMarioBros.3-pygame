@@ -7,6 +7,8 @@ Notable changes of the project. The format follows
 
 ### Added
 
+- Named tile list in the editor and YAML-driven animation frame names,
+  including non-adjacent frames; existing `+N` map animations remain supported.
 - Per-entity settings in the map editor (`Alt` + click a placed entity):
   undoable overrides in map JSON, preserved by copy/paste and validated by
   the game before offering a map for play.

@@ -13,6 +13,7 @@ from pygame.sprite import LayeredUpdates
 from ..sprite_animation import SpriteAnimation
 from ..tile import Tile
 from .sprites import Color, parse_color
+from .tile_animations import Animations
 
 Cell = Tuple[int, int]
 
@@ -272,6 +273,7 @@ class Map:
         sheet_metadata: Dict[str, str],
         map_data: dict,
         behaviours: Optional[Mapping[str, TileBehaviour]] = None,
+        animations: Optional[Animations] = None,
     ):
         parsed = MapData.parse(map_data)
         parsed.validate_sheet(
@@ -295,6 +297,7 @@ class Map:
             x, y = coordinate.split(",")
             self._coordinates.setdefault(name, (int(x), int(y)))
         self.behaviours = tile_behaviours(sheet_metadata, behaviours)
+        self.animations = animations or {}
         for row, codes in enumerate(parsed.tiles):
             for column, tile_code in enumerate(codes):
                 if tile_code is None:
@@ -311,7 +314,19 @@ class Map:
             Vector2(column * Tile.WIDTH, row * Tile.HEIGHT),
             collidable=self.collidables[row][column],
         )
-        if code.frames > 1:
+        if code.frames == 1 and (code.x, code.y) in self.animations:
+            frames = [
+                transform.rotate(
+                    sheet.subsurface(
+                        (x * Tile.WIDTH, y * Tile.HEIGHT), (Tile.WIDTH, Tile.HEIGHT)
+                    ).copy(),
+                    code.rotation * 90,
+                )
+                for x, y in self.animations[(code.x, code.y)]
+            ]
+            tile.set_animation(SpriteAnimation.from_frames(tile, frames, self.ANIMATION_SPEED))
+            self._animated.append(tile)
+        elif code.frames > 1:
             strip = sheet.subsurface(
                 origin, (code.x_frames * Tile.WIDTH, code.y_frames * Tile.HEIGHT)
             )

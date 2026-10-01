@@ -6,6 +6,8 @@
 #              hurt            hurts Mario (spikes, lava...)
 #              goal            clears the course
 #   becomes:   the tile drawn once a question_block is used
+#   A set of names ending in _frame_0, _frame_1, ... forms one animation,
+#   regardless of where its frames are in the image.
 tiles:
   - name: floor_top_left
     coordinate: {x: 0, y: 0}

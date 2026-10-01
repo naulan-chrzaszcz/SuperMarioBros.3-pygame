@@ -61,14 +61,6 @@ class EditorState:
         self.select(self.selection_x, self.selection_y)
 
     @property
-    def max_frames_x(self) -> int:
-        return self.tileset.columns - self.selection_x
-
-    @property
-    def max_frames_y(self) -> int:
-        return self.tileset.rows - self.selection_y
-
-    @property
     def selected_name(self) -> Optional[str]:
         return self.tileset.name_of(self.selection_x, self.selection_y)
 
@@ -87,18 +79,20 @@ class EditorState:
         )
 
     def select(self, x: int, y: int) -> None:
-        """Selects a sheet cell and clamps frame spans to fit the tileset."""
-        self.selection_x = min(max(x, 0), self.tileset.columns - 1)
-        self.selection_y = min(max(y, 0), self.tileset.rows - 1)
-        self.frames_x = min(self.frames_x, self.max_frames_x)
-        self.frames_y = min(self.frames_y, self.max_frames_y)
+        """Selects a logical tile and takes its animation from the YAML."""
+        x = min(max(x, 0), self.tileset.columns - 1)
+        y = min(max(y, 0), self.tileset.rows - 1)
+        self.selection_x, self.selection_y = self.tileset.origin_of(x, y)
+        self.frames_x, self.frames_y = 1, 1
 
     def cycle_selection(self, step: int) -> None:
         """Moves the selection to the next/previous usable tile of the sheet."""
-        cells = list(self.tileset.declared_cells())
+        cells = list(self.tileset.palette_cells())
         if not cells:
             return
         current = (self.selection_x, self.selection_y)
+        if current not in cells:
+            current = self.tileset.origin_of(*current)
         index = cells.index(current) if current in cells else -1
         self.select(*cells[(index + step) % len(cells)])
 
@@ -136,23 +130,11 @@ class EditorState:
     def rotate(self, direction: int = 1) -> None:
         self.rotation = (self.rotation + 90 * direction) % 360
 
-    def set_frames_x(self, value: int) -> None:
-        self.frames_x = min(max(value, 1), self.max_frames_x)
-        if self.frames_x > 1:
-            self.frames_y = 1
-
-    def set_frames_y(self, value: int) -> None:
-        self.frames_y = min(max(value, 1), self.max_frames_y)
-        if self.frames_y > 1:
-            self.frames_x = 1
-
     def pick(self, tile: Tile) -> None:
         """Copies a placed tile's sheet cell, frame span and rotation to the tools."""
-        self.frames_x = self.frames_y = 1
-        self.select(tile.x, tile.y)
+        self.selection_x, self.selection_y = tile.x, tile.y
+        self.frames_x, self.frames_y = tile.x_frames, tile.y_frames
         self.rotation = tile.rotation
-        self.set_frames_x(tile.x_frames)
-        self.set_frames_y(tile.y_frames)
         self.set_mode(Mode.TILES)
 
     def set_mode(self, mode: Mode) -> None:
