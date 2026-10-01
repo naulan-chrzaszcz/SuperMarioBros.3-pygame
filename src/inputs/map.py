@@ -182,6 +182,79 @@ class LevelSettings:
         return cls(name or None, time_limit, sky, music or None)
 
 
+def tile_behaviours(
+    metadata: Mapping[str, str], behaviours: Optional[Mapping[str, TileBehaviour]],
+) -> Dict[str, TileBehaviour]:
+    if behaviours:
+        return dict(behaviours)
+    guesses = {name: TileBehaviour.guess(name) for name in metadata.values()}
+    return {name: guess for name, guess in guesses.items() if guess is not None}
+
+
+@dataclass(frozen=True)
+class MapData:
+    """Validated map data, independent of Pygame surfaces and sprites."""
+
+    tiles: List[List[Optional[TileCode]]]
+    collidables: List[List[bool]]
+    entities: List[EntitySpawn]
+    settings: LevelSettings
+
+    @property
+    def columns(self) -> int:
+        return len(self.tiles[0])
+
+    @property
+    def rows(self) -> int:
+        return len(self.tiles)
+
+    @classmethod
+    def parse(cls, data: Any) -> "MapData":
+        if not isinstance(data, dict):
+            raise ValueError("A map must be a JSON object")
+        tiles, solids = data.get("tiles"), data.get("collidables")
+        if not isinstance(tiles, list) or not tiles or not isinstance(tiles[0], list) or not tiles[0]:
+            raise ValueError("Map tiles must be a non-empty matrix")
+        columns = len(tiles[0])
+        if any(not isinstance(row, list) or len(row) != columns for row in tiles):
+            raise ValueError("Every row of a map must have the same number of tiles")
+        if not isinstance(solids, list) or len(solids) != len(tiles) or any(
+            not isinstance(row, list) or len(row) != columns for row in solids
+        ):
+            raise ValueError("The collision grid does not match the size of the map")
+        if any(type(value) is not bool for row in solids for value in row):
+            raise ValueError("The collision grid must contain only booleans")
+        codes = [[TileCode.parse(value) for value in row] for row in tiles]
+        return cls(
+            codes, [list(row) for row in solids],
+            parse_entities(data.get("entities"), columns, len(tiles)),
+            LevelSettings.parse(data.get("level")),
+        )
+
+    def validate_sheet(
+        self, metadata: Mapping[str, str], behaviours: Mapping[str, TileBehaviour],
+        sheet_size: Tuple[int, int],
+    ) -> None:
+        """Check tiles and their replacements against the actual sheet image."""
+        sheet_columns, sheet_rows = sheet_size[0] // Tile.WIDTH, sheet_size[1] // Tile.HEIGHT
+        names = set(metadata.values())
+        for name, behaviour in behaviours.items():
+            if behaviour.becomes is not None and behaviour.becomes not in names:
+                raise ValueError(
+                    f"Tile {name!r} becomes {behaviour.becomes!r}, which the tileset does not declare")
+        for row, codes in enumerate(self.tiles):
+            for column, code in enumerate(codes):
+                if code is None:
+                    continue
+                if code.x + code.x_frames > sheet_columns or code.y + code.y_frames > sheet_rows:
+                    raise ValueError(f"Tile at {column},{row} is outside the tileset")
+                if f"{code.x},{code.y}" not in metadata:
+                    raise ValueError(
+                        f"Tile {code.x},{code.y} at {column},{row} "
+                        "is not declared in the tileset metadata"
+                    )
+
+
 class Map:
     """A level made with the map editor: tile sprites, a collision grid and the
     entities to spawn."""
@@ -200,20 +273,18 @@ class Map:
         map_data: dict,
         behaviours: Optional[Mapping[str, TileBehaviour]] = None,
     ):
-        tiles = map_data.get("tiles") or []
-        collidables = map_data.get("collidables") or []
-        self.rows = len(tiles)
-        self.columns = len(tiles[0]) if tiles else 0
-        if any(len(row) != self.columns for row in tiles):
-            raise ValueError("Every row of a map must have the same number of tiles")
-        if len(collidables) != self.rows or any(len(row) != self.columns for row in collidables):
-            raise ValueError("The collision grid does not match the size of the map")
+        parsed = MapData.parse(map_data)
+        parsed.validate_sheet(
+            sheet_metadata, tile_behaviours(sheet_metadata, behaviours), sheet.get_size()
+        )
+        self.rows = parsed.rows
+        self.columns = parsed.columns
 
         self.width = self.columns * Tile.WIDTH
         self.height = self.rows * Tile.HEIGHT
-        self.collidables: List[List[bool]] = [[bool(value) for value in row] for row in collidables]
-        self.entities = parse_entities(map_data.get("entities"), self.columns, self.rows)
-        self.settings = LevelSettings.parse(map_data.get("level"))
+        self.collidables = parsed.collidables
+        self.entities = parsed.entities
+        self.settings = parsed.settings
         self.sprites = LayeredUpdates()
         self.sheet = sheet
         self._by_name: Dict[str, List[Tile]] = {}
@@ -223,33 +294,12 @@ class Map:
         for coordinate, name in sheet_metadata.items():
             x, y = coordinate.split(",")
             self._coordinates.setdefault(name, (int(x), int(y)))
-        if behaviours:
-            self.behaviours: Dict[str, TileBehaviour] = dict(behaviours)
-        else:
-            guesses = {name: TileBehaviour.guess(name) for name in self._coordinates}
-            self.behaviours = {name: guess for name, guess in guesses.items() if guess is not None}
-        for name, behaviour in self.behaviours.items():
-            if behaviour.becomes is not None and behaviour.becomes not in self._coordinates:
-                raise ValueError(
-                    f"Tile {name!r} becomes {behaviour.becomes!r}, which the tileset does not declare")
-
-        sheet_columns = sheet.get_width() // Tile.WIDTH
-        sheet_rows = sheet.get_height() // Tile.HEIGHT
-        for row, codes in enumerate(tiles):
-            for column, code in enumerate(codes):
-                tile_code = TileCode.parse(code)
+        self.behaviours = tile_behaviours(sheet_metadata, behaviours)
+        for row, codes in enumerate(parsed.tiles):
+            for column, tile_code in enumerate(codes):
                 if tile_code is None:
                     continue
-                last_x = tile_code.x + tile_code.x_frames - 1
-                last_y = tile_code.y + tile_code.y_frames - 1
-                if last_x >= sheet_columns or last_y >= sheet_rows:
-                    raise ValueError(f"Tile {code!r} at {column},{row} is outside the tileset")
-                name = sheet_metadata.get(f"{tile_code.x},{tile_code.y}")
-                if name is None:
-                    raise ValueError(
-                        f"Tile {tile_code.x},{tile_code.y} at {column},{row} "
-                        "is not declared in the tileset metadata"
-                    )
+                name = sheet_metadata[f"{tile_code.x},{tile_code.y}"]
                 self._add_tile(sheet, tile_code, name, column, row)
 
     def _add_tile(self, sheet: Surface, code: TileCode, name: str, column: int, row: int) -> None:

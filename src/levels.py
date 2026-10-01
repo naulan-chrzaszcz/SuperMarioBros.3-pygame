@@ -12,12 +12,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple
 
+import pygame
 import yaml
 from pygame import Surface, image
 
 from .constants import PROJECT_ROOT, RESSOURCES_FILE
 from .entities.spawner import validate_spawns
-from .inputs.map import LevelSettings, Map, TileBehaviour, TileCode, parse_entities
+from .inputs.map import Map, MapData, TileBehaviour, tile_behaviours
 from .inputs.ressources import Ressources
 
 MAPS_DIRECTORY = PROJECT_ROOT / "res" / "maps"
@@ -108,43 +109,49 @@ class LevelCatalog:
         try:
             with path.open(encoding="utf-8") as file:
                 data = json.load(file)
-            if not isinstance(data, dict) or not data.get("tiles"):
-                raise ValueError("this file is not a map")
-            size = (len(data["tiles"][0]), len(data["tiles"]))
-            cells = self._cells_of(data)
-            spawns = parse_entities(data.get("entities"), *size)
-            validate_spawns(spawns)
-            settings = LevelSettings.parse(data.get("level"))
-        except (OSError, ValueError, TypeError, IndexError) as error:
+            parsed = MapData.parse(data)
+            size = (parsed.columns, parsed.rows)
+            validate_spawns(parsed.entities)
+            title = parsed.settings.name or name
+            result = self._check_sheet(data, name, path, size, parsed, sheet_path)
+        except (OSError, ValueError, TypeError, IndexError, KeyError, yaml.YAMLError, pygame.error) as error:
             return LevelInfo(name, path, error=f"Cannot read the map: {error}", title=name)
-        title = settings.name or name
-        result = self._check_sheet(data, name, path, size, cells, sheet_path)
         return LevelInfo(result.name, result.path, result.sheet_path, result.size, result.error, title)
 
-    def _check_sheet(self, data, name, path, size, cells, sheet_path) -> LevelInfo:
-
+    def _check_sheet(self, data, name, path, size, parsed, sheet_path) -> LevelInfo:
         if sheet_path is None and isinstance(data.get("sheet"), str):
             sheet_path = self.root / data["sheet"]
         if sheet_path is not None:
             sheet_path = Path(sheet_path).resolve()
             if not sheet_path.is_file():
                 return LevelInfo(name, path, size=size, error=f"Missing tileset {sheet_path.name}")
-            metadata = self.sheet(sheet_path).metadata
-            if metadata is None:
+            sheet = self.sheet(sheet_path)
+            if sheet.metadata is None:
                 return LevelInfo(name, path, sheet_path, size, f"{sheet_path.name} has no metadata")
-            missing = cells - metadata.keys()
-            if missing:
-                return LevelInfo(
-                    name, path, sheet_path, size,
-                    f"{len(missing)} tile type(s) are not declared in {sheet_path.name}",
-                )
+            try:
+                self._validate_sheet(parsed, sheet)
+            except ValueError as error:
+                return LevelInfo(name, path, sheet_path, size, str(error))
             return LevelInfo(name, path, sheet_path, size)
 
         for candidate in self._sheet_paths():
-            metadata = self.sheet(candidate).metadata
-            if metadata is not None and cells <= metadata.keys():
+            sheet = self.sheet(candidate)
+            if sheet.metadata is not None:
+                try:
+                    self._validate_sheet(parsed, sheet)
+                except ValueError:
+                    continue
                 return LevelInfo(name, path, candidate, size)
         return LevelInfo(name, path, size=size, error="No tileset declares every tile of this map")
+
+    @staticmethod
+    def _validate_sheet(parsed: MapData, sheet: SheetInfo) -> None:
+        if sheet.metadata is None:
+            raise ValueError(f"{sheet.path.name} has no metadata")
+        parsed.validate_sheet(
+            sheet.metadata, tile_behaviours(sheet.metadata, sheet.behaviours),
+            image.load(str(sheet.path)).get_size(),
+        )
 
     def load(self, level: LevelInfo) -> Map:
         """Builds the map of a playable level. Raises ValueError otherwise."""
@@ -190,26 +197,10 @@ class LevelCatalog:
             metadata_path = path.with_suffix(".yaml")
         metadata = behaviours = None
         if metadata_path is not None:
-            try:
-                metadata = Ressources.read_metadata(metadata_path)
-                behaviours = Ressources.read_behaviours(metadata_path)
-            except (OSError, yaml.YAMLError, KeyError, TypeError, ValueError):
-                metadata = behaviours = None
+            metadata = Ressources.read_metadata(metadata_path)
+            behaviours = Ressources.read_behaviours(metadata_path)
         return SheetInfo(path, color_key, metadata, behaviours)
 
     def _ressource_images(self) -> List[dict]:
-        try:
-            with self.ressources_file.open(encoding="utf-8") as file:
-                return (yaml.safe_load(file) or {}).get("images", [])
-        except (OSError, yaml.YAMLError):
-            return []
-
-    @staticmethod
-    def _cells_of(data: dict) -> set:
-        cells = set()
-        for row in data["tiles"]:
-            for code in row:
-                tile = TileCode.parse(code)
-                if tile is not None:
-                    cells.add(f"{tile.x},{tile.y}")
-        return cells
+        with self.ressources_file.open(encoding="utf-8") as file:
+            return (yaml.safe_load(file) or {}).get("images", [])

@@ -81,7 +81,11 @@ sequenceDiagram
 `Game` is the only place that creates objects (the *composition root*).
 Scenes get everything they need through a `GameContext` (config, ressources,
 save, font, HUD, maps, levels, rules, sprites, audio, `open_editor`,
-`play_level`), so tests can build a game with fake files or a fake editor.
+`play_level`, `persist_progress`), so tests can build a game with fake files
+or a fake editor. `ProgressSession` (`src/progress.py`) owns the active level's
+progress: normal play uses the real save and persists it when leaving, while
+practice uses a deep copy that is never persisted. The HUD reads this active
+session; the real save is also written on shutdown.
 
 ## Scenes
 
@@ -107,6 +111,10 @@ keys: `config.yaml` maps the keys to the actions. `platform_level` is a single
 scene that plays any map; `play_level(level, on_finish)` starts it, and
 `on_finish(cleared)` decides where to go next.
 
+`LevelEffects` (`src/scenes/level_effects.py`) owns the transient block bumps,
+coin pops, score popups and debris, including their animation and drawing.
+The level scene still decides when gameplay creates an effect.
+
 ## A frame of a platform level
 
 `PlatformLevelScene._update_playing` (`src/scenes/platform_level_scene.py`):
@@ -120,6 +128,14 @@ scene that plays any map; `play_level(level, on_finish)` starts it, and
    checks the contacts and calls `touch_mario(level, stomp)`, which runs its
    `onStomp` or its `onTouch` effect.
 4. Then the timer, the hurry music and the camera.
+
+`MapData.parse` (`src/inputs/map.py`) checks dimensions, collision booleans,
+tile codes, entity positions and level settings before creating sprites.
+Both `LevelCatalog.info` and `Map` use it; both also check each tile and
+replacement against the actual tileset image and metadata. Invalid levels
+are shown as unplayable in the catalog instead of failing only on entry.
+The catalog also calls `validate_spawns` for per-instance entity settings
+written by the editor; `MapData` retains those overrides for the spawner.
 
 Entities never see the scene: they talk to it through the small `Level`
 protocol (`mario`, `is_solid`, `hurt_mario`, `stomped`, `score`,
@@ -205,10 +221,8 @@ shared type.
 `tests/` drives the real code with the dummy SDL drivers (no window, no
 sound card):
 
-- `test_game.py`: scenes, levels, entities, editor bridge (`LevelTestCase`
-  plays a map written by `write_level`).
-- `test_data.py`: the data files and the tuning mechanism.
-- `test_map_editor.py`: editor models, controllers and file format.
+- `test_architecture.py`: config, map/catalog consistency, level effects and
+  practice versus saved progression.
 
 `Audio.history` records the sound events, so tests can check that `jump` was
 played without hearing it.

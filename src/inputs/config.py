@@ -5,7 +5,7 @@ Every setting is optional; a misspelt one is reported with the known names.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field, fields, replace
+from dataclasses import dataclass, field, fields
 from enum import Enum, auto
 from pathlib import Path
 from typing import Any, Dict, Mapping, Optional, Tuple
@@ -86,6 +86,21 @@ class Controls:
         default_factory=lambda: dict(DEFAULT_CONTROLS)
     )
 
+    def __post_init__(self) -> None:
+        used: Dict[str, Action] = {}
+        for action, names in self.bindings.items():
+            if not names:
+                raise ValueError(f"Action {action.name.lower()} needs at least one key")
+            for name in names:
+                if not isinstance(name, str) or not name:
+                    raise ValueError(f"Invalid key for action {action.name.lower()}: {name!r}")
+                if name in used and used[name] != action:
+                    raise ValueError(
+                        f"Key {name!r} is assigned to both {used[name].name.lower()} "
+                        f"and {action.name.lower()}"
+                    )
+                used[name] = action
+
     def action_of(self, key_name: str) -> Optional[Action]:
         key_name = key_name.lower()
         for action, names in self.bindings.items():
@@ -103,7 +118,9 @@ class Controls:
                 raise ValueError(f"Unknown action in controls: {name!r}") from None
             if isinstance(keys, str):
                 keys = [keys]
-            bindings[action] = tuple(str(key).lower() for key in keys)
+            if not isinstance(keys, (list, tuple)) or not keys:
+                raise ValueError(f"Controls for {action.name.lower()} need a list of keys")
+            bindings[action] = tuple(key.lower() if isinstance(key, str) else key for key in keys)
         return cls(bindings)
 
 
@@ -118,12 +135,23 @@ def _snake_to_camel(name: str) -> str:
 
 def _section(cls, data: Optional[Mapping[str, Any]]):
     """Builds a dataclass from a YAML section, keeping defaults for missing keys."""
+    if data is not None and not isinstance(data, Mapping):
+        raise ValueError(f"{cls.__name__.lower()} must be a mapping")
     known = {item.name for item in fields(cls)}
     values = {}
     for key, value in (data or {}).items():
         name = _camel_to_snake(key)
         if name not in known:
             raise ValueError(f"Unknown setting {key!r} for {cls.__name__.lower()}")
+        default = getattr(cls, name)
+        valid = (
+            type(value) is bool if isinstance(default, bool) else
+            type(value) is int if isinstance(default, int) else
+            isinstance(value, (int, float)) and not isinstance(value, bool)
+            if isinstance(default, float) else isinstance(value, type(default))
+        )
+        if not valid:
+            raise ValueError(f"{cls.__name__.lower()}.{key} has an invalid type")
         values[name] = value
     return cls(**values)
 
@@ -143,10 +171,18 @@ class Config:
 
     @classmethod
     def from_dict(cls, data: Optional[Mapping[str, Any]]) -> "Config":
+        if data is not None and not isinstance(data, Mapping):
+            raise ValueError("config must be a mapping")
         data = dict(data or {})
+        framerate = data.pop("framerateLimit", cls.framerate_limit)
+        skip_intro = data.pop("skipIntro", cls.skip_intro)
+        if type(framerate) is not int or framerate <= 0:
+            raise ValueError("framerateLimit must be a positive whole number")
+        if type(skip_intro) is not bool:
+            raise ValueError("skipIntro must be true or false")
         config = cls(
-            framerate_limit=int(data.pop("framerateLimit", cls.framerate_limit)),
-            skip_intro=bool(data.pop("skipIntro", cls.skip_intro)),
+            framerate_limit=framerate,
+            skip_intro=skip_intro,
             mixer=_section(Mixer, data.pop("mixer", None)),
             audio=_section(Audio, data.pop("audio", None)),
             display=_section(Display, data.pop("display", None)),
@@ -163,8 +199,6 @@ class Config:
             volume = getattr(config.audio, name)
             if isinstance(volume, bool) or not isinstance(volume, (int, float)) or not 0 <= volume <= 1:
                 raise ValueError(f"audio {name.replace('_v', 'V')} must be a number from 0 to 1")
-        if config.framerate_limit <= 0:
-            config = replace(config, framerate_limit=Config.framerate_limit)
         return config
 
     @classmethod

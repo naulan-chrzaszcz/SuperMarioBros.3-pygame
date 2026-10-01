@@ -176,8 +176,14 @@ class SettingsScene(Scene):
             self.message = None
             return
         action = self.actions[self.selected]
+        if any(
+            name != action and key_name in keys and len(keys) == 1
+            for name, keys in self.config.controls.bindings.items()
+        ):
+            self.message = "KEY IN USE BY ANOTHER ACTION"
+            return
         bindings = {
-            name: tuple(key for key in keys if key != key_name) or keys
+            name: tuple(key for key in keys if key != key_name)
             for name, keys in self.config.controls.bindings.items()
         }
         bindings[action] = (key_name,)
@@ -198,7 +204,11 @@ class SettingsScene(Scene):
             self.selected = self.CONTROLS_ROW
             self.message = None
         else:
-            self.context.save_config()
+            try:
+                self.context.save_config()
+            except OSError as error:
+                self.message = f"COULD NOT SAVE SETTINGS: {error}"
+                return
             self.manager.change_scene("main_menu")
 
     def draw(self) -> None:

@@ -132,7 +132,11 @@ silent, and so is the game without an audio device.
 ## Settings: `config.yaml`
 
 Every setting is optional: a missing one keeps its default value, a misspelt
-one is reported when the game starts.
+one or a value of the wrong type is reported when the game starts. Boolean
+settings require YAML `true`/`false` (not quoted strings), `framerateLimit`
+must be a positive integer, and a key cannot belong to two actions. The
+settings screen refuses to take another action's only key, and displays a
+write error so you can retry without losing your changes.
 
 | Setting                 | Meaning                                                   |
 |-------------------------|-----------------------------------------------------------|
@@ -170,6 +174,9 @@ back.
   map needs a tile named `start`; a tile named `levelN` opens the level
   `level_N`.
 - `save.yaml`: progress of the player (world, lives, score, coins...).
+  Normal levels save on exit/clear and the game saves again on shutdown.
+  Testing a level from the editor uses a disposable copy: score, coins,
+  lives and power-ups earned in practice never change `save.yaml`.
 
 ## Code structure
 
@@ -182,6 +189,7 @@ src/
   map_manager.py           maps of ressources.yaml, loaded on first use
   world_map.py             grid movement on the world map (no pygame drawing)
   levels.py                playable maps of res/maps and their tileset
+  progress.py              real or disposable (practice) level progress
   platformer.py            Mario's movement and collisions (no pygame drawing)
   editor_bridge.py         runs the map editor in the game window
   font.py, hud.py          bitmap font and status bar
@@ -193,7 +201,8 @@ src/
                            rules.yaml, sprites.yaml; tuning.py applies the
                            camelCase settings to the class constants
   scenes/                  intro, title screen, world card, world map,
-                           custom level list, settings, platform level
+                           custom level list, settings, platform level,
+                           transient level effects
   entities/                entities.yaml catalog, data-driven Entity base
                            class, koopa, spawner; player.py (world map)
 tests/                     python -m unittest discover -s tests
@@ -205,7 +214,7 @@ together at run time (main loop, scenes, entities, editor), with diagrams.
 
 Scenes receive a `GameContext` (config, ressources, save, font, HUD, maps,
 display surface, level catalog, rules, sprite bank, audio, `open_editor`,
-`play_level`, `apply_config` and `save_config`) instead of reaching global singletons, and react to
+`play_level`, `apply_config`, `save_config` and `persist_progress`) instead of reaching global singletons, and react to
 *actions* (`Action.CONFIRM`...) rather than raw keys.
 
 ### Adding a level

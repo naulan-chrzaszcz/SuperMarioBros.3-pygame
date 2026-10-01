@@ -43,6 +43,13 @@ Notable changes of the project. The format follows
 
 ### Changed
 
+- Separate transient platform-level effects from gameplay and isolate editor
+  practice progress from the real save. Persist normal progress on level exit
+  and on shutdown, with an in-game retry on write failure.
+- Validate maps and tileset image bounds consistently in the catalog and the
+  runtime; reject non-boolean collision cells and malformed tileset metadata.
+- Reject mistyped configuration values and conflicting controls; show settings
+  write failures without leaving the settings screen.
 - The goomba and the mushrooms are pure data: their Python classes are gone and
   only the shell state machine of the koopa remains a class.
 - Game engine refactor: scenes receive a `GameContext`, actions instead of raw
