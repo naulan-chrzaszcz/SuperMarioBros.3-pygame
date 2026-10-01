@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, Mapping
+from typing import TYPE_CHECKING, Dict, List, Mapping
 
 import yaml
 from pygame import Surface, image
@@ -63,12 +63,26 @@ class Ressources:
     @staticmethod
     def read_metadata(path: Path) -> Dict[str, str]:
         """Tile names of a sheet, indexed by ``"x,y"`` tile coordinates."""
-        with Path(path).open(encoding="utf-8") as metadata_file:
-            metadata = yaml.safe_load(metadata_file) or {}
         return {
             f"{tile['coordinate']['x']},{tile['coordinate']['y']}": str(tile["name"])
-            for tile in metadata.get("tiles", [])
+            for tile in Ressources._sheet_tiles(path)
         }
+
+    @staticmethod
+    def _sheet_tiles(path: Path) -> List[dict]:
+        with Path(path).open(encoding="utf-8") as metadata_file:
+            metadata = yaml.safe_load(metadata_file)
+        if not isinstance(metadata, dict) or not isinstance(metadata.get("tiles"), list):
+            raise ValueError(f"{path}: tileset metadata must contain a list of tiles")
+        for tile in metadata["tiles"]:
+            if not isinstance(tile, dict) or not isinstance(tile.get("coordinate"), dict):
+                raise ValueError(f"{path}: each tile needs a name and x,y coordinates")
+            coordinate = tile["coordinate"]
+            if not isinstance(tile.get("name"), str) or not tile["name"] or any(
+                type(coordinate.get(axis)) is not int or coordinate[axis] < 0 for axis in ("x", "y")
+            ):
+                raise ValueError(f"{path}: each tile needs a name and non-negative x,y coordinates")
+        return metadata["tiles"]
 
     @staticmethod
     def read_behaviours(path: Path) -> Dict[str, "TileBehaviour"]:
@@ -76,10 +90,8 @@ class Ressources:
         ``becomes`` keys of its tiles), indexed by tile name."""
         from .map import TileBehaviour
 
-        with Path(path).open(encoding="utf-8") as metadata_file:
-            metadata = yaml.safe_load(metadata_file) or {}
         behaviours = {}
-        for tile in metadata.get("tiles", []):
+        for tile in Ressources._sheet_tiles(path):
             if tile.get("behaviour") is not None:
                 behaviours[str(tile["name"])] = TileBehaviour.parse(
                     tile["behaviour"], tile.get("becomes"), f"{Path(path).name}: tile {tile['name']!r}"

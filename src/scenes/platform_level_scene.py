@@ -24,7 +24,9 @@ from ..inputs.save import Game, PlayerState
 from ..inputs.tuning import tune
 from ..levels import LevelInfo
 from ..platformer import Body, Controls
+from ..progress import ProgressSession
 from ..tile import Tile
+from .level_effects import LevelEffects
 from .scene import GameContext, Scene
 
 FinishCallback = Callable[[bool], None]
@@ -132,6 +134,7 @@ class PlatformLevelScene(Scene):
         self.state = State.ERROR
         self.finished = False
         self.start_big = False
+        self._pending_finish: Optional[bool] = None
 
     def start(self, level: LevelInfo, on_finish: FinishCallback, practice: bool = False) -> None:
         """Plays ``level``; ``on_finish(cleared)`` is called when it is left.
@@ -141,6 +144,7 @@ class PlatformLevelScene(Scene):
         self.level = level
         self.on_finish = on_finish
         self.practice = practice
+        self.progress = ProgressSession(self.context.save, practice, self.context.persist_progress)
         self.manager.change_scene(self.NAME)
 
     # ------------------------------------------------------------------ state
@@ -148,7 +152,7 @@ class PlatformLevelScene(Scene):
     def on_enter(self) -> None:
         super().on_enter()
         self.held: Set[Action] = set()
-        self.start_big = self.context.save.game.state is PlayerState.BIG
+        self.start_big = self.progress.game.state is PlayerState.BIG
         self.restart()
 
     def restart(self) -> None:
@@ -157,10 +161,7 @@ class PlatformLevelScene(Scene):
         self.clock = 0.0
         self.state_timer = 0.0
         self.jump_pressed = False
-        self.bumps: Dict[Tile, float] = {}
-        self.coin_pops: List[List[float]] = []
-        self.popups: List[list] = []
-        self.debris: List[list] = []
+        self.effects = LevelEffects(self.BUMP_DURATION, self.COIN_POP_DURATION, self.POPUP_DURATION)
         self.entities: List[Entity] = []
         self.hidden_items: Dict[Cell, Entity] = {}
         self.time_left = float(self.TIME_LIMIT)
@@ -168,6 +169,7 @@ class PlatformLevelScene(Scene):
         self.hurried = False
         self.message: Optional[str] = None
         self.finished = False
+        self._pending_finish = None
         self.big = False
         self.combo = 0
         self.transition = 0.0
@@ -243,6 +245,14 @@ class PlatformLevelScene(Scene):
         # The level is left once, even if on_finish does not change the scene.
         if self.finished:
             return
+        try:
+            self.progress.commit()
+        except OSError as error:
+            self.state = State.ERROR
+            self._pending_finish = cleared
+            self.error = f"Could not save progress: {error}"
+            return
+        self._pending_finish = None
         self.finished = True
         self.context.audio.stop_music()
         self.on_finish(cleared)
@@ -253,7 +263,10 @@ class PlatformLevelScene(Scene):
         if self.finished:
             return
         if self.state == State.ERROR:
-            if action in (Action.CONFIRM, Action.BACK):
+            if self._pending_finish is not None:
+                if action == Action.CONFIRM:
+                    self.finish(self._pending_finish)
+            elif action in (Action.CONFIRM, Action.BACK):
                 self.finish(False)
             return
         if self.state == State.PAUSED:
@@ -303,9 +316,9 @@ class PlatformLevelScene(Scene):
         elif self.state == State.CLEAR:
             self._update_clear(dt)
         elif self.state == State.GAME_OVER and self.state_timer >= self.CLEAR_DELAY * 2:
-            self.context.save.game = Game(level=self.context.save.game.level)
+            self.progress.game = Game(level=self.progress.game.level)
             self.finish(False)
-        self.context.hud.refresh(self.context.save, math.ceil(self.time_left))
+        self.context.hud.refresh(self.progress.save, math.ceil(self.time_left))
 
     def _update_playing(self, dt: float) -> None:
         if self.transition > 0:
@@ -396,7 +409,7 @@ class PlatformLevelScene(Scene):
             self.body.y += self.body.vy * dt
         if self.state_timer < self.DEATH_DURATION:
             return
-        game = self.context.save.game
+        game = self.progress.game
         if self.practice:
             self.restart()
         elif game.life > 1:
@@ -411,7 +424,7 @@ class PlatformLevelScene(Scene):
         if self.time_left > 0:
             units = min(self.time_left, math.ceil(self.TIME_COUNT_SPEED * dt))
             self.time_left -= units
-            self.context.save.game.score += int(units) * self.TIME_BONUS
+            self.progress.game.score += int(units) * self.TIME_BONUS
             self.state_timer = 0.0
         elif self.state_timer >= self.CLEAR_DELAY:
             self.finish(True)
@@ -434,8 +447,7 @@ class PlatformLevelScene(Scene):
         if big != self.big:
             self.body.resize(self.body.BIG_HEIGHT if big else self.body.HEIGHT)
         self.big = big
-        if not self.practice:
-            self.context.save.game.state = PlayerState.BIG if big else PlayerState.LITTLE
+        self.progress.game.state = PlayerState.BIG if big else PlayerState.LITTLE
 
     # ------------------------------------------------- the Level of entities
 
@@ -463,8 +475,8 @@ class PlatformLevelScene(Scene):
         self.combo += 1
 
     def score(self, points: int, x: float, y: float) -> None:
-        self.context.save.game.score += points
-        self.popups.append([str(points), x, y, 0.0])
+        self.progress.game.score += points
+        self.effects.popups.append([str(points), x, y, 0.0])
 
     def grow_mario(self, x: float, y: float) -> None:
         self.score(self.MUSHROOM_SCORE, x, y)
@@ -474,8 +486,8 @@ class PlatformLevelScene(Scene):
             self.transition = self.TRANSITION_DURATION
 
     def add_life(self, x: float, y: float) -> None:
-        self.context.save.game.life += 1
-        self.popups.append(["1UP", x, y, 0.0])
+        self.progress.game.life += 1
+        self.effects.popups.append(["1UP", x, y, 0.0])
         self.play_sound("one_up")
 
     # ------------------------------------------------------ coins and blocks
@@ -505,7 +517,7 @@ class PlatformLevelScene(Scene):
                     return
 
     def add_coin(self, score: int) -> None:
-        game = self.context.save.game
+        game = self.progress.game
         game.score += score
         game.coins += 1
         self.play_sound("coin")
@@ -522,7 +534,7 @@ class PlatformLevelScene(Scene):
             return
         self._knock_entities_on(column, row)
         if tile is not None:
-            self.bumps[tile] = self.BUMP_DURATION
+            self.effects.bumps[tile] = self.BUMP_DURATION
         behaviour = self.map.behaviour_of(tile)
         kind = behaviour.kind if behaviour is not None else None
         if item is not None:
@@ -534,7 +546,7 @@ class PlatformLevelScene(Scene):
             if behaviour.becomes:
                 self.map.replace(tile, behaviour.becomes)
             self.add_coin(self.BLOCK_SCORE)
-            self.coin_pops.append([tile.rect.x, tile.rect.y - TILE_HEIGHT, 0.0])
+            self.effects.coin_pops.append([tile.rect.x, tile.rect.y - TILE_HEIGHT, 0.0])
         elif kind == "brick" and self.big:
             self._break(tile, column, row)
         else:
@@ -550,40 +562,14 @@ class PlatformLevelScene(Scene):
                 entity.knock(self, 1 if rect.centerx >= cell.centerx else -1)
 
     def _break(self, tile: Tile, column: int, row: int) -> None:
-        self.bumps.pop(tile, None)
-        image = tile.image
+        self.effects.break_tile(tile, column, row)
         self.map.remove(tile)
         self.map.set_collidable(column, row, False)
-        self.context.save.game.score += self.BRICK_SCORE
+        self.progress.game.score += self.BRICK_SCORE
         self.play_sound("brick")
-        half_width, half_height = TILE_WIDTH // 2, TILE_HEIGHT // 2
-        for dx in (0, 1):
-            for dy in (0, 1):
-                piece = image.subsurface((dx * half_width, dy * half_height, half_width, half_height)).copy()
-                self.debris.append([
-                    piece,
-                    column * TILE_WIDTH + dx * half_width,
-                    row * TILE_HEIGHT + dy * half_height,
-                    (dx * 2 - 1) * 60.0,
-                    -300.0 + dy * 100.0,
-                ])
 
     def _update_effects(self, dt: float) -> None:
-        for tile in list(self.bumps):
-            self.bumps[tile] -= dt
-            if self.bumps[tile] <= 0:
-                del self.bumps[tile]
-        for pop in self.coin_pops:
-            pop[2] += dt
-        self.coin_pops = [pop for pop in self.coin_pops if pop[2] < self.COIN_POP_DURATION]
-        for popup in self.popups:
-            popup[3] += dt
-        self.popups = [popup for popup in self.popups if popup[3] < self.POPUP_DURATION]
-        for piece in self.debris:
-            piece[4] = min(piece[4] + self.body.GRAVITY * dt, self.body.MAX_FALL_SPEED * 2)
-            piece[1] += piece[3] * dt
-            piece[2] += piece[4] * dt
-        self.debris = [piece for piece in self.debris if piece[2] < self.map.height + TILE_HEIGHT]
+        self.effects.update(dt, self.body.GRAVITY, self.body.MAX_FALL_SPEED, self.map.height)
 
     def _move_camera(self) -> None:
         view_width, view_height = self.view_size
@@ -608,7 +594,8 @@ class PlatformLevelScene(Scene):
         if self.state == State.ERROR:
             self._draw_lines(["THIS LEVEL CANNOT BE PLAYED", "",
                               *self.context.font.wrap(self.error or "", 54),
-                              "", "PRESS A TO GO BACK"], surface.get_height() // 2)
+                              "", "PRESS A TO RETRY" if self._pending_finish is not None
+                              else "PRESS A TO GO BACK"], surface.get_height() // 2)
             return
 
         view_width, view_height = self.view_size
@@ -618,11 +605,11 @@ class PlatformLevelScene(Scene):
         surface.fill(self.sky, sky.clip(view))
         self._draw_entities(behind_tiles=True)
         self._draw_tiles(view)
-        self._draw_coin_pops()
+        self.effects.draw_coins(surface, self.camera, self.map)
         self._draw_entities(behind_tiles=False)
         self._draw_mario()
-        self._draw_debris()
-        self._draw_popups()
+        self.effects.draw_debris(surface, self.camera)
+        self.effects.draw_popups(surface, self.camera, self.context.font)
         surface.set_clip(None)
 
         hud = self.context.hud
@@ -643,9 +630,7 @@ class PlatformLevelScene(Scene):
                 tile = self.map.tile_at(column, row)
                 if tile is None:
                     continue
-                offset = 0
-                if tile in self.bumps:
-                    offset = -round(4 * math.sin(math.pi * (1 - self.bumps[tile] / self.BUMP_DURATION)))
+                offset = self.effects.tile_offset(tile)
                 self.surface.blit(
                     tile.image,
                     (column * TILE_WIDTH - round(camera_x), row * TILE_HEIGHT - round(camera_y) + offset),
@@ -655,16 +640,6 @@ class PlatformLevelScene(Scene):
         for entity in self.entities:
             if entity.active and entity.behind_tiles == behind_tiles:
                 entity.draw(self.surface, self.camera.x, self.camera.y)
-
-    def _draw_coin_pops(self) -> None:
-        coins = self.map.names_with("coin")
-        if not self.coin_pops or not coins:
-            return
-        coin = self.map.image_of(coins[0])
-        for x, y, age in self.coin_pops:
-            t = age / self.COIN_POP_DURATION
-            height = 24 * math.sin(math.pi * t)
-            self.surface.blit(coin, (x - round(self.camera.x), y - height - round(self.camera.y)))
 
     def _draw_mario(self) -> None:
         body = self.body
@@ -681,20 +656,6 @@ class PlatformLevelScene(Scene):
         x = body.center_x - image.get_width() / 2 - self.camera.x
         y = body.bottom - image.get_height() - self.camera.y
         self.surface.blit(image, (round(x), round(y)))
-
-    def _draw_debris(self) -> None:
-        for image, x, y, _, _ in self.debris:
-            self.surface.blit(image, (round(x - self.camera.x), round(y - self.camera.y)))
-
-    def _draw_popups(self) -> None:
-        font = self.context.font
-        for text, x, y, age in self.popups:
-            image = font.render(text)
-            rise = 24 * age / self.POPUP_DURATION
-            self.surface.blit(
-                image,
-                (round(x - image.get_width() / 2 - self.camera.x), round(y - 8 - rise - self.camera.y)),
-            )
 
     def _draw_lines(self, lines: List[str], center_y: int) -> None:
         font = self.context.font

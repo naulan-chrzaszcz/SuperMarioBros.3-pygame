@@ -12,7 +12,7 @@ from pygame import Rect, Surface
 
 from .animation import SpriteBank
 from .audio import Audio
-from .constants import BLACK, CONFIG_FILE, MAX_FRAME_TIME, TITLE
+from .constants import BLACK, CONFIG_FILE, MAX_FRAME_TIME, SAVE_FILE, TITLE
 from .editor_bridge import EditorResult, EditorSession
 from .entities.catalog import entity_types
 from .entities.spawner import validate_entity_types
@@ -83,10 +83,11 @@ class Game:
         editor: Optional[EditorSession] = None,
         rules: Optional[Rules] = None,
         config_path: Optional[Path] = None,
+        save_path: Optional[Path] = None,
     ):
         # The settings are written back only when they come from a file.
-        # The settings are written back only when they come from a file.
         self.config_path = config_path or (None if config is not None else CONFIG_FILE)
+        self.save_path = save_path if save_path is not None else (None if save is not None else SAVE_FILE)
         self.config = config or Config.load(self.config_path)
         mixer = self.config.mixer
         pygame.mixer.pre_init(mixer.frequency, mixer.size, mixer.channels, mixer.buffer)
@@ -97,7 +98,7 @@ class Game:
 
         display = Surface((self.config.display.width, self.config.display.height))
         ressources = Ressources.load()
-        save = save or Save.load()
+        save = save if save is not None else Save.load(self.save_path)
         font = Font(ressources.image("font"))
         rules = rules or Rules.load()
         sprites = SpriteBank(ressources)
@@ -122,6 +123,7 @@ class Game:
             play_level=self.play_level,
             apply_config=self.apply_config,
             save_config=self.save_config,
+            persist_progress=self.save_progress,
         )
         self.editor = editor or EditorSession()
         self._editor_requested = False
@@ -176,6 +178,11 @@ class Game:
         if self.config_path is not None:
             self.config.write(self.config_path)
 
+    def save_progress(self) -> None:
+        """Persist only real progress; explicit in-memory saves stay in memory."""
+        if self.save_path is not None:
+            self.context.save.write(self.save_path)
+
     def open_editor(self) -> None:
         """Asks for the map editor; it opens once the current frame is updated."""
         if not self.editor.paused:
@@ -220,4 +227,7 @@ class Game:
                 self.step(pygame.event.get(), self.clock.tick(self.config.framerate_limit) / 1000.0)
                 pygame.display.flip()
         finally:
-            pygame.quit()
+            try:
+                self.save_progress()
+            finally:
+                pygame.quit()

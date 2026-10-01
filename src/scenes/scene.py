@@ -54,6 +54,7 @@ class GameContext:
     # Uses new settings right away, then writes them to config.yaml.
     apply_config: Callable[[Config], None] = field(default=_unavailable)
     save_config: Callable[[], None] = field(default=_unavailable)
+    persist_progress: Callable[[], None] = field(default=_unavailable)
 
     def __post_init__(self) -> None:
         if self.sprites is None:

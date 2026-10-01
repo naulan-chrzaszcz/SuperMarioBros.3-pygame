@@ -55,11 +55,9 @@ python -m isort --check-only src map_editor tests SuperMarioBros3.pyw
 # isort without --check-only sorts the imports for you.
 ```
 
-Every fix or feature should come with a test in `tests/`:
-`tests/test_game.py` for the game, `tests/test_map_editor.py` for the editor.
-The tests drive the real code with fake events (see `LevelTestCase` and
-`write_level` in `tests/test_game.py`), so most behaviours can be tested
-without a screen.
+Every fix or feature should come with a test in `tests/`. See
+`tests/test_architecture.py` for examples of validating configuration,
+maps and gameplay with dummy SDL drivers and temporary files.
 
 ## Code style
 
